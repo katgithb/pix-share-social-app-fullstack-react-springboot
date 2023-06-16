@@ -1,0 +1,10 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DEV_DB_HOST}:${DEV_DB_PORT}/pixshare_db
+  jpa:
+    hibernate:
+      ddl-auto: 'create'
+    show-sql: true
