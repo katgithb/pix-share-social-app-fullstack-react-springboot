@@ -2,7 +2,7 @@ package com.pixshare.pixshareapi.post;
 
 import com.pixshare.pixshareapi.comment.Comment;
 import com.pixshare.pixshareapi.user.User;
-import com.pixshare.pixshareapi.user.UserDTO;
+import com.pixshare.pixshareapi.user.UserView;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -48,7 +48,7 @@ public class Post {
     @Embedded
     @ElementCollection
     @JoinTable(name = "post_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
-    private Set<UserDTO> likedByUsers = new LinkedHashSet<>();
+    private Set<UserView> likedByUsers = new LinkedHashSet<>();
 
     @ToString.Exclude
     @ManyToMany(mappedBy = "savedPosts")

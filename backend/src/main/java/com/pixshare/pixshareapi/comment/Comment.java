@@ -2,7 +2,7 @@ package com.pixshare.pixshareapi.comment;
 
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.user.User;
-import com.pixshare.pixshareapi.user.UserDTO;
+import com.pixshare.pixshareapi.user.UserView;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -36,7 +36,7 @@ public class Comment {
     @Embedded
     @ElementCollection
     @CollectionTable(name = "comment_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
-    private Set<UserDTO> likedByUsers = new LinkedHashSet<>();
+    private Set<UserView> likedByUsers = new LinkedHashSet<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

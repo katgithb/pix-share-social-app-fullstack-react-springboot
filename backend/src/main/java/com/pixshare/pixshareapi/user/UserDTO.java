@@ -20,5 +20,15 @@ public class UserDTO {
     private String username;
     private String email;
     private String name;
+    private String mobile;
+    private String website;
+    private String bio;
+    private Gender gender;
     private String userImage;
+    private Set<UserView> follower;
+    private Set<UserView> following;
+    private List<Story> stories;
+    private Set<Post> savedPosts;
+    private List<Post> posts;
+    private List<Comment> comments;
 }
