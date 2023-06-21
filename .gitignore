@@ -35,6 +35,9 @@ build/
 .vscode/*
 !.vscode/extensions.json
 
+### Local Environment Configuration ###
+**/*.env*
+
 
 ### --- JavaScript --- ###
 
