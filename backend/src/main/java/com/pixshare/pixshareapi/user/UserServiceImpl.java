@@ -56,6 +56,10 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
+        if (existsUserWithEmail(updateRequest.email())) {
+            throw new DuplicateResourceException("This email is already taken");
+        }
+
         Map<Object, Map<Object, Consumer<User>>> fieldUpdateMap = populateFieldUpdateMap(updateRequest, user);
 
         boolean changes = fieldUpdateMap.values()
@@ -216,12 +220,7 @@ public class UserServiceImpl implements UserService {
         return Optional.ofNullable(updateRequest)
                 .map(req -> Stream.of(
                                 fieldUpdateEntry(req.username(), user.getUsername(), c -> c.setUsername(req.username())),
-                                fieldUpdateEntry(req.email(), user.getEmail(), c -> {
-                                    if (existsUserWithEmail(req.email())) {
-                                        throw new DuplicateResourceException("This email is already taken");
-                                    }
-                                    c.setEmail(req.email());
-                                }),
+                                fieldUpdateEntry(req.email(), user.getEmail(), c -> c.setEmail(req.email())),
                                 fieldUpdateEntry(req.password(), user.getPassword(), c -> c.setPassword(req.password())),
                                 fieldUpdateEntry(req.name(), user.getName(), c -> c.setName(req.name())),
                                 fieldUpdateEntry(req.mobile(), user.getMobile(), c -> c.setMobile(req.mobile())),
