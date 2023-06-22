@@ -1,11 +1,20 @@
 package com.pixshare.pixshareapi.user;
 
+import com.pixshare.pixshareapi.post.PostDTOMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class UserDTOMapper implements Function<User, UserDTO> {
+
+    private final PostDTOMapper postDTOMapper;
+
+    public UserDTOMapper(PostDTOMapper postDTOMapper) {
+        this.postDTOMapper = postDTOMapper;
+    }
+
     @Override
     public UserDTO apply(User user) {
         return new UserDTO(
@@ -21,9 +30,10 @@ public class UserDTOMapper implements Function<User, UserDTO> {
                 user.getFollower(),
                 user.getFollowing(),
                 user.getStories(),
-                user.getSavedPosts(),
-                user.getPosts(),
-                user.getComments()
+                user.getSavedPosts().stream()
+                        .map(postDTOMapper)
+                        .collect(Collectors.toSet())
         );
     }
+
 }

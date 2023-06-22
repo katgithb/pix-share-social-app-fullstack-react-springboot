@@ -15,11 +15,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
-    private final UserDTOMapper userDTOMapper;
-
-    public UserServiceImpl(UserRepository userRepository, UserDTOMapper userDTOMapper) {
+    public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.userDTOMapper = userDTOMapper;
     }
 
     @Override
@@ -89,22 +86,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO findUserById(Long userId) throws ResourceNotFoundException {
+    public User findUserById(Long userId) throws ResourceNotFoundException {
         return userRepository.findById(userId)
-                .map(userDTOMapper)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
     }
 
     @Override
-    public UserDTO findUserByUsername(String username) throws ResourceNotFoundException {
+    public User findUserByUsername(String username) throws ResourceNotFoundException {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        return userDTOMapper.apply(user);
+        return user;
     }
 
     @Override
-    public UserDTO findUserProfile(String token) throws ResourceNotFoundException {
+    public User findUserProfile(String token) throws ResourceNotFoundException {
         return null;
     }
 
@@ -153,9 +149,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> findUserByIds(List<Long> userIds) throws ResourceNotFoundException {
-        List<UserDTO> users = userRepository.findAllUsersByUserIds(userIds).stream()
-                .map(userDTOMapper)
+    public List<User> findUserByIds(List<Long> userIds) throws ResourceNotFoundException {
+        List<User> users = userRepository.findAllUsersByUserIds(userIds).stream()
                 .collect(Collectors.collectingAndThen(Collectors.toList(), result -> {
                     if (result.isEmpty()) throw new ResourceNotFoundException("User not found");
                     return result;
@@ -165,9 +160,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> searchUser(String searchQuery) throws ResourceNotFoundException {
-        List<UserDTO> users = userRepository.findByQuery(searchQuery).stream()
-                .map(userDTOMapper)
+    public List<User> searchUser(String searchQuery) throws ResourceNotFoundException {
+        List<User> users = userRepository.findByQuery(searchQuery).stream()
                 .collect(Collectors.collectingAndThen(Collectors.toList(), result -> {
                     if (result.isEmpty()) throw new ResourceNotFoundException("User not found");
                     return result;
@@ -177,12 +171,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> findPopularUsers(Long userId) throws ResourceNotFoundException {
+    public List<User> findPopularUsers(Long userId) throws ResourceNotFoundException {
         User reqUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        List<UserDTO> users = userRepository.findPopularUsers(reqUser.getId()).stream()
-                .map(userDTOMapper)
-                .collect(Collectors.toList());
+        List<User> users = userRepository.findPopularUsers(reqUser.getId());
 
         return users;
     }

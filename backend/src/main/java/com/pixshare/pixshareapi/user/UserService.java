@@ -16,20 +16,20 @@ public interface UserService {
 
     void deleteUserById(Long userId) throws ResourceNotFoundException;
 
-    UserDTO findUserById(Long userId) throws ResourceNotFoundException;
+    User findUserById(Long userId) throws ResourceNotFoundException;
 
-    UserDTO findUserByUsername(String username) throws ResourceNotFoundException;
+    User findUserByUsername(String username) throws ResourceNotFoundException;
 
-    UserDTO findUserProfile(String token) throws ResourceNotFoundException;
+    User findUserProfile(String token) throws ResourceNotFoundException;
 
     String followUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException;
 
     String unfollowUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException;
 
-    List<UserDTO> findUserByIds(List<Long> userIds) throws ResourceNotFoundException;
+    List<User> findUserByIds(List<Long> userIds) throws ResourceNotFoundException;
 
-    List<UserDTO> searchUser(String searchQuery) throws ResourceNotFoundException;
+    List<User> searchUser(String searchQuery) throws ResourceNotFoundException;
 
-    List<UserDTO> findPopularUsers(Long userId) throws ResourceNotFoundException;
+    List<User> findPopularUsers(Long userId) throws ResourceNotFoundException;
 
 }

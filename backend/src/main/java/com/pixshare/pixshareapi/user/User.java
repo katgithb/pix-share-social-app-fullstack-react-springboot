@@ -5,9 +5,11 @@ import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.story.Story;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 
 import java.util.*;
 
+@AllArgsConstructor
 @RequiredArgsConstructor
 @NoArgsConstructor(force = true)
 @Getter
@@ -100,37 +102,34 @@ public class User {
         this.userImage = userImage;
     }
 
+    public User(Long id, @NonNull String username, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImage, Set<UserView> follower, Set<UserView> following, List<Story> stories, Set<Post> savedPosts) {
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.mobile = mobile;
+        this.website = website;
+        this.bio = bio;
+        this.gender = gender;
+        this.userImage = userImage;
+        this.follower = follower;
+        this.following = following;
+        this.stories = stories;
+        this.savedPosts = savedPosts;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof User user)) return false;
-        return Objects.equals(id, user.id) && Objects.equals(username, user.username) && Objects.equals(email, user.email) && Objects.equals(password, user.password) && Objects.equals(name, user.name) && Objects.equals(mobile, user.mobile) && Objects.equals(website, user.website) && Objects.equals(bio, user.bio) && gender == user.gender && Objects.equals(userImage, user.userImage) && Objects.equals(posts, user.posts) && Objects.equals(comments, user.comments) && Objects.equals(follower, user.follower) && Objects.equals(following, user.following) && Objects.equals(stories, user.stories) && Objects.equals(savedPosts, user.savedPosts);
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o))
+            return false;
+        User user = (User) o;
+        return getId() != null && Objects.equals(getId(), user.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, username, email, password, name, mobile, website, bio, gender, userImage, posts, comments, follower, following, stories, savedPosts);
-    }
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", password='" + password + '\'' +
-                ", name='" + name + '\'' +
-                ", mobile='" + mobile + '\'' +
-                ", website='" + website + '\'' +
-                ", bio='" + bio + '\'' +
-                ", gender=" + gender +
-                ", userImage='" + userImage + '\'' +
-                ", posts=" + posts +
-                ", comments=" + comments +
-                ", follower=" + follower +
-                ", following=" + following +
-                ", stories=" + stories +
-                ", savedPosts=" + savedPosts +
-                '}';
+        return getClass().hashCode();
     }
 }

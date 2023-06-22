@@ -5,12 +5,10 @@ import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserView;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -42,7 +40,7 @@ public class Post {
     private User user;
 
     @ToString.Exclude
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "post", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
     @Embedded
@@ -50,8 +48,17 @@ public class Post {
     @JoinTable(name = "post_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
     private Set<UserView> likedByUsers = new LinkedHashSet<>();
 
-    @ToString.Exclude
-    @ManyToMany(mappedBy = "savedPosts")
-    private Set<User> savedByUsers = new LinkedHashSet<>();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o))
+            return false;
+        Post post = (Post) o;
+        return getId() != null && Objects.equals(getId(), post.getId());
+    }
 
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

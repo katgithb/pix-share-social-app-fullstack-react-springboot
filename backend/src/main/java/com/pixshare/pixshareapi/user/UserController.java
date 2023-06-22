@@ -12,22 +12,29 @@ public class UserController {
 
     private final UserService userService;
 
-    public UserController(UserService userService) {
+    private final UserDTOMapper userDTOMapper;
+
+    public UserController(UserService userService, UserDTOMapper userDTOMapper) {
         this.userService = userService;
+        this.userDTOMapper = userDTOMapper;
     }
 
     @GetMapping("/id/{userId}")
     public ResponseEntity<UserDTO> findUserById(
             @PathVariable("userId") Long userId) {
-        UserDTO user = userService.findUserById(userId);
-        return new ResponseEntity<>(user, HttpStatus.OK);
+        User user = userService.findUserById(userId);
+        UserDTO userDTO = userDTOMapper.apply(user);
+
+        return new ResponseEntity<>(userDTO, HttpStatus.OK);
     }
 
     @GetMapping("/username/{username}")
     public ResponseEntity<UserDTO> findUserByUsername(
             @PathVariable("username") String username) {
-        UserDTO user = userService.findUserByUsername(username);
-        return new ResponseEntity<>(user, HttpStatus.OK);
+        User user = userService.findUserByUsername(username);
+        UserDTO userDTO = userDTOMapper.apply(user);
+
+        return new ResponseEntity<>(userDTO, HttpStatus.OK);
     }
 
     @PutMapping("/account/edit")
@@ -44,16 +51,22 @@ public class UserController {
     @GetMapping("/m/{userIds}")
     public ResponseEntity<List<UserDTO>> findUserByIds(
             @PathVariable("userIds") List<Long> userIds) {
-        List<UserDTO> users = userService.findUserByIds(userIds);
-        return new ResponseEntity<>(users, HttpStatus.OK);
+        List<User> users = userService.findUserByIds(userIds);
+        List<UserDTO> userDTOS = users.stream()
+                .map(userDTOMapper).toList();
+
+        return new ResponseEntity<>(userDTOS, HttpStatus.OK);
     }
 
     // /search?q=query
     @GetMapping("/search")
     public ResponseEntity<List<UserDTO>> searchUser(
             @RequestParam("q") String query) {
-        List<UserDTO> users = userService.searchUser(query);
-        return new ResponseEntity<>(users, HttpStatus.OK);
+        List<User> users = userService.searchUser(query);
+        List<UserDTO> userDTOS = users.stream()
+                .map(userDTOMapper).toList();
+
+        return new ResponseEntity<>(userDTOS, HttpStatus.OK);
     }
 
 }

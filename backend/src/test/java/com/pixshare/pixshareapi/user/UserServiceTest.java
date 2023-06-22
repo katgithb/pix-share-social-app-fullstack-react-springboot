@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,14 +23,13 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    private final UserDTOMapper userDTOMapper = new UserDTOMapper();
     private UserService userService;
     @Mock
     private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, userDTOMapper);
+        userService = new UserServiceImpl(userRepository);
     }
 
 
@@ -323,19 +321,18 @@ class UserServiceTest {
     void findUserByIdWhenUserIdIsValid() {
         // Given
         Long userId = 1L;
-        User user = new User(
+        User expectedUser = new User(
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image.jpg");
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        UserDTO expectedUserDTO = userDTOMapper.apply(user);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(expectedUser));
 
         // When
-        UserDTO actualUserDTO = userService.findUserById(userId);
+        User actualUser = userService.findUserById(userId);
 
         // Then
-        assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
+        assertThat(actualUser).isEqualTo(expectedUser);
         verify(userRepository, times(1)).findById(userId);
     }
 
@@ -360,17 +357,16 @@ class UserServiceTest {
     void findUserByUsernameWhenUsernameExists() {
         // Given
         String username = "john_doe";
-        User user = new User(username, "john.doe@example.com",
+        User expectedUser = new User(username, "john.doe@example.com",
                 "password", "John Doe", Gender.MALE);
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        UserDTO expectedUserDTO = userDTOMapper.apply(user);
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(expectedUser));
 
         // When
-        UserDTO actualUserDTO = userService.findUserByUsername(username);
+        User actualUser = userService.findUserByUsername(username);
 
         // Then
-        assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
+        assertThat(actualUser).isEqualTo(expectedUser);
         verify(userRepository, times(1)).findByUsername(username);
     }
 
@@ -564,7 +560,7 @@ class UserServiceTest {
     void findUserByIdsWhenGivenValidUserIds() {
         // Given
         List<Long> userIds = List.of(1L, 2L, 3L);
-        List<User> users = List.of(
+        List<User> expectedUsers = List.of(
                 new User(1L, "user1", "user1@example.com", "password1", "User 1", null, null, null, Gender.MALE, null),
                 new User(2L, "user2", "user2@example.com", "password2", "User 2", null, null, null,
                         Gender.FEMALE, null),
@@ -572,26 +568,13 @@ class UserServiceTest {
                         Gender.OTHER, null)
         );
 
-        when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(users);
-
-
-        List<UserDTO> expectedUserDTOs = List.of(
-                new UserDTO(1L, "user1", "user1@example.com", "User 1", null, null, null,
-                        Gender.MALE, null, Collections.emptySet(), Collections.emptySet(), Collections.emptyList(),
-                        Collections.emptySet(), Collections.emptyList(), Collections.emptyList()),
-                new UserDTO(2L, "user2", "user2@example.com", "User 2", null, null, null,
-                        Gender.FEMALE, null, Collections.emptySet(), Collections.emptySet(), Collections.emptyList(),
-                        Collections.emptySet(), Collections.emptyList(), Collections.emptyList()),
-                new UserDTO(3L, "user3", "user3@example.com", "User 3", null, null, null,
-                        Gender.OTHER, null, Collections.emptySet(), Collections.emptySet(), Collections.emptyList(),
-                        Collections.emptySet(), Collections.emptyList(), Collections.emptyList())
-        );
+        when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(expectedUsers);
 
         // When
-        List<UserDTO> actualUserDTOs = userService.findUserByIds(userIds);
+        List<User> actualUsers = userService.findUserByIds(userIds);
 
         // Then
-        assertThat(actualUserDTOs).isEqualTo(expectedUserDTOs);
+        assertThat(actualUsers).isEqualTo(expectedUsers);
         verify(userRepository, times(1)).findAllUsersByUserIds(userIds);
     }
 
@@ -656,7 +639,7 @@ class UserServiceTest {
         when(userRepository.findByQuery(searchQuery)).thenReturn(expectedUsers);
 
         // When
-        List<UserDTO> actualUsers = userService.searchUser(searchQuery);
+        List<User> actualUsers = userService.searchUser(searchQuery);
 
         // Then
         assertThat(actualUsers.size()).isEqualTo(2);
