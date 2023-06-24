@@ -1,8 +1,10 @@
-package com.pixshare.pixshareapi.user;
+package com.pixshare.pixshareapi.dto;
 
-import com.pixshare.pixshareapi.post.PostDTOMapper;
+import com.pixshare.pixshareapi.user.User;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,10 +31,10 @@ public class UserDTOMapper implements Function<User, UserDTO> {
                 user.getUserImage(),
                 user.getFollower(),
                 user.getFollowing(),
-                user.getStories(),
+                new ArrayList<>(),
                 user.getSavedPosts().stream()
                         .map(postDTOMapper)
-                        .collect(Collectors.toSet())
+                        .collect(Collectors.toCollection(LinkedHashSet::new))
         );
     }
 

@@ -1,14 +1,18 @@
 package com.pixshare.pixshareapi.post;
 
-import com.pixshare.pixshareapi.comment.Comment;
+import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.user.User;
-import com.pixshare.pixshareapi.user.UserView;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -39,9 +43,9 @@ public class Post {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ToString.Exclude
-    @OneToMany(mappedBy = "post", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> comments = new ArrayList<>();
+//    @ToString.Exclude
+//    @OneToMany(mappedBy = "post", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<Comment> comments = new ArrayList<>();
 
     @Embedded
     @ElementCollection

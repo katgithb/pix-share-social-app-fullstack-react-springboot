@@ -1,4 +1,4 @@
-package com.pixshare.pixshareapi.user;
+package com.pixshare.pixshareapi.dto;
 
 import lombok.*;
 

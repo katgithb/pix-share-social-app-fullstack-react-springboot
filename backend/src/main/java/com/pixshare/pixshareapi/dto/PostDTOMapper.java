@@ -1,8 +1,9 @@
-package com.pixshare.pixshareapi.post;
+package com.pixshare.pixshareapi.dto;
 
-import com.pixshare.pixshareapi.user.UserViewMapper;
+import com.pixshare.pixshareapi.post.Post;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.function.Function;
 
 @Service
@@ -23,7 +24,7 @@ public class PostDTOMapper implements Function<Post, PostDTO> {
                 post.getLocation(),
                 post.getCreatedAt(),
                 userViewMapper.apply(post.getUser()),
-                post.getComments(),
+                new ArrayList<>(),
                 post.getLikedByUsers()
         );
     }

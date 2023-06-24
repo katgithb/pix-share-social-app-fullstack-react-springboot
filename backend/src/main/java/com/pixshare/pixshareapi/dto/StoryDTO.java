@@ -1,6 +1,5 @@
-package com.pixshare.pixshareapi.story;
+package com.pixshare.pixshareapi.dto;
 
-import com.pixshare.pixshareapi.user.UserView;
 import lombok.*;
 
 import java.time.LocalDateTime;

@@ -1,6 +1,8 @@
 package com.pixshare.pixshareapi.post;
 
-import com.pixshare.pixshareapi.user.UserService;
+import com.pixshare.pixshareapi.comment.CommentService;
+import com.pixshare.pixshareapi.dto.PostDTO;
+import com.pixshare.pixshareapi.dto.PostDTOMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,20 +18,22 @@ public class PostController {
 
     private final PostService postService;
 
-    private final UserService userService;
+    private final CommentService commentService;
 
     private final PostDTOMapper postDTOMapper;
 
-    public PostController(PostService postService, UserService userService, PostDTOMapper postDTOMapper) {
+    public PostController(PostService postService, CommentService commentService, PostDTOMapper postDTOMapper) {
         this.postService = postService;
-        this.userService = userService;
+        this.commentService = commentService;
         this.postDTOMapper = postDTOMapper;
     }
 
     @GetMapping("/all/{userId}")
     public ResponseEntity<List<PostDTO>> findPostsByUserId(@PathVariable("userId") Long userId) {
         List<PostDTO> posts = postService.findPostsByUserId(userId).stream()
-                .map(postDTOMapper)
+                .peek(postDTO -> postDTO.setComments(
+                        commentService.findCommentsByPostId(postDTO.getId())
+                ))
                 .toList();
 
         return new ResponseEntity<>(posts, HttpStatus.OK);
@@ -37,7 +41,10 @@ public class PostController {
 
     @GetMapping("/id/{postId}")
     public ResponseEntity<PostDTO> findPostById(@PathVariable("postId") Long postId) {
-        PostDTO post = postDTOMapper.apply(postService.findPostById(postId));
+        PostDTO post = postService.findPostById(postId);
+        post.setComments(
+                commentService.findCommentsByPostId(postId)
+        );
 
         return new ResponseEntity<>(post, HttpStatus.OK);
     }
@@ -45,7 +52,9 @@ public class PostController {
     @GetMapping("/following/{userIds}")
     public ResponseEntity<List<PostDTO>> findAllPostsByUserIds(@PathVariable("userIds") List<Long> userIds) {
         List<PostDTO> posts = postService.findAllPostsByUserIds(userIds).stream()
-                .map(postDTOMapper)
+                .peek(postDTO -> postDTO.setComments(
+                        commentService.findCommentsByPostId(postDTO.getId())
+                ))
                 .toList();
 
         return new ResponseEntity<>(posts, HttpStatus.OK);

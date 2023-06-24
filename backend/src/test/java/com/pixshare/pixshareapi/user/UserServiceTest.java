@@ -1,5 +1,9 @@
 package com.pixshare.pixshareapi.user;
 
+import com.pixshare.pixshareapi.dto.PostDTOMapper;
+import com.pixshare.pixshareapi.dto.UserDTO;
+import com.pixshare.pixshareapi.dto.UserDTOMapper;
+import com.pixshare.pixshareapi.dto.UserViewMapper;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
@@ -12,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,13 +28,16 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
+    private final UserViewMapper userViewMapper = new UserViewMapper();
+    private final PostDTOMapper postDTOMapper = new PostDTOMapper(userViewMapper);
+    private final UserDTOMapper userDTOMapper = new UserDTOMapper(postDTOMapper);
     private UserService userService;
     @Mock
     private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository);
+        userService = new UserServiceImpl(userRepository, userDTOMapper);
     }
 
 
@@ -321,18 +329,23 @@ class UserServiceTest {
     void findUserByIdWhenUserIdIsValid() {
         // Given
         Long userId = 1L;
-        User expectedUser = new User(
+        User user = new User(
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image.jpg");
+        UserDTO expectedUserDTO = new UserDTO(
+                userId, "john.doe", "john.doe@example.com", "John Doe",
+                "1234567890", "www.example.com", "Bio",
+                Gender.MALE, "image.jpg", new LinkedHashSet<>(),
+                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>());
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(expectedUser));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // When
-        User actualUser = userService.findUserById(userId);
+        UserDTO actualUserDTO = userService.findUserById(userId);
 
         // Then
-        assertThat(actualUser).isEqualTo(expectedUser);
+        assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
         verify(userRepository, times(1)).findById(userId);
     }
 
@@ -357,16 +370,22 @@ class UserServiceTest {
     void findUserByUsernameWhenUsernameExists() {
         // Given
         String username = "john_doe";
-        User expectedUser = new User(username, "john.doe@example.com",
+        User user = new User(username, "john.doe@example.com",
                 "password", "John Doe", Gender.MALE);
+        user.setId(1L);
+        UserDTO expectedUserDTO = new UserDTO(
+                1L, username, "john.doe@example.com", "John Doe",
+                null, null, null,
+                Gender.MALE, null, new LinkedHashSet<>(),
+                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>());
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(expectedUser));
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
         // When
-        User actualUser = userService.findUserByUsername(username);
+        UserDTO actualUserDTO = userService.findUserByUsername(username);
 
         // Then
-        assertThat(actualUser).isEqualTo(expectedUser);
+        assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
         verify(userRepository, times(1)).findByUsername(username);
     }
 
@@ -560,18 +579,29 @@ class UserServiceTest {
     void findUserByIdsWhenGivenValidUserIds() {
         // Given
         List<Long> userIds = List.of(1L, 2L, 3L);
-        List<User> expectedUsers = List.of(
+        List<User> users = List.of(
                 new User(1L, "user1", "user1@example.com", "password1", "User 1", null, null, null, Gender.MALE, null),
                 new User(2L, "user2", "user2@example.com", "password2", "User 2", null, null, null,
                         Gender.FEMALE, null),
                 new User(3L, "user3", "user3@example.com", "password3", "User 3", null, null, null,
                         Gender.OTHER, null)
         );
+        List<UserDTO> expectedUsers = List.of(
+                new UserDTO(1L, "user1", "user1@example.com", "User 1", null, null, null,
+                        Gender.MALE, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                new UserDTO(2L, "user2", "user2@example.com", "User 2", null, null, null,
+                        Gender.FEMALE, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                new UserDTO(3L, "user3", "user3@example.com", "User 3", null, null, null,
+                        Gender.OTHER, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>())
+        );
 
-        when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(expectedUsers);
+        when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(users);
 
         // When
-        List<User> actualUsers = userService.findUserByIds(userIds);
+        List<UserDTO> actualUsers = userService.findUserByIds(userIds);
 
         // Then
         assertThat(actualUsers).isEqualTo(expectedUsers);
@@ -630,16 +660,25 @@ class UserServiceTest {
     void searchUserWhenMatchingUsersFound() {
         // Given
         String searchQuery = "John";
-        List<User> expectedUsers = List.of(
+        List<User> users = List.of(
                 new User(1L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
                         Gender.MALE, null),
                 new User(2L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
                         Gender.MALE, null)
         );
-        when(userRepository.findByQuery(searchQuery)).thenReturn(expectedUsers);
+        List<UserDTO> expectedUsers = List.of(
+                new UserDTO(1L, "john.doe", "john.doe@example.com", "John Doe", null, null, null,
+                        Gender.MALE, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                new UserDTO(2L, "john.smith", "john.smith@example.com", "John Smith", null, null, null,
+                        Gender.MALE, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>())
+        );
+
+        when(userRepository.findByQuery(searchQuery)).thenReturn(users);
 
         // When
-        List<User> actualUsers = userService.searchUser(searchQuery);
+        List<UserDTO> actualUsers = userService.searchUser(searchQuery);
 
         // Then
         assertThat(actualUsers.size()).isEqualTo(2);

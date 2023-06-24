@@ -1,7 +1,6 @@
-package com.pixshare.pixshareapi.user;
+package com.pixshare.pixshareapi.dto;
 
-import com.pixshare.pixshareapi.post.PostDTO;
-import com.pixshare.pixshareapi.story.Story;
+import com.pixshare.pixshareapi.user.Gender;
 import lombok.*;
 
 import java.util.List;
@@ -24,6 +23,6 @@ public class UserDTO {
     private String userImage;
     private Set<UserView> follower;
     private Set<UserView> following;
-    private List<Story> stories;
+    private List<StoryDTO> stories;
     private Set<PostDTO> savedPosts;
 }

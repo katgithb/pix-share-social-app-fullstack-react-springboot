@@ -1,5 +1,6 @@
-package com.pixshare.pixshareapi.user;
+package com.pixshare.pixshareapi.dto;
 
+import com.pixshare.pixshareapi.user.User;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Function;

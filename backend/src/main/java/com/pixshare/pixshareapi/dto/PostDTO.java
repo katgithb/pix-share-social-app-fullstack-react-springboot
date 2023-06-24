@@ -1,9 +1,9 @@
-package com.pixshare.pixshareapi.comment;
+package com.pixshare.pixshareapi.dto;
 
-import com.pixshare.pixshareapi.user.UserView;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -11,10 +11,13 @@ import java.util.Set;
 @Getter
 @Setter
 @EqualsAndHashCode
-public class CommentDTO {
+public class PostDTO {
     private Long id;
-    private String content;
+    private String caption;
+    private String image;
+    private String location;
     private LocalDateTime createdAt;
     private UserView user;
+    private List<CommentDTO> comments;
     private Set<UserView> likedByUsers;
 }

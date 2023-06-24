@@ -1,8 +1,8 @@
 package com.pixshare.pixshareapi.comment;
 
+import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.user.User;
-import com.pixshare.pixshareapi.user.UserView;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

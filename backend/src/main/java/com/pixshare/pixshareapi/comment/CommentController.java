@@ -1,6 +1,8 @@
 package com.pixshare.pixshareapi.comment;
 
-import com.pixshare.pixshareapi.user.User;
+import com.pixshare.pixshareapi.dto.CommentDTO;
+import com.pixshare.pixshareapi.dto.CommentDTOMapper;
+import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.user.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,23 +30,20 @@ public class CommentController {
     public void createComment(
             @RequestBody Comment comment,
             @PathVariable("postId") Long postId) {
-        User user = userService.findUserByUsername("taylor");
+        UserDTO user = userService.findUserByUsername("taylor");
         commentService.createComment(comment, postId, user.getId());
     }
 
     @GetMapping("/id/{commentId}")
     public ResponseEntity<CommentDTO> findCommentById(@PathVariable("commentId") Long commentId) {
-        CommentDTO comment = commentDTOMapper.apply(
-                commentService.findCommentById(commentId));
+        CommentDTO comment = commentService.findCommentById(commentId);
 
         return new ResponseEntity<>(comment, HttpStatus.OK);
     }
 
     @GetMapping("/all/{postId}")
     public ResponseEntity<List<CommentDTO>> findCommentsByPostId(@PathVariable("postId") Long postId) {
-        List<CommentDTO> comments = commentService.findCommentsByPostId(postId).stream()
-                .map(commentDTOMapper)
-                .toList();
+        List<CommentDTO> comments = commentService.findCommentsByPostId(postId);
 
         return new ResponseEntity<>(comments, HttpStatus.OK);
     }

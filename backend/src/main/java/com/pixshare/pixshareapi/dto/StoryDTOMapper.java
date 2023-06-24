@@ -1,6 +1,6 @@
-package com.pixshare.pixshareapi.story;
+package com.pixshare.pixshareapi.dto;
 
-import com.pixshare.pixshareapi.user.UserViewMapper;
+import com.pixshare.pixshareapi.story.Story;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Function;

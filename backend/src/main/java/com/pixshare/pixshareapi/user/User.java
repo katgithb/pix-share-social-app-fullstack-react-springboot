@@ -1,13 +1,14 @@
 package com.pixshare.pixshareapi.user;
 
-import com.pixshare.pixshareapi.comment.Comment;
+import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.post.Post;
-import com.pixshare.pixshareapi.story.Story;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
 
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 @AllArgsConstructor
 @RequiredArgsConstructor
@@ -60,13 +61,13 @@ public class User {
     @Column(name = "user_image")
     private String userImage;
 
-    @ToString.Exclude
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Post> posts = new ArrayList<>();
-
-    @ToString.Exclude
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> comments = new ArrayList<>();
+//    @ToString.Exclude
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<Post> posts = new ArrayList<>();
+//
+//    @ToString.Exclude
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<Comment> comments = new ArrayList<>();
 
     @Embedded
     @ElementCollection
@@ -78,9 +79,9 @@ public class User {
     @CollectionTable(name = "user_following", joinColumns = @JoinColumn(name = "user_id"))
     private Set<UserView> following = new LinkedHashSet<>();
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "user_id")
-    private List<Story> stories = new ArrayList<>();
+//    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+//    @JoinColumn(name = "user_id")
+//    private List<Story> stories = new ArrayList<>();
 
     @ToString.Exclude
     @ManyToMany
@@ -102,22 +103,22 @@ public class User {
         this.userImage = userImage;
     }
 
-    public User(Long id, @NonNull String username, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImage, Set<UserView> follower, Set<UserView> following, List<Story> stories, Set<Post> savedPosts) {
-        this.id = id;
-        this.username = username;
-        this.email = email;
-        this.password = password;
-        this.name = name;
-        this.mobile = mobile;
-        this.website = website;
-        this.bio = bio;
-        this.gender = gender;
-        this.userImage = userImage;
-        this.follower = follower;
-        this.following = following;
-        this.stories = stories;
-        this.savedPosts = savedPosts;
-    }
+//    public User(Long id, @NonNull String username, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImage, Set<UserView> follower, Set<UserView> following, List<Story> stories, Set<Post> savedPosts) {
+//        this.id = id;
+//        this.username = username;
+//        this.email = email;
+//        this.password = password;
+//        this.name = name;
+//        this.mobile = mobile;
+//        this.website = website;
+//        this.bio = bio;
+//        this.gender = gender;
+//        this.userImage = userImage;
+//        this.follower = follower;
+//        this.following = following;
+//        this.stories = stories;
+//        this.savedPosts = savedPosts;
+//    }
 
     @Override
     public boolean equals(Object o) {

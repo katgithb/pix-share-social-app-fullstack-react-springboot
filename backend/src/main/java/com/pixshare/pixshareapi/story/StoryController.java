@@ -1,6 +1,7 @@
 package com.pixshare.pixshareapi.story;
 
-import com.pixshare.pixshareapi.user.User;
+import com.pixshare.pixshareapi.dto.StoryDTO;
+import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.user.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,25 +17,20 @@ public class StoryController {
 
     private final UserService userService;
 
-    private final StoryDTOMapper storyDTOMapper;
-
-    public StoryController(StoryService storyService, UserService userService, StoryDTOMapper storyDTOMapper) {
+    public StoryController(StoryService storyService, UserService userService) {
         this.storyService = storyService;
         this.userService = userService;
-        this.storyDTOMapper = storyDTOMapper;
     }
 
     @PostMapping("/create")
     public void createStory(@RequestBody Story story) {
-        User user = userService.findUserByUsername("taylor");
+        UserDTO user = userService.findUserByUsername("taylor");
         storyService.createStory(story, user.getId());
     }
 
     @GetMapping("/all/{userId}")
     public ResponseEntity<List<StoryDTO>> findStoriesByUserId(@PathVariable("userId") Long userId) {
-        List<StoryDTO> stories = storyService.findStoriesByUserId(userId).stream()
-                .map(storyDTOMapper)
-                .toList();
+        List<StoryDTO> stories = storyService.findStoriesByUserId(userId);
 
         return new ResponseEntity<>(stories, HttpStatus.OK);
     }
