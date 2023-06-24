@@ -1,5 +1,9 @@
 package com.pixshare.pixshareapi.user;
 
+import com.pixshare.pixshareapi.dto.PostDTOMapper;
+import com.pixshare.pixshareapi.dto.UserDTO;
+import com.pixshare.pixshareapi.dto.UserDTOMapper;
+import com.pixshare.pixshareapi.dto.UserViewMapper;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
@@ -12,7 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,7 +28,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    private final UserDTOMapper userDTOMapper = new UserDTOMapper();
+    private final UserViewMapper userViewMapper = new UserViewMapper();
+    private final PostDTOMapper postDTOMapper = new PostDTOMapper(userViewMapper);
+    private final UserDTOMapper userDTOMapper = new UserDTOMapper(postDTOMapper);
     private UserService userService;
     @Mock
     private UserRepository userRepository;
@@ -327,9 +333,13 @@ class UserServiceTest {
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image.jpg");
+        UserDTO expectedUserDTO = new UserDTO(
+                userId, "john.doe", "john.doe@example.com", "John Doe",
+                "1234567890", "www.example.com", "Bio",
+                Gender.MALE, "image.jpg", new LinkedHashSet<>(),
+                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>());
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        UserDTO expectedUserDTO = userDTOMapper.apply(user);
 
         // When
         UserDTO actualUserDTO = userService.findUserById(userId);
@@ -362,9 +372,14 @@ class UserServiceTest {
         String username = "john_doe";
         User user = new User(username, "john.doe@example.com",
                 "password", "John Doe", Gender.MALE);
+        user.setId(1L);
+        UserDTO expectedUserDTO = new UserDTO(
+                1L, username, "john.doe@example.com", "John Doe",
+                null, null, null,
+                Gender.MALE, null, new LinkedHashSet<>(),
+                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>());
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
-        UserDTO expectedUserDTO = userDTOMapper.apply(user);
 
         // When
         UserDTO actualUserDTO = userService.findUserByUsername(username);
@@ -571,27 +586,25 @@ class UserServiceTest {
                 new User(3L, "user3", "user3@example.com", "password3", "User 3", null, null, null,
                         Gender.OTHER, null)
         );
+        List<UserDTO> expectedUsers = List.of(
+                new UserDTO(1L, "user1", "user1@example.com", "User 1", null, null, null,
+                        Gender.MALE, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                new UserDTO(2L, "user2", "user2@example.com", "User 2", null, null, null,
+                        Gender.FEMALE, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                new UserDTO(3L, "user3", "user3@example.com", "User 3", null, null, null,
+                        Gender.OTHER, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>())
+        );
 
         when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(users);
 
-
-        List<UserDTO> expectedUserDTOs = List.of(
-                new UserDTO(1L, "user1", "user1@example.com", "User 1", null, null, null,
-                        Gender.MALE, null, Collections.emptySet(), Collections.emptySet(), Collections.emptyList(),
-                        Collections.emptySet(), Collections.emptyList(), Collections.emptyList()),
-                new UserDTO(2L, "user2", "user2@example.com", "User 2", null, null, null,
-                        Gender.FEMALE, null, Collections.emptySet(), Collections.emptySet(), Collections.emptyList(),
-                        Collections.emptySet(), Collections.emptyList(), Collections.emptyList()),
-                new UserDTO(3L, "user3", "user3@example.com", "User 3", null, null, null,
-                        Gender.OTHER, null, Collections.emptySet(), Collections.emptySet(), Collections.emptyList(),
-                        Collections.emptySet(), Collections.emptyList(), Collections.emptyList())
-        );
-
         // When
-        List<UserDTO> actualUserDTOs = userService.findUserByIds(userIds);
+        List<UserDTO> actualUsers = userService.findUserByIds(userIds);
 
         // Then
-        assertThat(actualUserDTOs).isEqualTo(expectedUserDTOs);
+        assertThat(actualUsers).isEqualTo(expectedUsers);
         verify(userRepository, times(1)).findAllUsersByUserIds(userIds);
     }
 
@@ -647,13 +660,22 @@ class UserServiceTest {
     void searchUserWhenMatchingUsersFound() {
         // Given
         String searchQuery = "John";
-        List<User> expectedUsers = List.of(
+        List<User> users = List.of(
                 new User(1L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
                         Gender.MALE, null),
                 new User(2L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
                         Gender.MALE, null)
         );
-        when(userRepository.findByQuery(searchQuery)).thenReturn(expectedUsers);
+        List<UserDTO> expectedUsers = List.of(
+                new UserDTO(1L, "john.doe", "john.doe@example.com", "John Doe", null, null, null,
+                        Gender.MALE, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                new UserDTO(2L, "john.smith", "john.smith@example.com", "John Smith", null, null, null,
+                        Gender.MALE, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>())
+        );
+
+        when(userRepository.findByQuery(searchQuery)).thenReturn(users);
 
         // When
         List<UserDTO> actualUsers = userService.searchUser(searchQuery);

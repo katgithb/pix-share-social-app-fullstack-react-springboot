@@ -1,15 +1,17 @@
 package com.pixshare.pixshareapi.post;
 
-import com.pixshare.pixshareapi.comment.Comment;
+import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.user.User;
-import com.pixshare.pixshareapi.user.UserView;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -41,17 +43,26 @@ public class Post {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ToString.Exclude
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> comments = new ArrayList<>();
+//    @ToString.Exclude
+//    @OneToMany(mappedBy = "post", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<Comment> comments = new ArrayList<>();
 
     @Embedded
     @ElementCollection
     @JoinTable(name = "post_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
     private Set<UserView> likedByUsers = new LinkedHashSet<>();
 
-    @ToString.Exclude
-    @ManyToMany(mappedBy = "savedPosts")
-    private Set<User> savedByUsers = new LinkedHashSet<>();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o))
+            return false;
+        Post post = (Post) o;
+        return getId() != null && Objects.equals(getId(), post.getId());
+    }
 
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

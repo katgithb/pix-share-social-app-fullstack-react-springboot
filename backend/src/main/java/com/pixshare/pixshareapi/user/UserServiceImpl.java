@@ -1,5 +1,8 @@
 package com.pixshare.pixshareapi.user;
 
+import com.pixshare.pixshareapi.dto.UserDTO;
+import com.pixshare.pixshareapi.dto.UserDTOMapper;
+import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
@@ -97,10 +100,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO findUserByUsername(String username) throws ResourceNotFoundException {
-        User user = userRepository.findByUsername(username)
+        UserDTO user = userRepository.findByUsername(username)
+                .map(userDTOMapper)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        return userDTOMapper.apply(user);
+        return user;
     }
 
     @Override
@@ -182,7 +186,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         List<UserDTO> users = userRepository.findPopularUsers(reqUser.getId()).stream()
                 .map(userDTOMapper)
-                .collect(Collectors.toList());
+                .toList();
 
         return users;
     }

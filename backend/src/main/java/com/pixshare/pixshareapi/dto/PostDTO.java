@@ -1,0 +1,23 @@
+package com.pixshare.pixshareapi.dto;
+
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@EqualsAndHashCode
+public class PostDTO {
+    private Long id;
+    private String caption;
+    private String image;
+    private String location;
+    private LocalDateTime createdAt;
+    private UserView user;
+    private List<CommentDTO> comments;
+    private Set<UserView> likedByUsers;
+}

@@ -1,16 +1,18 @@
 package com.pixshare.pixshareapi.comment;
 
+import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.user.User;
-import com.pixshare.pixshareapi.user.UserView;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -26,23 +28,36 @@ public class Comment {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @Column(name = "content")
+    private String content;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
-
-    @Column(name = "content")
-    private String content;
 
     @Embedded
     @ElementCollection
     @CollectionTable(name = "comment_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
     private Set<UserView> likedByUsers = new LinkedHashSet<>();
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o))
+            return false;
+        Comment comment = (Comment) o;
+        return getId() != null && Objects.equals(getId(), comment.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

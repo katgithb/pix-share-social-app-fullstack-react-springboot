@@ -1,5 +1,6 @@
 package com.pixshare.pixshareapi.user;
 
+import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 
 import java.util.List;

@@ -1,14 +1,12 @@
-package com.pixshare.pixshareapi.user;
+package com.pixshare.pixshareapi.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode
 public class UserView {
     private Long id;
     private String username;
