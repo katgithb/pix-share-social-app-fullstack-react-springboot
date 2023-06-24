@@ -1,6 +1,7 @@
 package com.pixshare.pixshareapi.dto;
 
 import com.pixshare.pixshareapi.user.User;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -34,7 +35,11 @@ public class UserDTOMapper implements Function<User, UserDTO> {
                 new ArrayList<>(),
                 user.getSavedPosts().stream()
                         .map(postDTOMapper)
-                        .collect(Collectors.toCollection(LinkedHashSet::new))
+                        .collect(Collectors.toCollection(
+                                LinkedHashSet::new)),
+                user.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(Collectors.toList())
         );
     }
 

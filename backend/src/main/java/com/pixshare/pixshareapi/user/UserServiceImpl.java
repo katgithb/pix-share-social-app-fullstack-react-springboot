@@ -6,6 +6,7 @@ import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -18,10 +19,13 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
+    private final PasswordEncoder passwordEncoder;
+
     private final UserDTOMapper userDTOMapper;
 
-    public UserServiceImpl(UserRepository userRepository, UserDTOMapper userDTOMapper) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, UserDTOMapper userDTOMapper) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.userDTOMapper = userDTOMapper;
     }
 
@@ -46,7 +50,7 @@ public class UserServiceImpl implements UserService {
         // save
         User user = new User(registrationRequest.username(),
                 registrationRequest.email(),
-                registrationRequest.password(),
+                passwordEncoder.encode(registrationRequest.password()),
                 registrationRequest.name(),
                 registrationRequest.gender());
         userRepository.save(user);
