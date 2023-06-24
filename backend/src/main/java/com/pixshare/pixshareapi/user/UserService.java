@@ -19,6 +19,8 @@ public interface UserService {
 
     UserDTO findUserById(Long userId) throws ResourceNotFoundException;
 
+    UserDTO findUserByEmail(String email) throws ResourceNotFoundException;
+
     UserDTO findUserByUsername(String username) throws ResourceNotFoundException;
 
     UserDTO findUserProfile(String token) throws ResourceNotFoundException;

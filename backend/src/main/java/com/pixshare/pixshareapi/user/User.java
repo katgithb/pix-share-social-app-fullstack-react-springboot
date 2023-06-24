@@ -5,10 +5,11 @@ import com.pixshare.pixshareapi.post.Post;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @AllArgsConstructor
 @RequiredArgsConstructor
@@ -21,7 +22,7 @@ import java.util.Set;
                 @UniqueConstraint(name = "user_email_unique", columnNames = "email")
         }
 )
-public class User {
+public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
     @SequenceGenerator(name = "user_seq", allocationSize = 1)
@@ -61,14 +62,6 @@ public class User {
     @Column(name = "user_image")
     private String userImage;
 
-//    @ToString.Exclude
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Post> posts = new ArrayList<>();
-//
-//    @ToString.Exclude
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Comment> comments = new ArrayList<>();
-
     @Embedded
     @ElementCollection
     @CollectionTable(name = "user_follower", joinColumns = @JoinColumn(name = "user_id"))
@@ -78,10 +71,6 @@ public class User {
     @ElementCollection
     @CollectionTable(name = "user_following", joinColumns = @JoinColumn(name = "user_id"))
     private Set<UserView> following = new LinkedHashSet<>();
-
-//    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-//    @JoinColumn(name = "user_id")
-//    private List<Story> stories = new ArrayList<>();
 
     @ToString.Exclude
     @ManyToMany
@@ -103,23 +92,6 @@ public class User {
         this.userImage = userImage;
     }
 
-//    public User(Long id, @NonNull String username, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImage, Set<UserView> follower, Set<UserView> following, List<Story> stories, Set<Post> savedPosts) {
-//        this.id = id;
-//        this.username = username;
-//        this.email = email;
-//        this.password = password;
-//        this.name = name;
-//        this.mobile = mobile;
-//        this.website = website;
-//        this.bio = bio;
-//        this.gender = gender;
-//        this.userImage = userImage;
-//        this.follower = follower;
-//        this.following = following;
-//        this.stories = stories;
-//        this.savedPosts = savedPosts;
-//    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -132,5 +104,30 @@ public class User {
     @Override
     public int hashCode() {
         return getClass().hashCode();
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 }
