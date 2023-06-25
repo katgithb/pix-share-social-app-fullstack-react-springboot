@@ -236,7 +236,7 @@ public class UserServiceImpl implements UserService {
     private Map<Object, Map<Object, Consumer<User>>> populateFieldUpdateMap(UserUpdateRequest updateRequest, User user) {
         return Optional.ofNullable(updateRequest)
                 .map(req -> Stream.of(
-                                fieldUpdateEntry(req.username(), user.getUsername(), c -> c.setUsername(req.username())),
+                                fieldUpdateEntry(req.username(), user.getUserHandleName(), c -> c.setUserHandleName(req.username())),
                                 fieldUpdateEntry(req.email(), user.getEmail(), c -> c.setEmail(req.email())),
                                 fieldUpdateEntry(req.password(), user.getPassword(), c -> c.setPassword(req.password())),
                                 fieldUpdateEntry(req.name(), user.getName(), c -> c.setName(req.name())),

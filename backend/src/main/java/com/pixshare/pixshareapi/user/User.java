@@ -31,7 +31,7 @@ public class User implements UserDetails {
 
     @NonNull
     @Column(name = "username", nullable = false)
-    private String username;
+    private String userHandleName;
 
     @NonNull
     @Column(name = "email", nullable = false)
@@ -79,9 +79,9 @@ public class User implements UserDetails {
             inverseJoinColumns = @JoinColumn(name = "post_id"))
     private Set<Post> savedPosts = new LinkedHashSet<>();
 
-    public User(Long id, @NonNull String username, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImage) {
+    public User(Long id, @NonNull String userHandleName, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImage) {
         this.id = id;
-        this.username = username;
+        this.userHandleName = userHandleName;
         this.email = email;
         this.password = password;
         this.name = name;
