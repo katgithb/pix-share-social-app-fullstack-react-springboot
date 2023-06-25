@@ -25,4 +25,5 @@ public class UserDTO {
     private Set<UserView> following;
     private List<StoryDTO> stories;
     private Set<PostDTO> savedPosts;
+    private List<String> roles;
 }

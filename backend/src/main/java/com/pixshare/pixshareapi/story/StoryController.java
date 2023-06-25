@@ -1,8 +1,8 @@
 package com.pixshare.pixshareapi.story;
 
+import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.dto.StoryDTO;
-import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.user.UserService;
+import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,17 +15,18 @@ public class StoryController {
 
     private final StoryService storyService;
 
-    private final UserService userService;
+    private final AuthenticationService authenticationService;
 
-    public StoryController(StoryService storyService, UserService userService) {
+    public StoryController(StoryService storyService, AuthenticationService authenticationService) {
         this.storyService = storyService;
-        this.userService = userService;
+        this.authenticationService = authenticationService;
     }
 
     @PostMapping("/create")
-    public void createStory(@RequestBody Story story) {
-        UserDTO user = userService.findUserByUsername("taylor");
-        storyService.createStory(story, user.getId());
+    public void createStory(@RequestBody Story story, @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        storyService.createStory(story, identity.getId());
     }
 
     @GetMapping("/all/{userId}")

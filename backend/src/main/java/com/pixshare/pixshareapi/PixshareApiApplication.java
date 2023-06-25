@@ -9,9 +9,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Random;
-import java.util.UUID;
 
 @SpringBootApplication
 public class PixshareApiApplication {
@@ -21,7 +21,7 @@ public class PixshareApiApplication {
     }
 
     @Bean
-    CommandLineRunner runner(UserRepository userRepository) {
+    CommandLineRunner runner(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
             Faker faker = new Faker();
             Name name = faker.name();
@@ -32,18 +32,18 @@ public class PixshareApiApplication {
             Random random = new Random();
             Gender gender = (random.nextInt(18, 45) % 2 == 0) ? Gender.MALE : Gender.FEMALE;
             String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + "@gmail.com";
-            String randomPassword = UUID.randomUUID().toString();
+            // String randomPassword = UUID.randomUUID().toString();
+            String encodedPassword = passwordEncoder.encode("password");
 
             User user = new User(
                     username,
                     email,
-                    randomPassword,
+                    encodedPassword,
                     firstName + " " + lastName,
                     gender
             );
 
 //            userRepository.save(user);
-//            System.out.println(email);
         };
     }
 

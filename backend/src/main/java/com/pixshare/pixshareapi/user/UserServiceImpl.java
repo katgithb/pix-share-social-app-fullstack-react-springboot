@@ -6,6 +6,7 @@ import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -18,10 +19,13 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
+    private final PasswordEncoder passwordEncoder;
+
     private final UserDTOMapper userDTOMapper;
 
-    public UserServiceImpl(UserRepository userRepository, UserDTOMapper userDTOMapper) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, UserDTOMapper userDTOMapper) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.userDTOMapper = userDTOMapper;
     }
 
@@ -46,7 +50,7 @@ public class UserServiceImpl implements UserService {
         // save
         User user = new User(registrationRequest.username(),
                 registrationRequest.email(),
-                registrationRequest.password(),
+                passwordEncoder.encode(registrationRequest.password()),
                 registrationRequest.name(),
                 registrationRequest.gender());
         userRepository.save(user);
@@ -99,6 +103,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserDTO findUserByEmail(String email) throws ResourceNotFoundException {
+        UserDTO user = userRepository.findByEmail(email)
+                .map(userDTOMapper)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        return user;
+    }
+
+    @Override
     public UserDTO findUserByUsername(String username) throws ResourceNotFoundException {
         UserDTO user = userRepository.findByUsername(username)
                 .map(userDTOMapper)
@@ -131,7 +144,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(reqUser);
         userRepository.save(followUser);
 
-        return "You are following " + followUser.getUsername();
+        return "You are following " + followUser.getUserHandleName();
     }
 
     @Override
@@ -153,7 +166,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(reqUser);
         userRepository.save(followUser);
 
-        return "You have unfollowed " + followUser.getUsername();
+        return "You have unfollowed " + followUser.getUserHandleName();
     }
 
     @Override
@@ -193,7 +206,7 @@ public class UserServiceImpl implements UserService {
 
     private void populateFollower(User reqUser, UserView follower) {
         follower.setId(reqUser.getId());
-        follower.setUsername(reqUser.getUsername());
+        follower.setUsername(reqUser.getUserHandleName());
         follower.setEmail(reqUser.getEmail());
         follower.setName(reqUser.getName());
         follower.setUserImage(reqUser.getUserImage());
@@ -201,7 +214,7 @@ public class UserServiceImpl implements UserService {
 
     private void populateFollowing(User followUser, UserView following) {
         following.setId(followUser.getId());
-        following.setUsername(followUser.getUsername());
+        following.setUsername(followUser.getUserHandleName());
         following.setEmail(followUser.getEmail());
         following.setName(followUser.getName());
         following.setUserImage(followUser.getUserImage());
@@ -223,7 +236,7 @@ public class UserServiceImpl implements UserService {
     private Map<Object, Map<Object, Consumer<User>>> populateFieldUpdateMap(UserUpdateRequest updateRequest, User user) {
         return Optional.ofNullable(updateRequest)
                 .map(req -> Stream.of(
-                                fieldUpdateEntry(req.username(), user.getUsername(), c -> c.setUsername(req.username())),
+                                fieldUpdateEntry(req.username(), user.getUserHandleName(), c -> c.setUserHandleName(req.username())),
                                 fieldUpdateEntry(req.email(), user.getEmail(), c -> c.setEmail(req.email())),
                                 fieldUpdateEntry(req.password(), user.getPassword(), c -> c.setPassword(req.password())),
                                 fieldUpdateEntry(req.name(), user.getName(), c -> c.setName(req.name())),

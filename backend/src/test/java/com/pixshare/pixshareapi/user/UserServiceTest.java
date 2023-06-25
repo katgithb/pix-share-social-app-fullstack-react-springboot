@@ -14,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -34,10 +36,15 @@ class UserServiceTest {
     private UserService userService;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, userDTOMapper);
+        userService = new UserServiceImpl(userRepository, passwordEncoder, userDTOMapper);
     }
 
 
@@ -125,11 +132,14 @@ class UserServiceTest {
     @DisplayName("Should register a new user when the email is not taken")
     void registerUserWhenEmailIsNotTaken() {
         // Given
+        String email = "john.doe@example.com";
+        String passwordHash = "MThubHBpN3d4b2RsN2RkYzV3bW1mdnl0bm5pOGNpY2o2ZnQxZTN4ZmY2Nmk4ZW05bjJ1Y3o2ZnhleXBmOW84MzF3ZWQ4MDJsbmltNTl4amk0ZGhhNWZiOWJiN3BwemdubWM0dWJqamt4NDJuaW4wMWxzazNlOTFzY3diMjlocDM=";
         UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
-                "john.doe", "john.doe@example.com", "John Doe",
+                "john.doe", email, "John Doe",
                 "password123", Gender.MALE);
 
-        when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
+        when(userRepository.existsUserByEmail(email)).thenReturn(false);
+        when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
 
         // When
         userService.registerUser(registrationRequest);
@@ -140,9 +150,9 @@ class UserServiceTest {
         verify(userRepository, times(1)).save(userCaptor.capture());
 
         User savedUser = userCaptor.getValue();
-        assertThat(savedUser.getUsername()).isEqualTo(registrationRequest.username());
+        assertThat(savedUser.getUserHandleName()).isEqualTo(registrationRequest.username());
         assertThat(savedUser.getEmail()).isEqualTo(registrationRequest.email());
-        assertThat(savedUser.getPassword()).isEqualTo(registrationRequest.password());
+        assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
         assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
         assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
     }
@@ -269,7 +279,7 @@ class UserServiceTest {
 
         User savedUser = userCaptor.getValue();
         assertThat(savedUser.getId()).isEqualTo(userId);
-        assertThat(savedUser.getUsername()).isEqualTo(updateRequest.username());
+        assertThat(savedUser.getUserHandleName()).isEqualTo(updateRequest.username());
         assertThat(savedUser.getEmail()).isEqualTo(updateRequest.email());
         assertThat(savedUser.getPassword()).isEqualTo(updateRequest.password());
         assertThat(savedUser.getName()).isEqualTo(updateRequest.name());
@@ -337,7 +347,7 @@ class UserServiceTest {
                 userId, "john.doe", "john.doe@example.com", "John Doe",
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image.jpg", new LinkedHashSet<>(),
-                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>());
+                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"));
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -377,7 +387,7 @@ class UserServiceTest {
                 1L, username, "john.doe@example.com", "John Doe",
                 null, null, null,
                 Gender.MALE, null, new LinkedHashSet<>(),
-                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>());
+                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), new ArrayList<String>(List.of("ROLE_USER")));
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
 
@@ -459,7 +469,7 @@ class UserServiceTest {
         String actual = userService.followUser(reqUserId, followUserId);
 
         // Then
-        assertThat(actual).isEqualTo("You are following " + followUser.getUsername());
+        assertThat(actual).isEqualTo("You are following " + followUser.getUserHandleName());
         verify(userRepository, times(1)).findById(reqUserId);
         verify(userRepository, times(1)).findById(followUserId);
         verify(userRepository, times(1)).save(reqUser);
@@ -536,7 +546,7 @@ class UserServiceTest {
         String actual = userService.unfollowUser(reqUserId, followUserId);
 
         // Then
-        assertThat(actual).isEqualTo("You have unfollowed " + followUser.getUsername());
+        assertThat(actual).isEqualTo("You have unfollowed " + followUser.getUserHandleName());
         verify(userRepository, times(1)).findById(reqUserId);
         verify(userRepository, times(1)).findById(followUserId);
         verify(userRepository, times(1)).save(reqUser);
@@ -589,13 +599,13 @@ class UserServiceTest {
         List<UserDTO> expectedUsers = List.of(
                 new UserDTO(1L, "user1", "user1@example.com", "User 1", null, null, null,
                         Gender.MALE, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(2L, "user2", "user2@example.com", "User 2", null, null, null,
                         Gender.FEMALE, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(3L, "user3", "user3@example.com", "User 3", null, null, null,
                         Gender.OTHER, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>())
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
         );
 
         when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(users);
@@ -669,10 +679,10 @@ class UserServiceTest {
         List<UserDTO> expectedUsers = List.of(
                 new UserDTO(1L, "john.doe", "john.doe@example.com", "John Doe", null, null, null,
                         Gender.MALE, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>()),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(2L, "john.smith", "john.smith@example.com", "John Smith", null, null, null,
                         Gender.MALE, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>())
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
         );
 
         when(userRepository.findByQuery(searchQuery)).thenReturn(users);

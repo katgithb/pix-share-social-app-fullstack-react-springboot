@@ -1,7 +1,9 @@
 package com.pixshare.pixshareapi.user;
 
+import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.dto.UserDTOMapper;
+import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import com.pixshare.pixshareapi.story.StoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +17,15 @@ public class UserController {
 
     private final UserService userService;
 
+    private final AuthenticationService authenticationService;
+
     private final StoryService storyService;
 
     private final UserDTOMapper userDTOMapper;
 
-    public UserController(UserService userService, StoryService storyService, UserDTOMapper userDTOMapper) {
+    public UserController(UserService userService, AuthenticationService authenticationService, StoryService storyService, UserDTOMapper userDTOMapper) {
         this.userService = userService;
+        this.authenticationService = authenticationService;
         this.storyService = storyService;
         this.userDTOMapper = userDTOMapper;
     }
@@ -79,15 +84,15 @@ public class UserController {
                         storyService.findStoriesByUserId(userDTO.getId())
                 ))
                 .toList();
-        ;
 
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
     @GetMapping("/popular")
-    public ResponseEntity<List<UserDTO>> findPopularUsers() {
-        UserDTO user = userService.findUserByUsername("lisha");
-        List<UserDTO> users = userService.findPopularUsers(user.getId()).stream()
+    public ResponseEntity<List<UserDTO>> findPopularUsers(@RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        List<UserDTO> users = userService.findPopularUsers(identity.getId()).stream()
                 .peek(userDTO -> userDTO.setStories(
                         storyService.findStoriesByUserId(userDTO.getId())
                 ))
