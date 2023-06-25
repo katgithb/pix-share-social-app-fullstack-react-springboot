@@ -4,6 +4,6 @@ import com.pixshare.pixshareapi.dto.UserDTO;
 
 public record AuthenticationResponse(
         String token,
-        UserDTO userDTO
+        UserDTO user
 ) {
 }

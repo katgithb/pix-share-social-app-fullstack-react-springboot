@@ -20,7 +20,7 @@ public class JWTUtil {
 
     private static final String TOKEN_ISSUER = "pixshare";
 
-    private static final int TOKEN_EXPIRATION_IN_SECONDS = 900;
+    private static final int TOKEN_EXPIRATION_IN_SECONDS = 86400;
 
     public String issueToken(String subject, Map<String, Object> claims) {
         String token = Jwts.builder()
@@ -72,5 +72,5 @@ public class JWTUtil {
         Date today = Date.from(Instant.now());
         return getClaims(jwt).getExpiration().before(today);
     }
-    
+
 }

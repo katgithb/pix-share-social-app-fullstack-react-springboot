@@ -1,39 +1,13 @@
 package com.pixshare.pixshareapi.auth;
 
-import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.dto.UserDTOMapper;
-import com.pixshare.pixshareapi.jwt.JWTUtil;
-import com.pixshare.pixshareapi.user.User;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
+import com.pixshare.pixshareapi.dto.UserTokenIdentity;
+import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import com.pixshare.pixshareapi.exception.TokenValidationException;
 
-@Service
-public class AuthenticationService {
+public interface AuthenticationService {
 
-    private final AuthenticationManager authenticationManager;
+    AuthenticationResponse loginUser(AuthenticationRequest request);
 
-    private final JWTUtil jwtUtil;
+    UserTokenIdentity getUserIdentityFromToken(String authHeader) throws TokenValidationException, ResourceNotFoundException;
 
-    private final UserDTOMapper userDTOMapper;
-
-    public AuthenticationService(AuthenticationManager authenticationManager, JWTUtil jwtUtil, UserDTOMapper userDTOMapper) {
-        this.authenticationManager = authenticationManager;
-        this.jwtUtil = jwtUtil;
-        this.userDTOMapper = userDTOMapper;
-    }
-
-    public AuthenticationResponse loginUser(AuthenticationRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password())
-        );
-
-        User principal = (User) authentication.getPrincipal();
-        UserDTO userDTO = userDTOMapper.apply(principal);
-        String token = jwtUtil.issueToken(userDTO.getUsername(), userDTO.getRoles());
-
-        return new AuthenticationResponse(token, userDTO);
-    }
-    
 }
