@@ -31,13 +31,12 @@ public class StoryServiceImpl implements StoryService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        Story story = new Story(null,
+        Story story = new Story(
                 storyRequest.image(),
                 storyRequest.caption(),
                 LocalDateTime.now(),
                 user);
-//        storyRequest.setUser(user);
-//        storyRequest.setTimestamp(LocalDateTime.now());
+
         storyRepository.save(story);
 
         userRepository.save(user);

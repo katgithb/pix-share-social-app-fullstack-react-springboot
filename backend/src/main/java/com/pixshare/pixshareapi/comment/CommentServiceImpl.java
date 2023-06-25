@@ -37,16 +37,18 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public void createComment(Comment comment, Long postId, Long userId) throws ResourceNotFoundException {
+    public void createComment(CommentRequest commentRequest, Long postId, Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
 
-        comment.setUser(user);
-        comment.setPost(post);
-        comment.setCreatedAt(LocalDateTime.now());
-
+        Comment comment = new Comment(
+                commentRequest.content(),
+                LocalDateTime.now(),
+                user,
+                post);
+        
         commentRepository.save(comment);
     }
 

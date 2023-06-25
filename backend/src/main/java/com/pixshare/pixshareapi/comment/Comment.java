@@ -39,13 +39,23 @@ public class Comment {
     private User user;
 
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "id", column = @Column(name = "user_id")),
+    })
     @ElementCollection
-    @CollectionTable(name = "comment_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
+    @CollectionTable(name = "comment_liked_by_users", joinColumns = @JoinColumn(name = "comment_id"))
     private Set<UserView> likedByUsers = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
+
+    public Comment(String content, LocalDateTime createdAt, User user, Post post) {
+        this.content = content;
+        this.createdAt = createdAt;
+        this.user = user;
+        this.post = post;
+    }
 
     @Override
     public boolean equals(Object o) {

@@ -1,9 +1,8 @@
 package com.pixshare.pixshareapi.comment;
 
+import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.dto.CommentDTO;
-import com.pixshare.pixshareapi.dto.CommentDTOMapper;
-import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.user.UserService;
+import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,22 +15,21 @@ public class CommentController {
 
     private final CommentService commentService;
 
-    private final UserService userService;
+    private final AuthenticationService authenticationService;
 
-    private final CommentDTOMapper commentDTOMapper;
-
-    public CommentController(CommentService commentService, UserService userService, CommentDTOMapper commentDTOMapper) {
+    public CommentController(CommentService commentService, AuthenticationService authenticationService) {
         this.commentService = commentService;
-        this.userService = userService;
-        this.commentDTOMapper = commentDTOMapper;
+        this.authenticationService = authenticationService;
     }
 
     @PostMapping("/create/{postId}")
     public void createComment(
-            @RequestBody Comment comment,
-            @PathVariable("postId") Long postId) {
-        UserDTO user = userService.findUserByUsername("taylor");
-        commentService.createComment(comment, postId, user.getId());
+            @RequestBody CommentRequest request,
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        commentService.createComment(request, postId, identity.getId());
     }
 
     @GetMapping("/id/{commentId}")
@@ -47,4 +45,27 @@ public class CommentController {
 
         return new ResponseEntity<>(comments, HttpStatus.OK);
     }
+
+    @PutMapping("/like/{commentId}")
+    public ResponseEntity<CommentDTO> likeComment(
+            @PathVariable("commentId") Long commentId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        CommentDTO comment = commentService.likeComment(commentId, identity.getId());
+
+        return new ResponseEntity<>(comment, HttpStatus.OK);
+    }
+
+    @PutMapping("/unlike/{commentId}")
+    public ResponseEntity<CommentDTO> unlikeComment(
+            @PathVariable("commentId") Long commentId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        CommentDTO comment = commentService.unlikeComment(commentId, identity.getId());
+
+        return new ResponseEntity<>(comment, HttpStatus.OK);
+    }
+
 }
