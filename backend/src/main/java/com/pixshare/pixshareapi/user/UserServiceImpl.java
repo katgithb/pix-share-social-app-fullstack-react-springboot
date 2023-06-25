@@ -144,7 +144,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(reqUser);
         userRepository.save(followUser);
 
-        return "You are following " + followUser.getUsername();
+        return "You are following " + followUser.getUserHandleName();
     }
 
     @Override
@@ -166,7 +166,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(reqUser);
         userRepository.save(followUser);
 
-        return "You have unfollowed " + followUser.getUsername();
+        return "You have unfollowed " + followUser.getUserHandleName();
     }
 
     @Override
@@ -206,7 +206,7 @@ public class UserServiceImpl implements UserService {
 
     private void populateFollower(User reqUser, UserView follower) {
         follower.setId(reqUser.getId());
-        follower.setUsername(reqUser.getUsername());
+        follower.setUsername(reqUser.getUserHandleName());
         follower.setEmail(reqUser.getEmail());
         follower.setName(reqUser.getName());
         follower.setUserImage(reqUser.getUserImage());
@@ -214,7 +214,7 @@ public class UserServiceImpl implements UserService {
 
     private void populateFollowing(User followUser, UserView following) {
         following.setId(followUser.getId());
-        following.setUsername(followUser.getUsername());
+        following.setUsername(followUser.getUserHandleName());
         following.setEmail(followUser.getEmail());
         following.setName(followUser.getName());
         following.setUserImage(followUser.getUserImage());

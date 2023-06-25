@@ -122,7 +122,7 @@ public class PostServiceImpl implements PostService {
 
         UserView userView = new UserView();
         userView.setId(user.getId());
-        userView.setUsername(user.getUsername());
+        userView.setUsername(user.getUserHandleName());
         userView.setEmail(user.getEmail());
         userView.setName(user.getName());
         userView.setUserImage(user.getUserImage());
@@ -141,7 +141,7 @@ public class PostServiceImpl implements PostService {
 
         UserView userView = new UserView();
         userView.setId(user.getId());
-        userView.setUsername(user.getUsername());
+        userView.setUsername(user.getUserHandleName());
         userView.setEmail(user.getEmail());
         userView.setName(user.getName());
         userView.setUserImage(user.getUserImage());

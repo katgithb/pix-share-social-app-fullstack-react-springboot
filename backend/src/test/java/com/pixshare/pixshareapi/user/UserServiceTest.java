@@ -469,7 +469,7 @@ class UserServiceTest {
         String actual = userService.followUser(reqUserId, followUserId);
 
         // Then
-        assertThat(actual).isEqualTo("You are following " + followUser.getUsername());
+        assertThat(actual).isEqualTo("You are following " + followUser.getUserHandleName());
         verify(userRepository, times(1)).findById(reqUserId);
         verify(userRepository, times(1)).findById(followUserId);
         verify(userRepository, times(1)).save(reqUser);
@@ -546,7 +546,7 @@ class UserServiceTest {
         String actual = userService.unfollowUser(reqUserId, followUserId);
 
         // Then
-        assertThat(actual).isEqualTo("You have unfollowed " + followUser.getUsername());
+        assertThat(actual).isEqualTo("You have unfollowed " + followUser.getUserHandleName());
         verify(userRepository, times(1)).findById(reqUserId);
         verify(userRepository, times(1)).findById(followUserId);
         verify(userRepository, times(1)).save(reqUser);

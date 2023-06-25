@@ -11,7 +11,7 @@ public class UserViewMapper implements Function<User, UserView> {
     public UserView apply(User user) {
         return new UserView(
                 user.getId(),
-                user.getUsername(),
+                user.getUserHandleName(),
                 user.getEmail(),
                 user.getName(),
                 user.getUserImage()
