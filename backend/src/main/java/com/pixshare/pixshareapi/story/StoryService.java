@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface StoryService {
 
-    void createStory(Story story, Long userId) throws ResourceNotFoundException;
+    void createStory(StoryRequest storyRequest, Long userId) throws ResourceNotFoundException;
 
     List<StoryDTO> findStoriesByUserId(Long userId) throws ResourceNotFoundException;
 

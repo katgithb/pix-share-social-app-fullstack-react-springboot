@@ -1,17 +1,7 @@
 package com.pixshare.pixshareapi;
 
-import com.github.javafaker.Faker;
-import com.github.javafaker.Name;
-import com.pixshare.pixshareapi.user.Gender;
-import com.pixshare.pixshareapi.user.User;
-import com.pixshare.pixshareapi.user.UserRepository;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.Random;
 
 @SpringBootApplication
 public class PixshareApiApplication {
@@ -20,31 +10,31 @@ public class PixshareApiApplication {
         SpringApplication.run(PixshareApiApplication.class, args);
     }
 
-    @Bean
-    CommandLineRunner runner(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        return args -> {
-            Faker faker = new Faker();
-            Name name = faker.name();
-
-            String firstName = name.firstName();
-            String lastName = name.lastName();
-            String username = firstName.toLowerCase();
-            Random random = new Random();
-            Gender gender = (random.nextInt(18, 45) % 2 == 0) ? Gender.MALE : Gender.FEMALE;
-            String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + "@gmail.com";
-            // String randomPassword = UUID.randomUUID().toString();
-            String encodedPassword = passwordEncoder.encode("password");
-
-            User user = new User(
-                    username,
-                    email,
-                    encodedPassword,
-                    firstName + " " + lastName,
-                    gender
-            );
-
+//    @Bean
+//    CommandLineRunner runner(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+//        return args -> {
+//            Faker faker = new Faker();
+//            Name name = faker.name();
+//
+//            String firstName = name.firstName();
+//            String lastName = name.lastName();
+//            String username = firstName.toLowerCase();
+//            Random random = new Random();
+//            Gender gender = (random.nextInt(18, 45) % 2 == 0) ? Gender.MALE : Gender.FEMALE;
+//            String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + "@gmail.com";
+//            // String randomPassword = UUID.randomUUID().toString();
+//            String encodedPassword = passwordEncoder.encode("password");
+//
+//            User user = new User(
+//                    username,
+//                    email,
+//                    encodedPassword,
+//                    firstName + " " + lastName,
+//                    gender
+//            );
+//
 //            userRepository.save(user);
-        };
-    }
+//        };
+//    }
 
 }

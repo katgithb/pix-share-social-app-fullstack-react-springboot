@@ -23,8 +23,6 @@ public interface UserService {
 
     UserDTO findUserByUsername(String username) throws ResourceNotFoundException;
 
-    UserDTO findUserProfile(String token) throws ResourceNotFoundException;
-
     String followUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException;
 
     String unfollowUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException;

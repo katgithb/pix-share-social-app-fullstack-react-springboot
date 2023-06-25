@@ -127,7 +127,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
         String username = "nonexistentuser";
 
         // When
-        Optional<User> actualUser = userRepository.findByUsername(username);
+        Optional<User> actualUser = userRepository.findByUserHandleName(username);
 
         // Then
         assertThat(actualUser.isEmpty()).isTrue();
@@ -141,7 +141,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
         userRepository.save(user);
 
         // When
-        Optional<User> actualUser = userRepository.findByUsername(user.getUserHandleName());
+        Optional<User> actualUser = userRepository.findByUserHandleName(user.getUserHandleName());
 
         // Then
         assertThat(actualUser.isPresent()).isTrue();

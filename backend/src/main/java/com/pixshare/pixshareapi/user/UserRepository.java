@@ -14,19 +14,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
-    Optional<User> findByUsername(String username);
+    Optional<User> findByUserHandleName(String username);
 
     @Query("SELECT u FROM User u WHERE u.id IN :users")
     List<User> findAllUsersByUserIds(@Param("users") List<Long> userIds);
 
-    @Query("SELECT DISTINCT u FROM User u WHERE u.username LIKE %:query% OR u.email LIKE %:query%")
+    @Query("SELECT DISTINCT u FROM User u WHERE u.userHandleName LIKE %:query% OR u.email LIKE %:query%")
     List<User> findByQuery(@Param("query") String query);
 
     @Query("""
             SELECT u FROM User u, Story s
             WHERE u.id <> :userId AND u.id = s.user.id
             GROUP BY u.id
-            ORDER BY (SIZE(u.follower) + COUNT(s.user.id)) DESC, u.username
+            ORDER BY (SIZE(u.follower) + COUNT(s.user.id)) DESC, u.userHandleName
             LIMIT 5
             """)
     List<User> findPopularUsers(@Param("userId") Long userId);

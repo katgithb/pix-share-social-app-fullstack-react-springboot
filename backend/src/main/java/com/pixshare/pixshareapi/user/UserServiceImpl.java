@@ -113,16 +113,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO findUserByUsername(String username) throws ResourceNotFoundException {
-        UserDTO user = userRepository.findByUsername(username)
+        UserDTO user = userRepository.findByUserHandleName(username)
                 .map(userDTOMapper)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
         return user;
-    }
-
-    @Override
-    public UserDTO findUserProfile(String token) throws ResourceNotFoundException {
-        return null;
     }
 
     @Override

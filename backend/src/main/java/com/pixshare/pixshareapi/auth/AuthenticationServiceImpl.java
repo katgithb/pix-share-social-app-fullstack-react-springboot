@@ -12,6 +12,7 @@ import com.pixshare.pixshareapi.user.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -64,7 +65,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .flatMap(userRepository::findByEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (!jwtUtil.isTokenValid(token, user.getEmail())) {
+        if (!SecurityContextHolder.getContext().getAuthentication().isAuthenticated() &&
+                !jwtUtil.isTokenValid(token, user.getEmail())) {
             throw new TokenValidationException("Invalid token");
         }
 

@@ -23,10 +23,10 @@ public class StoryController {
     }
 
     @PostMapping("/create")
-    public void createStory(@RequestBody Story story, @RequestHeader("Authorization") String authHeader) {
+    public void createStory(@RequestBody StoryRequest request, @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        storyService.createStory(story, identity.getId());
+        storyService.createStory(request, identity.getId());
     }
 
     @GetMapping("/all/{userId}")
