@@ -15,7 +15,7 @@ public interface UserService {
 
     void updateUser(Long userId, UserUpdateRequest updateRequest) throws ResourceNotFoundException;
 
-    void deleteUserById(Long userId) throws ResourceNotFoundException;
+    void deleteUser(Long userId) throws ResourceNotFoundException;
 
     UserDTO findUserById(Long userId) throws ResourceNotFoundException;
 

@@ -4,7 +4,6 @@ import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.dto.UserDTOMapper;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import com.pixshare.pixshareapi.dto.UserTokenIdentityMapper;
-import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.TokenValidationException;
 import com.pixshare.pixshareapi.jwt.JWTUtil;
 import com.pixshare.pixshareapi.user.User;
@@ -12,7 +11,6 @@ import com.pixshare.pixshareapi.user.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -52,7 +50,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public UserTokenIdentity getUserIdentityFromToken(String authHeader) throws TokenValidationException, ResourceNotFoundException {
+    public UserTokenIdentity getUserIdentityFromToken(String authHeader) throws TokenValidationException {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new TokenValidationException("Invalid token format");
@@ -63,12 +61,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         User user = Optional.ofNullable(jwtUtil.getSubject(token))
                 .flatMap(userRepository::findByEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (!SecurityContextHolder.getContext().getAuthentication().isAuthenticated() &&
-                !jwtUtil.isTokenValid(token, user.getEmail())) {
-            throw new TokenValidationException("Invalid token");
-        }
+                .orElseThrow(() -> new TokenValidationException("Invalid token"));
 
         return userTokenIdentityMapper.apply(user);
     }

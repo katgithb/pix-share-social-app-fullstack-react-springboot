@@ -87,7 +87,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUserById(Long userId) throws ResourceNotFoundException {
+    public void deleteUser(Long userId) throws ResourceNotFoundException {
         if (!existsUserWithId(userId)) {
             throw new ResourceNotFoundException("User with id [%s] not found".formatted(userId));
         }
