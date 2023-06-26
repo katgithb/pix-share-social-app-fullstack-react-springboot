@@ -1,14 +1,12 @@
 package com.pixshare.pixshareapi.post;
 
+import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.comment.CommentService;
 import com.pixshare.pixshareapi.dto.PostDTO;
-import com.pixshare.pixshareapi.dto.PostDTOMapper;
+import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -20,12 +18,21 @@ public class PostController {
 
     private final CommentService commentService;
 
-    private final PostDTOMapper postDTOMapper;
+    private final AuthenticationService authenticationService;
 
-    public PostController(PostService postService, CommentService commentService, PostDTOMapper postDTOMapper) {
+    public PostController(PostService postService, CommentService commentService, AuthenticationService authenticationService) {
         this.postService = postService;
         this.commentService = commentService;
-        this.postDTOMapper = postDTOMapper;
+        this.authenticationService = authenticationService;
+    }
+
+    @PostMapping("/create")
+    public void createPost(
+            @RequestBody PostRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        postService.createPost(request, identity.getId());
     }
 
     @GetMapping("/all/{userId}")
@@ -58,6 +65,55 @@ public class PostController {
                 .toList();
 
         return new ResponseEntity<>(posts, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/delete/{postId}")
+    public void deletePost(
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        postService.deletePost(postId, identity.getId());
+    }
+
+    @PutMapping("/like/{postId}")
+    public ResponseEntity<PostDTO> likePost(
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PostDTO post = postService.likePost(postId, identity.getId());
+
+        return new ResponseEntity<>(post, HttpStatus.OK);
+    }
+
+    @PutMapping("/unlike/{postId}")
+    public ResponseEntity<PostDTO> unlikePost(
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PostDTO post = postService.unlikePost(postId, identity.getId());
+
+        return new ResponseEntity<>(post, HttpStatus.OK);
+    }
+
+    @PutMapping("/save_post/{postId}")
+    public void savePost(
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        postService.savePost(postId, identity.getId());
+    }
+
+    @PutMapping("/unsave_post/{postId}")
+    public void unsavePost(
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        postService.unsavePost(postId, identity.getId());
     }
 
 }

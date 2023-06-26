@@ -43,7 +43,7 @@ public class Comment {
             @AttributeOverride(name = "id", column = @Column(name = "user_id")),
     })
     @ElementCollection
-    @CollectionTable(name = "comment_liked_by_users", joinColumns = @JoinColumn(name = "comment_id"))
+    @CollectionTable(name = "comment_user_likes", joinColumns = @JoinColumn(name = "comment_id"))
     private Set<UserView> likedByUsers = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)

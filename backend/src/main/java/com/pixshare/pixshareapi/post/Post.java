@@ -43,14 +43,21 @@ public class Post {
     @JoinColumn(name = "user_id")
     private User user;
 
-//    @ToString.Exclude
-//    @OneToMany(mappedBy = "post", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Comment> comments = new ArrayList<>();
-
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "id", column = @Column(name = "user_id")),
+    })
     @ElementCollection
-    @JoinTable(name = "post_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
+    @JoinTable(name = "post_user_likes", joinColumns = @JoinColumn(name = "post_id"))
     private Set<UserView> likedByUsers = new LinkedHashSet<>();
+
+    public Post(String caption, String image, String location, LocalDateTime createdAt, User user) {
+        this.caption = caption;
+        this.image = image;
+        this.location = location;
+        this.createdAt = createdAt;
+        this.user = user;
+    }
 
     @Override
     public boolean equals(Object o) {

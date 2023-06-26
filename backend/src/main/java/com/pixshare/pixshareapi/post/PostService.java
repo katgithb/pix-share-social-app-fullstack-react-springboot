@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface PostService {
 
-    void createPost(Post post, Long userId) throws ResourceNotFoundException;
+    void createPost(PostRequest postRequest, Long userId) throws ResourceNotFoundException;
 
     void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException;
 

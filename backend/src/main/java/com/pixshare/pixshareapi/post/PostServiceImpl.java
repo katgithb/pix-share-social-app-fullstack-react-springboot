@@ -36,13 +36,18 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public void createPost(Post post, Long userId) throws ResourceNotFoundException {
+    public void createPost(PostRequest postRequest, Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        post.setUser(user);
-        post.setCreatedAt(LocalDateTime.now());
-
+        Post post = new Post(
+                postRequest.caption(),
+                postRequest.image(),
+                postRequest.location(),
+                LocalDateTime.now(),
+                user
+        );
+        
         postRepository.save(post);
     }
 
