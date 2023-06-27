@@ -32,7 +32,7 @@ class UserServiceTest {
 
     private final UserViewMapper userViewMapper = new UserViewMapper();
     private final PostDTOMapper postDTOMapper = new PostDTOMapper(userViewMapper);
-    private final UserDTOMapper userDTOMapper = new UserDTOMapper(postDTOMapper);
+    private final UserDTOMapper userDTOMapper = new UserDTOMapper(userViewMapper, postDTOMapper);
     private UserService userService;
     @Mock
     private UserRepository userRepository;
@@ -295,7 +295,7 @@ class UserServiceTest {
 
         // When
         // Then
-        assertThatThrownBy(() -> userService.deleteUserById(userId))
+        assertThatThrownBy(() -> userService.deleteUser(userId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
@@ -311,7 +311,7 @@ class UserServiceTest {
         when(userRepository.existsUserById(userId)).thenReturn(true);
 
         // When
-        userService.deleteUserById(userId);
+        userService.deleteUser(userId);
 
         // Then
         verify(userRepository, times(1)).existsUserById(userId);

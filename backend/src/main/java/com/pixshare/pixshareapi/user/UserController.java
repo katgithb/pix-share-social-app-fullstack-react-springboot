@@ -103,25 +103,27 @@ public class UserController {
     }
 
     @PutMapping("/follow/{userId}")
-    public ResponseEntity<?> followUser(
+    public ResponseEntity<MessageResponse> followUser(
             @PathVariable("userId") Long userId,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
         String message = userService.followUser(identity.getId(), userId);
+        MessageResponse response = new MessageResponse(message);
 
-        return ResponseEntity.ok(message);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PutMapping("/unfollow/{userId}")
-    public ResponseEntity<?> unfollowUser(
+    public ResponseEntity<MessageResponse> unfollowUser(
             @PathVariable("userId") Long userId,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
         String message = userService.unfollowUser(identity.getId(), userId);
+        MessageResponse response = new MessageResponse(message);
 
-        return ResponseEntity.ok(message);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PutMapping("/account/edit")

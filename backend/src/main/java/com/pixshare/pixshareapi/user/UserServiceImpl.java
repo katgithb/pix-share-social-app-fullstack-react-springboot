@@ -2,7 +2,6 @@ package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.dto.UserDTOMapper;
-import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
@@ -127,14 +126,12 @@ public class UserServiceImpl implements UserService {
         User followUser = userRepository.findById(followUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(followUserId)));
 
-        UserView follower = new UserView();
-        populateFollower(reqUser, follower);
+        if (reqUserId.equals(followUserId)) {
+            throw new RequestValidationException("Invalid Request: You cannot follow your own profile.");
+        }
 
-        UserView following = new UserView();
-        populateFollowing(followUser, following);
-
-        reqUser.getFollowing().add(following);
-        followUser.getFollower().add(follower);
+        reqUser.getFollowing().add(followUser);
+        followUser.getFollower().add(reqUser);
 
         userRepository.save(reqUser);
         userRepository.save(followUser);
@@ -149,17 +146,16 @@ public class UserServiceImpl implements UserService {
         User followUser = userRepository.findById(followUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(followUserId)));
 
-        UserView follower = new UserView();
-        populateFollower(reqUser, follower);
+        if (reqUserId.equals(followUserId)) {
+            throw new RequestValidationException("Invalid Request: You cannot unfollow your own profile.");
+        }
 
-        UserView following = new UserView();
-        populateFollowing(followUser, following);
-
-        reqUser.getFollowing().remove(following);
-        followUser.getFollower().remove(follower);
+        reqUser.getFollowing().remove(followUser);
+        followUser.getFollower().remove(reqUser);
 
         userRepository.save(reqUser);
         userRepository.save(followUser);
+
 
         return "You have unfollowed " + followUser.getUserHandleName();
     }
@@ -197,22 +193,6 @@ public class UserServiceImpl implements UserService {
                 .toList();
 
         return users;
-    }
-
-    private void populateFollower(User reqUser, UserView follower) {
-        follower.setId(reqUser.getId());
-        follower.setUsername(reqUser.getUserHandleName());
-        follower.setEmail(reqUser.getEmail());
-        follower.setName(reqUser.getName());
-        follower.setUserImage(reqUser.getUserImage());
-    }
-
-    private void populateFollowing(User followUser, UserView following) {
-        following.setId(followUser.getId());
-        following.setUsername(followUser.getUserHandleName());
-        following.setEmail(followUser.getEmail());
-        following.setName(followUser.getName());
-        following.setUserImage(followUser.getUserImage());
     }
 
     private boolean isFieldValueChanged(Object newValue, Object currentValue) {

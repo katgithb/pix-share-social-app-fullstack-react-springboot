@@ -25,3 +25,9 @@ cors:
   allowed-methods: "*"
   allowed-headers: "*"
   exposed-headers: "*"
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+  token-issuer: ${JWT_TOKEN_ISSUER}
+  token-expiry-seconds: ${JWT_TOKEN_EXPIRY_SECONDS}
+

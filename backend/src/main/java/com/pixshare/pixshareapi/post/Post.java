@@ -1,12 +1,8 @@
 package com.pixshare.pixshareapi.post;
 
-import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
@@ -43,13 +39,12 @@ public class Post {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(name = "id", column = @Column(name = "user_id")),
-    })
-    @ElementCollection
-    @JoinTable(name = "post_user_likes", joinColumns = @JoinColumn(name = "post_id"))
-    private Set<UserView> likedByUsers = new LinkedHashSet<>();
+    @ToString.Exclude
+    @ManyToMany
+    @JoinTable(name = "post_user_likes",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private Set<User> likedByUsers = new LinkedHashSet<>();
 
     public Post(String caption, String image, String location, LocalDateTime createdAt, User user) {
         this.caption = caption;

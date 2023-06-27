@@ -23,10 +23,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByQuery(@Param("query") String query);
 
     @Query("""
-            SELECT u FROM User u, Story s
-            WHERE u.id <> :userId AND u.id = s.user.id
-            GROUP BY u.id
-            ORDER BY (SIZE(u.follower) + COUNT(s.user.id)) DESC, u.userHandleName
+            SELECT u FROM User u
+            LEFT JOIN (SELECT u.id AS ufid, COUNT(*) AS cnt FROM User u INNER JOIN u.follower uf GROUP BY u.id) uf
+            ON u.id = uf.ufid
+            LEFT JOIN (SELECT s.user.id AS sid, COUNT(*) AS cnt FROM Story s GROUP BY s.user.id) s
+            ON u.id = s.sid
+            WHERE u.id <> :userId
+            ORDER BY (COALESCE(uf.cnt, 0) + COALESCE(s.cnt, 0)) DESC, u.userHandleName
             LIMIT 5
             """)
     List<User> findPopularUsers(@Param("userId") Long userId);

@@ -2,7 +2,6 @@ package com.pixshare.pixshareapi.comment;
 
 import com.pixshare.pixshareapi.dto.CommentDTO;
 import com.pixshare.pixshareapi.dto.CommentDTOMapper;
-import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.post.PostRepository;
@@ -48,7 +47,7 @@ public class CommentServiceImpl implements CommentService {
                 LocalDateTime.now(),
                 user,
                 post);
-        
+
         commentRepository.save(comment);
     }
 
@@ -80,14 +79,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment with id [%s] not found".formatted(commentId)));
 
-        UserView userView = new UserView();
-        userView.setId(user.getId());
-        userView.setUsername(user.getUserHandleName());
-        userView.setEmail(user.getEmail());
-        userView.setName(user.getName());
-        userView.setUserImage(user.getUserImage());
-
-        comment.getLikedByUsers().add(userView);
+        comment.getLikedByUsers().add(user);
 
         return commentDTOMapper.apply(commentRepository.save(comment));
     }
@@ -99,14 +91,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment with id [%s] not found".formatted(commentId)));
 
-        UserView userView = new UserView();
-        userView.setId(user.getId());
-        userView.setUsername(user.getUserHandleName());
-        userView.setEmail(user.getEmail());
-        userView.setName(user.getName());
-        userView.setUserImage(user.getUserImage());
-
-        comment.getLikedByUsers().remove(userView);
+        comment.getLikedByUsers().remove(user);
 
         return commentDTOMapper.apply(commentRepository.save(comment));
     }
