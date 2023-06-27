@@ -4,7 +4,9 @@ import com.pixshare.pixshareapi.post.Post;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class PostDTOMapper implements Function<Post, PostDTO> {
@@ -25,7 +27,10 @@ public class PostDTOMapper implements Function<Post, PostDTO> {
                 post.getCreatedAt(),
                 userViewMapper.apply(post.getUser()),
                 new ArrayList<>(),
-                post.getLikedByUsers()
+                post.getLikedByUsers().stream()
+                        .map(userViewMapper)
+                        .collect(Collectors.toCollection(
+                                LinkedHashSet::new))
         );
     }
 

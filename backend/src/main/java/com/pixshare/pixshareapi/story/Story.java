@@ -37,6 +37,13 @@ public class Story {
     @JoinColumn(name = "user_id")
     private User user;
 
+    public Story(String image, String caption, LocalDateTime timestamp, User user) {
+        this.image = image;
+        this.caption = caption;
+        this.timestamp = timestamp;
+        this.user = user;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

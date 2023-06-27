@@ -1,6 +1,5 @@
 package com.pixshare.pixshareapi.user;
 
-import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.post.Post;
 import jakarta.persistence.*;
 import lombok.*;
@@ -62,15 +61,19 @@ public class User implements UserDetails {
     @Column(name = "user_image")
     private String userImage;
 
-    @Embedded
-    @ElementCollection
-    @CollectionTable(name = "user_follower", joinColumns = @JoinColumn(name = "user_id"))
-    private Set<UserView> follower = new LinkedHashSet<>();
+    @ToString.Exclude
+    @ManyToMany
+    @JoinTable(name = "user_follower",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "follower_id"))
+    private Set<User> follower = new LinkedHashSet<>();
 
-    @Embedded
-    @ElementCollection
-    @CollectionTable(name = "user_following", joinColumns = @JoinColumn(name = "user_id"))
-    private Set<UserView> following = new LinkedHashSet<>();
+    @ToString.Exclude
+    @ManyToMany
+    @JoinTable(name = "user_following",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "following_id"))
+    private Set<User> following = new LinkedHashSet<>();
 
     @ToString.Exclude
     @ManyToMany

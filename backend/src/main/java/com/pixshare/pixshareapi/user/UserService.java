@@ -15,15 +15,13 @@ public interface UserService {
 
     void updateUser(Long userId, UserUpdateRequest updateRequest) throws ResourceNotFoundException;
 
-    void deleteUserById(Long userId) throws ResourceNotFoundException;
+    void deleteUser(Long userId) throws ResourceNotFoundException;
 
     UserDTO findUserById(Long userId) throws ResourceNotFoundException;
 
     UserDTO findUserByEmail(String email) throws ResourceNotFoundException;
 
     UserDTO findUserByUsername(String username) throws ResourceNotFoundException;
-
-    UserDTO findUserProfile(String token) throws ResourceNotFoundException;
 
     String followUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException;
 

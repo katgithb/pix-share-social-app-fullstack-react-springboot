@@ -32,7 +32,7 @@ class UserServiceTest {
 
     private final UserViewMapper userViewMapper = new UserViewMapper();
     private final PostDTOMapper postDTOMapper = new PostDTOMapper(userViewMapper);
-    private final UserDTOMapper userDTOMapper = new UserDTOMapper(postDTOMapper);
+    private final UserDTOMapper userDTOMapper = new UserDTOMapper(userViewMapper, postDTOMapper);
     private UserService userService;
     @Mock
     private UserRepository userRepository;
@@ -295,7 +295,7 @@ class UserServiceTest {
 
         // When
         // Then
-        assertThatThrownBy(() -> userService.deleteUserById(userId))
+        assertThatThrownBy(() -> userService.deleteUser(userId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
@@ -311,7 +311,7 @@ class UserServiceTest {
         when(userRepository.existsUserById(userId)).thenReturn(true);
 
         // When
-        userService.deleteUserById(userId);
+        userService.deleteUser(userId);
 
         // Then
         verify(userRepository, times(1)).existsUserById(userId);
@@ -364,7 +364,7 @@ class UserServiceTest {
     void findUserByUsernameWhenUsernameDoesNotExistThenThrowException() {
         // Given
         String username = "nonexistentuser";
-        when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
+        when(userRepository.findByUserHandleName(username)).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -372,7 +372,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User not found with username: " + username);
 
-        verify(userRepository, times(1)).findByUsername(username);
+        verify(userRepository, times(1)).findByUserHandleName(username);
     }
 
     @Test
@@ -389,14 +389,14 @@ class UserServiceTest {
                 Gender.MALE, null, new LinkedHashSet<>(),
                 new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), new ArrayList<String>(List.of("ROLE_USER")));
 
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+        when(userRepository.findByUserHandleName(username)).thenReturn(Optional.of(user));
 
         // When
         UserDTO actualUserDTO = userService.findUserByUsername(username);
 
         // Then
         assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
-        verify(userRepository, times(1)).findByUsername(username);
+        verify(userRepository, times(1)).findByUserHandleName(username);
     }
 
     @Test

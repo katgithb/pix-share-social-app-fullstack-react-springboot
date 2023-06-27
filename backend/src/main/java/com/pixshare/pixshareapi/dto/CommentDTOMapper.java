@@ -3,7 +3,9 @@ package com.pixshare.pixshareapi.dto;
 import com.pixshare.pixshareapi.comment.Comment;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class CommentDTOMapper implements Function<Comment, CommentDTO> {
@@ -21,7 +23,10 @@ public class CommentDTOMapper implements Function<Comment, CommentDTO> {
                 comment.getContent(),
                 comment.getCreatedAt(),
                 userViewMapper.apply(comment.getUser()),
-                comment.getLikedByUsers()
+                comment.getLikedByUsers().stream()
+                        .map(userViewMapper)
+                        .collect(Collectors.toCollection(
+                                LinkedHashSet::new))
         );
     }
 

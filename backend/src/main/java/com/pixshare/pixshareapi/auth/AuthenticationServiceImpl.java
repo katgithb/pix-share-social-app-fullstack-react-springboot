@@ -4,7 +4,6 @@ import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.dto.UserDTOMapper;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import com.pixshare.pixshareapi.dto.UserTokenIdentityMapper;
-import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.TokenValidationException;
 import com.pixshare.pixshareapi.jwt.JWTUtil;
 import com.pixshare.pixshareapi.user.User;
@@ -51,7 +50,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public UserTokenIdentity getUserIdentityFromToken(String authHeader) throws TokenValidationException, ResourceNotFoundException {
+    public UserTokenIdentity getUserIdentityFromToken(String authHeader) throws TokenValidationException {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new TokenValidationException("Invalid token format");
@@ -62,11 +61,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         User user = Optional.ofNullable(jwtUtil.getSubject(token))
                 .flatMap(userRepository::findByEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (!jwtUtil.isTokenValid(token, user.getEmail())) {
-            throw new TokenValidationException("Invalid token");
-        }
+                .orElseThrow(() -> new TokenValidationException("Invalid token"));
 
         return userTokenIdentityMapper.apply(user);
     }

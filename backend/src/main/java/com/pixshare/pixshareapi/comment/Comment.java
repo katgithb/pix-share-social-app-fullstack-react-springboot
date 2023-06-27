@@ -1,13 +1,9 @@
 package com.pixshare.pixshareapi.comment;
 
-import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
@@ -38,14 +34,23 @@ public class Comment {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Embedded
-    @ElementCollection
-    @CollectionTable(name = "comment_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
-    private Set<UserView> likedByUsers = new LinkedHashSet<>();
+    @ToString.Exclude
+    @ManyToMany
+    @JoinTable(name = "comment_user_likes",
+            joinColumns = @JoinColumn(name = "comment_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private Set<User> likedByUsers = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
+
+    public Comment(String content, LocalDateTime createdAt, User user, Post post) {
+        this.content = content;
+        this.createdAt = createdAt;
+        this.user = user;
+        this.post = post;
+    }
 
     @Override
     public boolean equals(Object o) {

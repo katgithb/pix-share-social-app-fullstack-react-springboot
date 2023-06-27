@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface CommentService {
 
-    void createComment(Comment comment, Long postId, Long userId) throws ResourceNotFoundException;
+    void createComment(CommentRequest commentRequest, Long postId, Long userId) throws ResourceNotFoundException;
 
     CommentDTO findCommentById(Long commentId) throws ResourceNotFoundException;
 

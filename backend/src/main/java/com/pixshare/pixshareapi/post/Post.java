@@ -1,12 +1,8 @@
 package com.pixshare.pixshareapi.post;
 
-import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
@@ -43,14 +39,20 @@ public class Post {
     @JoinColumn(name = "user_id")
     private User user;
 
-//    @ToString.Exclude
-//    @OneToMany(mappedBy = "post", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<Comment> comments = new ArrayList<>();
+    @ToString.Exclude
+    @ManyToMany
+    @JoinTable(name = "post_user_likes",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private Set<User> likedByUsers = new LinkedHashSet<>();
 
-    @Embedded
-    @ElementCollection
-    @JoinTable(name = "post_liked_by_users", joinColumns = @JoinColumn(name = "user_id"))
-    private Set<UserView> likedByUsers = new LinkedHashSet<>();
+    public Post(String caption, String image, String location, LocalDateTime createdAt, User user) {
+        this.caption = caption;
+        this.image = image;
+        this.location = location;
+        this.createdAt = createdAt;
+        this.user = user;
+    }
 
     @Override
     public boolean equals(Object o) {

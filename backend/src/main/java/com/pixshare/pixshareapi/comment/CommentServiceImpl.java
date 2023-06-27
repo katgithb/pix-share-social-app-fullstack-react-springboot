@@ -2,7 +2,6 @@ package com.pixshare.pixshareapi.comment;
 
 import com.pixshare.pixshareapi.dto.CommentDTO;
 import com.pixshare.pixshareapi.dto.CommentDTOMapper;
-import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.post.PostRepository;
@@ -37,15 +36,17 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public void createComment(Comment comment, Long postId, Long userId) throws ResourceNotFoundException {
+    public void createComment(CommentRequest commentRequest, Long postId, Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
 
-        comment.setUser(user);
-        comment.setPost(post);
-        comment.setCreatedAt(LocalDateTime.now());
+        Comment comment = new Comment(
+                commentRequest.content(),
+                LocalDateTime.now(),
+                user,
+                post);
 
         commentRepository.save(comment);
     }
@@ -78,14 +79,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment with id [%s] not found".formatted(commentId)));
 
-        UserView userView = new UserView();
-        userView.setId(user.getId());
-        userView.setUsername(user.getUserHandleName());
-        userView.setEmail(user.getEmail());
-        userView.setName(user.getName());
-        userView.setUserImage(user.getUserImage());
-
-        comment.getLikedByUsers().add(userView);
+        comment.getLikedByUsers().add(user);
 
         return commentDTOMapper.apply(commentRepository.save(comment));
     }
@@ -97,14 +91,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment with id [%s] not found".formatted(commentId)));
 
-        UserView userView = new UserView();
-        userView.setId(user.getId());
-        userView.setUsername(user.getUserHandleName());
-        userView.setEmail(user.getEmail());
-        userView.setName(user.getName());
-        userView.setUserImage(user.getUserImage());
-
-        comment.getLikedByUsers().remove(userView);
+        comment.getLikedByUsers().remove(user);
 
         return commentDTOMapper.apply(commentRepository.save(comment));
     }

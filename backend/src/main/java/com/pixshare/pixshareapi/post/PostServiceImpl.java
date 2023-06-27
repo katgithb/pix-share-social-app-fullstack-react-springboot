@@ -3,7 +3,6 @@ package com.pixshare.pixshareapi.post;
 import com.pixshare.pixshareapi.dto.PostDTO;
 import com.pixshare.pixshareapi.dto.PostDTOMapper;
 import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.dto.UserView;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.user.User;
@@ -36,12 +35,17 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public void createPost(Post post, Long userId) throws ResourceNotFoundException {
+    public void createPost(PostRequest postRequest, Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        post.setUser(user);
-        post.setCreatedAt(LocalDateTime.now());
+        Post post = new Post(
+                postRequest.caption(),
+                postRequest.image(),
+                postRequest.location(),
+                LocalDateTime.now(),
+                user
+        );
 
         postRepository.save(post);
     }
@@ -120,14 +124,7 @@ public class PostServiceImpl implements PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        UserView userView = new UserView();
-        userView.setId(user.getId());
-        userView.setUsername(user.getUserHandleName());
-        userView.setEmail(user.getEmail());
-        userView.setName(user.getName());
-        userView.setUserImage(user.getUserImage());
-
-        post.getLikedByUsers().add(userView);
+        post.getLikedByUsers().add(user);
 
         return postDTOMapper.apply(postRepository.save(post));
     }
@@ -139,14 +136,7 @@ public class PostServiceImpl implements PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        UserView userView = new UserView();
-        userView.setId(user.getId());
-        userView.setUsername(user.getUserHandleName());
-        userView.setEmail(user.getEmail());
-        userView.setName(user.getName());
-        userView.setUserImage(user.getUserImage());
-
-        post.getLikedByUsers().remove(userView);
+        post.getLikedByUsers().remove(user);
 
         return postDTOMapper.apply(postRepository.save(post));
     }

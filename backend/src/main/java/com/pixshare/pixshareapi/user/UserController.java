@@ -52,17 +52,6 @@ public class UserController {
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
-    @PutMapping("/account/edit")
-    public void updateUser(
-            @RequestBody UserUpdateRequest updateRequest) {
-        userService.updateUser(updateRequest.id(), updateRequest);
-    }
-
-    @DeleteMapping("/id/{userId}")
-    public void deleteUserById(@PathVariable("userId") Long userId) {
-        userService.deleteUserById(userId);
-    }
-
     @GetMapping("/m/{userIds}")
     public ResponseEntity<List<UserDTO>> findUserByIds(
             @PathVariable("userIds") List<Long> userIds) {
@@ -73,6 +62,16 @@ public class UserController {
                 .toList();
 
         return new ResponseEntity<>(users, HttpStatus.OK);
+    }
+
+    @GetMapping("/account/profile")
+    public ResponseEntity<UserDTO> findUserProfile(
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        UserDTO user = userService.findUserById(identity.getId());
+
+        return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     // /search?q=query
@@ -89,7 +88,8 @@ public class UserController {
     }
 
     @GetMapping("/popular")
-    public ResponseEntity<List<UserDTO>> findPopularUsers(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<List<UserDTO>> findPopularUsers(
+            @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
         List<UserDTO> users = userService.findPopularUsers(identity.getId()).stream()
@@ -100,6 +100,47 @@ public class UserController {
         ;
 
         return new ResponseEntity<>(users, HttpStatus.OK);
+    }
+
+    @PutMapping("/follow/{userId}")
+    public ResponseEntity<MessageResponse> followUser(
+            @PathVariable("userId") Long userId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        String message = userService.followUser(identity.getId(), userId);
+        MessageResponse response = new MessageResponse(message);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PutMapping("/unfollow/{userId}")
+    public ResponseEntity<MessageResponse> unfollowUser(
+            @PathVariable("userId") Long userId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        String message = userService.unfollowUser(identity.getId(), userId);
+        MessageResponse response = new MessageResponse(message);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PutMapping("/account/edit")
+    public void updateUser(
+            @RequestBody UserUpdateRequest updateRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        userService.updateUser(identity.getId(), updateRequest);
+    }
+
+    @DeleteMapping("/account/delete")
+    public void deleteUser(
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        userService.deleteUser(identity.getId());
     }
 
 }

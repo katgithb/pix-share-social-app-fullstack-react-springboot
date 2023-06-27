@@ -12,9 +12,11 @@ import java.util.stream.Collectors;
 @Service
 public class UserDTOMapper implements Function<User, UserDTO> {
 
+    private final UserViewMapper userViewMapper;
     private final PostDTOMapper postDTOMapper;
 
-    public UserDTOMapper(PostDTOMapper postDTOMapper) {
+    public UserDTOMapper(UserViewMapper userViewMapper, PostDTOMapper postDTOMapper) {
+        this.userViewMapper = userViewMapper;
         this.postDTOMapper = postDTOMapper;
     }
 
@@ -30,8 +32,14 @@ public class UserDTOMapper implements Function<User, UserDTO> {
                 user.getBio(),
                 user.getGender(),
                 user.getUserImage(),
-                user.getFollower(),
-                user.getFollowing(),
+                user.getFollower().stream()
+                        .map(userViewMapper)
+                        .collect(Collectors.toCollection(
+                                LinkedHashSet::new)),
+                user.getFollowing().stream()
+                        .map(userViewMapper)
+                        .collect(Collectors.toCollection(
+                                LinkedHashSet::new)),
                 new ArrayList<>(),
                 user.getSavedPosts().stream()
                         .map(postDTOMapper)

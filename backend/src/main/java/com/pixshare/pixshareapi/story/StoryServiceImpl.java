@@ -27,12 +27,16 @@ public class StoryServiceImpl implements StoryService {
     }
 
     @Override
-    public void createStory(Story story, Long userId) throws ResourceNotFoundException {
+    public void createStory(StoryRequest storyRequest, Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        story.setUser(user);
-        story.setTimestamp(LocalDateTime.now());
+        Story story = new Story(
+                storyRequest.image(),
+                storyRequest.caption(),
+                LocalDateTime.now(),
+                user);
+
         storyRepository.save(story);
 
         userRepository.save(user);
