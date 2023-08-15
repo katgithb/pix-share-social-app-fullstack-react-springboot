@@ -14,7 +14,6 @@
     "@chakra-ui/react": "^2.7.1",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
-    "@uiball/loaders": "^1.3.0",
     "countries-states-cities-service": "^1.3.4",
     "framer-motion": "^10.12.17",
     "lodash": "^4.17.21",
