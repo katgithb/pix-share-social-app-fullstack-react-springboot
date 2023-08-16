@@ -35,11 +35,11 @@ const Story = () => {
     "Sarah Thompson",
   ];
 
-  function generateUsernameFromName(fullname) {
-    const username = fullname.replace(/\s+/g, "_").toLowerCase();
+  // function generateUsernameFromName(fullname) {
+  //   const username = fullname.replace(/\s+/g, "_").toLowerCase();
 
-    return username;
-  }
+  //   return username;
+  // }
 
   function generateRandomStories() {
     const randomStories = [];

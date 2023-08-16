@@ -3,6 +3,10 @@ import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import PageNotFound from "./pages/PageNotFound";
 import MainLayout from "./layouts/MainLayout";
+import Footer from "./components/shared/Footer";
+import Signin from "./components/auth/Signin";
+import Story from "./pages/Story";
+import Signup from "./components/auth/Signup";
 
 const router = createBrowserRouter([
   {
@@ -15,13 +19,30 @@ const router = createBrowserRouter([
       },
       {
         path: "/username",
-        element: <Profile />,
+        element: (
+          <>
+            <Profile />
+            <Footer />
+          </>
+        ),
       },
       {
         path: "*",
         element: <PageNotFound />,
       },
     ],
+  },
+  {
+    path: "/login",
+    element: <Signin />,
+  },
+  {
+    path: "/signup",
+    element: <Signup />,
+  },
+  {
+    path: "/story/:userId",
+    element: <Story />,
   },
 ]);
 
