@@ -1,46 +1,7 @@
-import {
-  Box,
-  Flex,
-  Spinner,
-  Text,
-  useColorMode,
-  useColorModeValue,
-  useTheme,
-  VStack,
-} from "@chakra-ui/react";
-import { MrMiyagi, Pinwheel } from "@uiball/loaders";
-import _ from "lodash";
-import React, {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { useMemo } from "react";
+import { Flex, useColorMode, useTheme } from "@chakra-ui/react";
+import React, { useEffect, useRef, useState } from "react";
 import { useResizeDetector } from "react-resize-detector";
-import {
-  BarsSpinner,
-  CircleSpinner,
-  ClapSpinner,
-  CubeSpinner,
-  FillSpinner,
-  FlagSpinner,
-  FlapperSpinner,
-  GooSpinner,
-  GridSpinner,
-  GuardSpinner,
-  HoopSpinner,
-  JellyfishSpinner,
-  MagicSpinner,
-  RainbowSpinner,
-  SphereSpinner,
-  SpiralSpinner,
-  SwapSpinner,
-  SwishSpinner,
-  TraceSpinner,
-  WhisperSpinner,
-} from "react-spinners-kit";
+import { MagicSpinner } from "react-spinners-kit";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { VariableSizeList as WindowList } from "react-window";
 import InfiniteLoader from "react-window-infinite-loader";
