@@ -58,7 +58,7 @@ public class JWTUtil {
         return getClaims(token).getSubject();
     }
 
-    private Claims getClaims(String token) {
+    protected Claims getClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
