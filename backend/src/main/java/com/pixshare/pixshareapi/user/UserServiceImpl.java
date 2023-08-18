@@ -39,11 +39,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void registerUser(UserRegistrationRequest registrationRequest) throws ResourceNotFoundException {
+    public boolean existsUserWithUserHandleName(String username) {
+        return userRepository.existsUserByUserHandleName(username);
+    }
+
+    @Override
+    public void registerUser(UserRegistrationRequest registrationRequest) throws DuplicateResourceException {
         // check if email exists
         String email = registrationRequest.email();
         if (existsUserWithEmail(email)) {
             throw new DuplicateResourceException("This email is already taken");
+        }
+
+        // check if username exists
+        String username = registrationRequest.username();
+        if (existsUserWithUserHandleName(username)) {
+            throw new DuplicateResourceException("This username is already taken");
         }
 
         // save
@@ -56,7 +67,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateUser(Long userId, UserUpdateRequest updateRequest) throws ResourceNotFoundException {
+    public void updateUser(Long userId, UserUpdateRequest updateRequest) throws ResourceNotFoundException, DuplicateResourceException, RequestValidationException {
         // can be used to avoid database query
         // User user = userRepository.getReferenceById(userId)
         User user = userRepository.findById(userId)
@@ -64,6 +75,10 @@ public class UserServiceImpl implements UserService {
 
         if (existsUserWithEmail(updateRequest.email())) {
             throw new DuplicateResourceException("This email is already taken");
+        }
+
+        if (existsUserWithUserHandleName(updateRequest.username())) {
+            throw new DuplicateResourceException("This username is already taken");
         }
 
         Map<Object, Map<Object, Consumer<User>>> fieldUpdateMap = populateFieldUpdateMap(updateRequest, user);
@@ -120,7 +135,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String followUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException {
+    public String followUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException, RequestValidationException {
         User reqUser = userRepository.findById(reqUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(reqUserId)));
         User followUser = userRepository.findById(followUserId)
@@ -140,7 +155,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String unfollowUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException {
+    public String unfollowUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException, RequestValidationException {
         User reqUser = userRepository.findById(reqUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(reqUserId)));
         User followUser = userRepository.findById(followUserId)

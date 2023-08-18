@@ -106,7 +106,37 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw a ResourceNotFoundException when the email is already taken")
+    @DisplayName("Should return false when the user with the given username does not exist")
+    void existsUserWithUserHandleNameWhenUserDoesNotExist() {
+        // Given
+        String username = "testUser";
+        when(userRepository.existsUserByUserHandleName(username)).thenReturn(false);
+
+        // When
+        boolean actual = userService.existsUserWithUserHandleName(username);
+
+        // Then
+        assertThat(actual).isFalse();
+        verify(userRepository, times(1)).existsUserByUserHandleName(username);
+    }
+
+    @Test
+    @DisplayName("Should return true when the user with the given username exists")
+    void existsUserWithUserHandleNameWhenUserExists() {
+        // Given
+        String username = "john_doe";
+        when(userRepository.existsUserByUserHandleName(username)).thenReturn(true);
+
+        // When
+        boolean actual = userService.existsUserWithUserHandleName(username);
+
+        // Then
+        assertThat(actual).isTrue();
+        verify(userRepository, times(1)).existsUserByUserHandleName(username);
+    }
+
+    @Test
+    @DisplayName("Should throw a DuplicateResourceException when the email is already taken")
     void registerUserWhenEmailIsAlreadyTakenThenThrowException() {
         // Given
         UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
@@ -144,6 +174,55 @@ class UserServiceTest {
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getUserHandleName()).isEqualTo(registrationRequest.username());
+        assertThat(savedUser.getEmail()).isEqualTo(registrationRequest.email());
+        assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
+        assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
+        assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
+    }
+
+    @Test
+    @DisplayName("Should throw a DuplicateResourceException when the username is already taken")
+    void registerUserWhenUserHandleNameIsAlreadyTakenThenThrowException() {
+        // Given
+        UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
+                "john.doe", "john.doe@example.com", "John Doe",
+                "password123", Gender.MALE);
+
+        when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(true);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.registerUser(registrationRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("This username is already taken");
+
+        verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should register a new user when the username is not taken")
+    void registerUserWhenUserHandleNameIsNotTaken() {
+        // Given
+        String userHandleName = "john.doe";
+        String passwordHash = "MThubHBpN3d4b2RsN2RkYzV3bW1mdnl0bm5pOGNpY2o2ZnQxZTN4ZmY2Nmk4ZW05bjJ1Y3o2ZnhleXBmOW84MzF3ZWQ4MDJsbmltNTl4amk0ZGhhNWZiOWJiN3BwemdubWM0dWJqamt4NDJuaW4wMWxzazNlOTFzY3diMjlocDM=";
+        UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
+                userHandleName, "john.doe@example.com", "John Doe",
+                "password123", Gender.MALE);
+
+        when(userRepository.existsUserByUserHandleName(userHandleName)).thenReturn(false);
+        when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
+
+        // When
+        userService.registerUser(registrationRequest);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
         verify(userRepository, times(1)).save(userCaptor.capture());
 
         User savedUser = userCaptor.getValue();
@@ -201,6 +280,34 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(1)).existsUserByEmail(updateRequest.email());
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw an exception when the username is already taken")
+    void updateUserWhenUserHandleNameIsAlreadyTakenThenThrowException() {
+        // Given
+        Long userId = 1L;
+        UserUpdateRequest updateRequest = new UserUpdateRequest(
+                userId, "existingUsername", "newEmail@example.com", "newPassword",
+                "newName", "newMobile", "newWebsite", "newBio",
+                Gender.MALE, "newUserImage");
+        User user = new User(
+                userId, "existingUsername", "Email@example.com", "Password",
+                "Name", "Mobile", "Website", "Bio",
+                Gender.MALE, "UserImage");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsUserByUserHandleName(updateRequest.username())).thenReturn(true);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updateUser(userId, updateRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("This username is already taken");
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).existsUserByUserHandleName(updateRequest.username());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -272,6 +379,57 @@ class UserServiceTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(1)).existsUserByEmail(updateRequest.email());
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getId()).isEqualTo(userId);
+        assertThat(savedUser.getUserHandleName()).isEqualTo(updateRequest.username());
+        assertThat(savedUser.getEmail()).isEqualTo(updateRequest.email());
+        assertThat(savedUser.getPassword()).isEqualTo(updateRequest.password());
+        assertThat(savedUser.getName()).isEqualTo(updateRequest.name());
+        assertThat(savedUser.getGender()).isEqualTo(updateRequest.gender());
+    }
+
+    @Test
+    @DisplayName("Should update the user when the user ID exists and the username is not taken")
+    void updateUserWhenUserIdExistsAndUserHandleNameIsNotTaken() {
+        // Given
+        Long userId = 1L;
+        UserUpdateRequest updateRequest = new UserUpdateRequest(
+                userId,
+                "newUsername",
+                "newemail@example.com",
+                "newpassword",
+                "newName",
+                "newMobile",
+                "newWebsite",
+                "newBio",
+                Gender.MALE,
+                "newUserImage"
+        );
+        User user = new User(
+                userId,
+                "Username",
+                "email@example.com",
+                "password",
+                "Name",
+                "Mobile",
+                "Website",
+                "Bio",
+                Gender.MALE,
+                "UserImage"
+        );
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsUserByUserHandleName(updateRequest.username())).thenReturn(false);
+
+        // When
+        userService.updateUser(userId, updateRequest);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).existsUserByUserHandleName(updateRequest.username());
         verify(userRepository, times(1)).save(userCaptor.capture());
 
         User savedUser = userCaptor.getValue();
