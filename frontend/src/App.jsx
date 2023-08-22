@@ -4,9 +4,9 @@ import Profile from "./pages/Profile";
 import PageNotFound from "./pages/PageNotFound";
 import MainLayout from "./layouts/MainLayout";
 import Footer from "./components/shared/Footer";
-import Signin from "./components/auth/Signin";
+import Signin from "./components/auth/Signin/Signin";
 import Story from "./pages/Story";
-import Signup from "./components/auth/Signup";
+import Signup from "./components/auth/Signup/Signup";
 
 const router = createBrowserRouter([
   {

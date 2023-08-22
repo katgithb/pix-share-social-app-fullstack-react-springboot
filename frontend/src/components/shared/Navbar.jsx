@@ -50,7 +50,12 @@ import {
   FaUser,
 } from "react-icons/fa6";
 import { PiHouseBold } from "react-icons/pi";
-import { Link as RouteLink, NavLink, useLocation } from "react-router-dom";
+import {
+  Link as RouteLink,
+  NavLink,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import CreatePostModal from "../post/CreatePostModal/CreatePostModal";
 import { useEffect, useState } from "react";
@@ -61,6 +66,11 @@ import { ImSearch } from "react-icons/im";
 import { GrSearch } from "react-icons/gr";
 import { BsSearch } from "react-icons/bs";
 import SearchInputBar from "../search/SearchInputBar";
+import {
+  checkAuthState,
+  signoutAction,
+} from "../../redux/actions/auth/authActions";
+import { useDispatch, useSelector } from "react-redux";
 
 const menuLinks = [
   {
@@ -100,9 +110,6 @@ const Navbar = () => {
   } = useDisclosure();
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(false);
   const [showNavBar, setShowNavBar] = useState(false);
-  const [hideNavBar, setHideNavBar] = useState(false);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const [isButtonClickPending, setIsButtonClickPending] = useState(false);
 
   const navLinks = [
     {
@@ -180,46 +187,25 @@ const Navbar = () => {
     },
   ];
 
-  // useEffect(() => {
-  //   const handleScroll = () => {
-  //     const isScrolledToTop = window.scrollY === 0;
-  //     const isScrollingDown = window.scrollY > 0;
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const auth = useSelector((store) => store.auth);
 
-  //     if (isScrolledToTop && !isScrolling) {
-  //       setIsNavbarCollapsed(false);
-  //       setHideNavBar(false);
-  //     } else {
-  //       setIsNavbarCollapsed(true);
-  //       setHideNavBar(true);
-  //     }
+  const handleSignOutClick = () => {
+    dispatch(signoutAction());
+  };
 
-  //     //   setIsNavbarCollapsed(true);
-  //     //   setHideNavBar(true);
-  //     // } else {
-  //     //   setIsNavbarCollapsed(false);
-  //     //   setHideNavBar(false);
-  //     // }
-  //     // setIsNavbarCollapsed(isScrollingDown);
-  //   };
+  useEffect(() => {
+    dispatch(checkAuthState());
+  }, [dispatch]);
 
-  //   window.addEventListener("scroll", handleScroll);
-
-  //   return () => {
-  //     window.removeEventListener("scroll", handleScroll);
-  //   };
-  // }, [isScrolling]);
-
-  // const handleToggleNav = () => {
-  //   setHideNavBar(!hideNavBar);
-  // };
-
-  // const handleToggleNav = () => {
-  //   setIsButtonClickPending(true);
-  //   setTimeout(() => {
-  //     setHideNavBar((prevHideNavBar) => !prevHideNavBar);
-  //     setIsButtonClickPending(false);
-  //   }, 200); // Adjust the delay as needed
-  // };
+  useEffect(() => {
+    console.log("Authenticated: ", auth.isAuthenticated);
+    // Check if the user is signed out
+    if (!auth.isAuthenticated) {
+      navigate("/login");
+    }
+  }, [auth.isAuthenticated, navigate]);
 
   const handleScroll = () => {
     const isScrollingDown = window.scrollY > 0;
@@ -392,7 +378,7 @@ const Navbar = () => {
                     _hover={{
                       textDecoration: "none",
                     }}
-                    onClick={() => onCloseNavModal()}
+                    onClick={() => handleSignOutClick()}
                   >
                     <MenuItem
                       _hover={{
