@@ -5,7 +5,7 @@ import {
   errorToastNotification,
   successToastNotification,
 } from "../../../utils/toastNotification";
-import { SIGN_IN, SIGN_OUT, SIGN_UP } from "./authActionTypes";
+import { signIn, signUp, signOut } from "../../reducers/auth/authSlice";
 
 export const signinAction = (data) => async (dispatch) => {
   login(data)
@@ -17,7 +17,7 @@ export const signinAction = (data) => async (dispatch) => {
       //set JWT token to local storage
       localStorage.setItem("token", token);
 
-      dispatch({ type: SIGN_IN, payload: { token } });
+      dispatch(signIn({ token }));
 
       console.log("Login Success");
       successToastNotification("Login Success", null);
@@ -35,7 +35,7 @@ export const signupAction = (data) => async (dispatch) => {
       const user = data;
       console.log("User signup: ", response);
 
-      dispatch({ type: SIGN_UP, payload: user });
+      dispatch(signUp(user));
 
       console.log("Signup Success");
       successToastNotification(
@@ -54,7 +54,7 @@ export const signoutAction = () => (dispatch) => {
   // Clear token from local storage
   localStorage.removeItem("token");
 
-  dispatch({ type: SIGN_OUT });
+  dispatch(signOut());
 
   console.log("Logout Success");
   successToastNotification("Logged Out", null);
@@ -66,7 +66,7 @@ export const checkAuthState = () => (dispatch) => {
   if (!token) {
     // Token is missing, user is not authenticated
     console.log("Auth token not present");
-    dispatch(signoutAction());
+    dispatch(signOut());
   } else {
     const { exp } = jwtDecode(token);
     const currentDate = Date.now();
@@ -79,73 +79,7 @@ export const checkAuthState = () => (dispatch) => {
       // Token is valid, user is authenticated
       console.log("Auth token: ", token);
 
-      dispatch({ type: SIGN_IN, payload: { token } });
+      dispatch(signIn({ token }));
     }
   }
 };
-
-// export const signinAction = createAsyncThunk("auth/signIn", async (data) => {
-//   try {
-//     const response = await login(data);
-//     const token = response.data.token;
-//     console.log("User signin: ", token);
-
-//     localStorage.setItem("token", token);
-
-//     console.log("Login Success");
-//     successToastNotification("Login Success", null);
-
-//     return { token };
-//   } catch (error) {
-//     console.log(error);
-//     errorToastNotification(error.response.data.message, null);
-//     throw error;
-//   }
-// });
-
-// export const signupAction = createAsyncThunk("auth/signUp", async (data) => {
-//   try {
-//     const response = await register(data);
-//     const user = data;
-//     console.log("User signup: ", response);
-
-//     console.log("Signup Success");
-//     successToastNotification(`Account created for ${data.name}.`);
-
-//     return user;
-//   } catch (error) {
-//     console.log(error);
-//     errorToastNotification(error.response.data.message, null);
-//     throw error;
-//   }
-// });
-
-// export const signoutAction = createAsyncThunk("auth/signOut", async () => {
-//   console.log("Removing token: ", localStorage.getItem("token"));
-//   localStorage.removeItem("token");
-
-//   console.log("Logout Success");
-//   successToastNotification("Logged Out", null);
-// });
-
-// export const checkAuthState = () => (dispatch) => {
-//   const token = localStorage.getItem("token");
-
-//   if (!token) {
-//     console.log("Auth token not present");
-//     dispatch(signoutAction());
-//   } else {
-//     const { exp } = jwtDecode(token);
-//     const currentDate = Date.now();
-//     const expirationDate = exp * 1000;
-
-//     if (currentDate > expirationDate) {
-//       dispatch(signoutAction());
-//     } else {
-//       console.log("Auth token: ", token);
-
-//       //   dispatch({ type: "auth/signIn", payload: token });
-//       dispatch({ type: "auth/signedIn", payload: { token } });
-//     }
-//   }
-// };

@@ -1,11 +1,8 @@
-import altLogo from "../../../assets/images/pixshare_logo_gray.png";
-import logo from "../../../assets/images/pixshare_logo.png";
 import {
   Box,
   Button,
   HStack,
   Image,
-  Icon,
   Link,
   Stack,
   Text,
@@ -14,13 +11,17 @@ import {
 } from "@chakra-ui/react";
 import { Form, Formik } from "formik";
 import React, { useEffect } from "react";
-import { PiEyeBold, PiEyeClosedBold } from "react-icons/pi";
 import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink, useNavigate } from "react-router-dom";
+import logo from "../../../assets/images/pixshare_logo.png";
+import altLogo from "../../../assets/images/pixshare_logo_gray.png";
+import {
+  checkAuthState,
+  signupAction,
+} from "../../../redux/actions/auth/authActions";
 import CustomPasswordInput from "../../shared/customFormElements/CustomPasswordInput";
 import CustomSelect from "../../shared/customFormElements/CustomSelect";
 import CustomTextInput from "../../shared/customFormElements/CustomTextInput";
-import { signupAction } from "../../../redux/actions/auth/authActions";
 
 const SignupForm = ({ initialValues, validationSchema }) => {
   const formLogo = useColorModeValue(logo, altLogo);
@@ -44,11 +45,18 @@ const SignupForm = ({ initialValues, validationSchema }) => {
   };
 
   useEffect(() => {
+    dispatch(checkAuthState());
+  }, [dispatch]);
+
+  useEffect(() => {
     console.log(auth.signup?.username);
     if (auth.signup?.username) {
       navigate("/login");
     }
-  }, [auth.signup, navigate]);
+    if (auth.isAuthenticated) {
+      navigate("/");
+    }
+  }, [auth.isAuthenticated, auth.signup, navigate]);
 
   return (
     <Formik

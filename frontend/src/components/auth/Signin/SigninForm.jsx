@@ -13,9 +13,12 @@ import { Form, Formik } from "formik";
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink, useNavigate } from "react-router-dom";
-import { signinAction } from "../../../redux/actions/auth/authActions";
 import logo from "../../../assets/images/pixshare_logo.png";
 import altLogo from "../../../assets/images/pixshare_logo_gray.png";
+import {
+  checkAuthState,
+  signinAction,
+} from "../../../redux/actions/auth/authActions";
 import CustomPasswordInput from "../../shared/customFormElements/CustomPasswordInput";
 import CustomTextInput from "../../shared/customFormElements/CustomTextInput";
 
@@ -23,7 +26,7 @@ const SigninForm = ({ initialValues, validationSchema }) => {
   const formLogo = useColorModeValue(logo, altLogo);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const auth = useSelector((store) => store.auth);
+  const isAuthenticated = useSelector((store) => store.auth.isAuthenticated);
   // const token = localStorage.getItem("token");
 
   const handleFormSubmission = (values, { setSubmitting }) => {
@@ -34,11 +37,14 @@ const SigninForm = ({ initialValues, validationSchema }) => {
   };
 
   useEffect(() => {
-    console.log(auth.signin);
-    if (auth.signin) {
+    dispatch(checkAuthState());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
       navigate("/");
     }
-  }, [auth.signin, navigate]);
+  }, [isAuthenticated, navigate]);
 
   return (
     <Formik

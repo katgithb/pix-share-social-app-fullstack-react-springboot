@@ -4,15 +4,22 @@ import {
   Button,
   Card,
   Flex,
-  Image,
   Link,
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
 import React from "react";
+import { useDispatch } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
+import { signoutAction } from "../../redux/actions/auth/authActions";
 
 const BasicProfileCard = ({ user }) => {
+  const dispatch = useDispatch();
+
+  const handleSignOutClick = () => {
+    dispatch(signoutAction());
+  };
+
   return (
     <Card
       p={3}
@@ -44,14 +51,7 @@ const BasicProfileCard = ({ user }) => {
               />
             </Box>
           </Link>
-          {/* <Link as={RouteLink} href="#" cursor="pointer">
-            <Image
-              src={`https://randomuser.me/api/portraits/men/71.jpg`}
-              alt="User Profile"
-              borderRadius="full"
-              width="75px"
-            />
-          </Link> */}
+
           <Box px="2" mb={-0.5}>
             <Text
               fontSize="sm"
@@ -67,7 +67,6 @@ const BasicProfileCard = ({ user }) => {
             <Text
               fontSize="sm"
               textAlign="start"
-              // h="5"
               overflow="hidden"
               color="gray.500"
               wordBreak={"break-word"}
@@ -86,6 +85,7 @@ const BasicProfileCard = ({ user }) => {
             color={useColorModeValue("cyan.500", "cyan.400")}
             fontWeight="bold"
             cursor="pointer"
+            onClick={handleSignOutClick}
           >
             <Button
               colorScheme="cyan"
@@ -95,7 +95,6 @@ const BasicProfileCard = ({ user }) => {
             >
               Sign Out
             </Button>
-            {/* Sign Out */}
           </Link>
         </Flex>
       </Flex>

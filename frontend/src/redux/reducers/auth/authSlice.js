@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { SIGN_IN, SIGN_OUT, SIGN_UP } from "../../actions/auth/authActionTypes";
 
 const authSlice = createSlice({
   name: "auth",
@@ -8,22 +7,24 @@ const authSlice = createSlice({
     signin: null,
     isAuthenticated: false,
   },
-  reducers: {},
+  reducers: {
+    signIn: (state, action) => {
+      state.signin = action.payload.token;
+      state.isAuthenticated = true;
+    },
+    signUp: (state, action) => {
+      state.signup = action.payload;
+    },
+    signOut: (state) => {
+      state.signup = null;
+      state.signin = null;
+      state.isAuthenticated = false;
+    },
+  },
   extraReducers: (builder) => {
-    builder
-      .addCase(SIGN_IN, (state, action) => {
-        state.signin = action.payload.token;
-        state.isAuthenticated = true;
-      })
-      .addCase(SIGN_UP, (state, action) => {
-        state.signup = action.payload;
-      })
-      .addCase(SIGN_OUT, (state) => {
-        state.signup = null;
-        state.signin = null;
-        state.isAuthenticated = false;
-      });
+    // Additional extra reducers if needed
   },
 });
 
+export const { signIn, signUp, signOut } = authSlice.actions;
 export default authSlice.reducer;

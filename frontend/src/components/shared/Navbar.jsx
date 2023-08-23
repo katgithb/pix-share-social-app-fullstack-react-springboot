@@ -1,47 +1,32 @@
-import altLogo from "../../assets/images/pixshare_logo_gray.png";
-import logo from "../../assets/images/pixshare_logo.png";
+import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import {
-  Box,
-  Flex,
   Avatar,
-  HStack,
+  Box,
   Button,
-  Text,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Stack,
+  Collapse,
+  Flex,
+  HStack,
   Icon,
   IconButton,
-  useDisclosure,
-  useColorModeValue,
   Image,
-  VStack,
-  MenuDivider,
-  useColorMode,
-  Input,
   Link,
-  Center,
-  chakra,
-  InputGroup,
-  InputLeftElement,
-  Collapse,
-  Fade,
-  ScaleFade,
+  Menu,
+  MenuButton,
+  MenuDivider,
+  MenuItem,
+  MenuList,
+  Stack,
+  Text,
+  useColorMode,
+  useColorModeValue,
+  useDisclosure,
+  VStack,
 } from "@chakra-ui/react";
-import { GiHamburgerMenu } from "react-icons/gi";
-import { AiOutlineClose, AiOutlineSearch } from "react-icons/ai";
-import { FiMenu, FiMoon, FiSun, FiX } from "react-icons/fi";
-import {
-  MdExpandCircleDown,
-  MdOutlineExpandCircleDown,
-  MdOutlineSearch,
-} from "react-icons/md";
+import { useState } from "react";
+import { AiOutlineClose } from "react-icons/ai";
 import {
   FaBookmark,
   FaGear,
-  FaMagnifyingGlass,
   FaRegCommentDots,
   FaRegCompass,
   FaRegHeart,
@@ -49,28 +34,19 @@ import {
   FaRightFromBracket,
   FaUser,
 } from "react-icons/fa6";
-import { PiHouseBold } from "react-icons/pi";
-import {
-  Link as RouteLink,
-  NavLink,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
-import { MoonIcon, SunIcon } from "@chakra-ui/icons";
-import CreatePostModal from "../post/CreatePostModal/CreatePostModal";
-import { useEffect, useState } from "react";
-import { TbLayoutNavbarCollapse, TbLayoutNavbarExpand } from "react-icons/tb";
-import SearchResultsListModal from "../search/SearchResultsListModal/SearchResultsListModal";
-import { BiSearch, BiSearchAlt } from "react-icons/bi";
-import { ImSearch } from "react-icons/im";
+import { FiMoon, FiSun } from "react-icons/fi";
+import { GiHamburgerMenu } from "react-icons/gi";
 import { GrSearch } from "react-icons/gr";
-import { BsSearch } from "react-icons/bs";
+import { PiHouseBold } from "react-icons/pi";
+import { TbLayoutNavbarCollapse, TbLayoutNavbarExpand } from "react-icons/tb";
+import { useDispatch } from "react-redux";
+import { Link as RouteLink, NavLink, useLocation } from "react-router-dom";
+import logo from "../../assets/images/pixshare_logo.png";
+import altLogo from "../../assets/images/pixshare_logo_gray.png";
+import { signoutAction } from "../../redux/actions/auth/authActions";
+import CreatePostModal from "../post/CreatePostModal/CreatePostModal";
 import SearchInputBar from "../search/SearchInputBar";
-import {
-  checkAuthState,
-  signoutAction,
-} from "../../redux/actions/auth/authActions";
-import { useDispatch, useSelector } from "react-redux";
+import SearchResultsListModal from "../search/SearchResultsListModal/SearchResultsListModal";
 
 const menuLinks = [
   {
@@ -93,6 +69,7 @@ const menuLinks = [
 const Navbar = () => {
   // const { isOpen, onOpen, onClose } = useDisclosure();
   const { colorMode, toggleColorMode } = useColorMode();
+  const dispatch = useDispatch();
   const {
     isOpen: isOpenNavModal,
     onOpen: onOpenNavModal,
@@ -187,25 +164,9 @@ const Navbar = () => {
     },
   ];
 
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const auth = useSelector((store) => store.auth);
-
   const handleSignOutClick = () => {
     dispatch(signoutAction());
   };
-
-  useEffect(() => {
-    dispatch(checkAuthState());
-  }, [dispatch]);
-
-  useEffect(() => {
-    console.log("Authenticated: ", auth.isAuthenticated);
-    // Check if the user is signed out
-    if (!auth.isAuthenticated) {
-      navigate("/login");
-    }
-  }, [auth.isAuthenticated, navigate]);
 
   const handleScroll = () => {
     const isScrollingDown = window.scrollY > 0;
