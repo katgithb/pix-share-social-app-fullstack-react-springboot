@@ -1,11 +1,13 @@
-import { createAction, createAsyncThunk } from "@reduxjs/toolkit";
 import jwtDecode from "jwt-decode";
-import { login, register } from "../../../services/apiClient";
+import { createUser, login } from "../../../services/api/authService";
 import {
   errorToastNotification,
   successToastNotification,
 } from "../../../utils/toastNotification";
-import { signIn, signUp, signOut } from "../../reducers/auth/authSlice";
+import { signIn, signOut, signUp } from "../../reducers/auth/authSlice";
+import { clearUserLookup } from "../../reducers/user/userLookupSlice";
+import { clearUserProfile } from "../../reducers/user/userProfileSlice";
+import { clearUserSocial } from "../../reducers/user/userSocialSlice";
 
 export const signinAction = (data) => async (dispatch) => {
   login(data)
@@ -30,7 +32,7 @@ export const signinAction = (data) => async (dispatch) => {
 };
 
 export const signupAction = (data) => async (dispatch) => {
-  register(data)
+  createUser(data)
     .then((response) => {
       const user = data;
       console.log("User signup: ", response);
@@ -54,6 +56,11 @@ export const signoutAction = () => (dispatch) => {
   // Clear token from local storage
   localStorage.removeItem("token");
 
+  // Clear user state
+  dispatch(clearUserProfile());
+  dispatch(clearUserLookup());
+  dispatch(clearUserSocial());
+
   dispatch(signOut());
 
   console.log("Logout Success");
@@ -66,6 +73,12 @@ export const checkAuthState = () => (dispatch) => {
   if (!token) {
     // Token is missing, user is not authenticated
     console.log("Auth token not present");
+
+    // Clear user state
+    dispatch(clearUserProfile());
+    dispatch(clearUserLookup());
+    dispatch(clearUserSocial());
+
     dispatch(signOut());
   } else {
     const { exp } = jwtDecode(token);

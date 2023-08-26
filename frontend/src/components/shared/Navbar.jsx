@@ -87,6 +87,7 @@ const Navbar = () => {
   } = useDisclosure();
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(false);
   const [showNavBar, setShowNavBar] = useState(false);
+  // const token = localStorage.getItem("token");
 
   const navLinks = [
     {
