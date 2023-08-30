@@ -8,12 +8,18 @@ import { clearUserLookup } from "../../reducers/user/userLookupSlice";
 import {
   clearUserProfile,
   deleteUserProfile,
+  deleteUserProfilePending,
   editUserProfile,
+  editUserProfilePending,
   fetchUserProfile,
+  fetchUserProfilePending,
+  userProfileFailure,
 } from "../../reducers/user/userProfileSlice";
 import { clearUserSocial } from "../../reducers/user/userSocialSlice";
 
 export const fetchUserProfileAction = (data) => async (dispatch) => {
+  dispatch(fetchUserProfilePending());
+
   getUserProfile(data)
     .then((response) => {
       const currUser = response.data;
@@ -24,10 +30,13 @@ export const fetchUserProfileAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(userProfileFailure());
     });
 };
 
 export const editUserProfileAction = (data) => async (dispatch) => {
+  dispatch(editUserProfilePending());
+
   updateUser(data)
     .then(() => {
       dispatch(editUserProfile());
@@ -36,10 +45,13 @@ export const editUserProfileAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(userProfileFailure());
     });
 };
 
 export const deleteUserProfileAction = (data) => async (dispatch) => {
+  dispatch(deleteUserProfilePending());
+
   deleteUser(data)
     .then(() => {
       console.log("Removing token: ", localStorage.getItem("token"));
@@ -59,5 +71,6 @@ export const deleteUserProfileAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(userProfileFailure());
     });
 };

@@ -31,19 +31,20 @@ const BasicProfileCard = ({ user }) => {
         <Flex alignItems="center" overflow="hidden">
           <Link
             as={RouteLink}
-            to={`/username`}
+            to={`/profile/${user?.username}`}
             bgGradient={"linear(to-tr, yellow.400, pink.400, purple.600)"}
             p={"1"}
             rounded="full"
           >
             <Box bg="gray.50" p={"0.5"} rounded="full">
               <Avatar
-                name={user?.fullname}
-                src={user?.dp}
+                name={user?.name}
+                src={user?.userImage}
                 // size="md"
                 boxSize="14"
                 alt="User Avatar"
                 boxShadow={"md"}
+                loading="lazy"
                 _hover={{
                   transition: "transform 0.3s ease",
                   transform: "rotate(8deg) scale(1.2)",
@@ -60,7 +61,7 @@ const BasicProfileCard = ({ user }) => {
               wordBreak={"break-word"}
               noOfLines={2}
             >
-              <Link as={RouteLink} to={`/username`}>
+              <Link as={RouteLink} to={`/profile/${user?.username}`}>
                 {user?.username}
               </Link>
             </Text>
@@ -72,7 +73,7 @@ const BasicProfileCard = ({ user }) => {
               wordBreak={"break-word"}
               noOfLines={2}
             >
-              {user?.fullname}
+              {user?.name}
             </Text>
           </Box>
         </Flex>

@@ -26,7 +26,7 @@ const SigninForm = ({ initialValues, validationSchema }) => {
   const formLogo = useColorModeValue(logo, altLogo);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector((store) => store.auth.isAuthenticated);
+  const { isAuthenticated, isLoading } = useSelector((store) => store.auth);
   // const token = localStorage.getItem("token");
 
   const handleFormSubmission = (values, { setSubmitting }) => {
@@ -109,8 +109,8 @@ const SigninForm = ({ initialValues, validationSchema }) => {
               <Button
                 type={"submit"}
                 isDisabled={!isValid || isSubmitting}
-                isLoading={isSubmitting}
-                loadingText="Submitting"
+                isLoading={isLoading}
+                loadingText="Signing In..."
                 bg="blue.400"
                 color="white"
                 _hover={{

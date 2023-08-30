@@ -28,35 +28,11 @@ import UserProfilePhoto from "./UserProfilePhoto";
 import UserProfileStats from "./UserProfileStats";
 
 const ProfileHeader = ({ user }) => {
-  const { id } = user;
-  const gender = id % 2 === 0 ? "men" : "women";
-  const image = `https://picsum.photos/1280/720?random=${Math.random() * 100}`;
-  const userDetails = {
-    dp: `https://randomuser.me/api/portraits/${gender}/${Math.round(id)}.jpg`,
-    fullname: generateRandomName(),
-    // username: generateRandomUsername(userDetails.fullname),
-  };
-  const username = generateRandomUsername(userDetails.fullname);
-  const website = username.replace(/_/g, "") + ".com";
   const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
   const isSmallScreen = breakpoint === "base" || breakpoint === "sm";
+  const MAX_CHARS_MOBILE_USER_DETAILS = 30;
 
-  function generateRandomName() {
-    const names = [
-      "John Doe",
-      "Jane Smith",
-      "Alex Johnson Hades Kate Wilber Robert",
-      "Sarah Thompson",
-    ];
-    const randomIndex = Math.floor(Math.random() * names.length);
-    return names[randomIndex];
-  }
-
-  function generateRandomUsername(fullname) {
-    const username = fullname.replace(/\s+/g, "_").toLowerCase();
-
-    return username;
-  }
+  // console.log(user);
 
   return (
     <Card
@@ -75,17 +51,14 @@ const ProfileHeader = ({ user }) => {
             gap={2}
           >
             {isSmallScreen ? (
-              <MobileUserDetails
-                userDetails={userDetails}
-                username={username}
-                website={website}
+              <MobileUserDetails user={user} />
+            ) : user.bio && user.bio?.length > MAX_CHARS_MOBILE_USER_DETAILS ? (
+              <NonMobileUserDetails
+                user={user}
+                maxCharsMobileUserDetails={MAX_CHARS_MOBILE_USER_DETAILS}
               />
             ) : (
-              <NonMobileUserDetails
-                userDetails={userDetails}
-                username={username}
-                website={website}
-              />
+              <MobileUserDetails user={user} />
             )}
           </Flex>
         </Flex>
@@ -94,37 +67,36 @@ const ProfileHeader = ({ user }) => {
   );
 };
 
-const MobileUserDetails = ({ userDetails, username, website }) => {
+const MobileUserDetails = ({ user }) => {
   return (
     <>
       <VStack mt={1} spacing={2}>
-        <UserProfilePhoto userDetails={userDetails} username={username} />
+        <UserProfilePhoto userDetails={user} />
 
-        <UserProfileFullnameAndBio
-          userDetails={userDetails}
-          website={website}
-        />
+        <UserProfileFullnameAndBio userDetails={user} />
       </VStack>
 
-      <UserProfileStats />
+      <UserProfileStats userDetails={user} />
     </>
   );
 };
 
-const NonMobileUserDetails = ({ userDetails, username, website }) => {
+const NonMobileUserDetails = ({ user, maxCharsMobileUserDetails = 25 }) => {
   return (
     <>
       <VStack mt={1} spacing={2} w="full">
-        <UserProfilePhoto userDetails={userDetails} username={username} />
+        <UserProfilePhoto userDetails={user} />
 
-        <UserProfileStats />
+        <UserProfileStats
+          userDetails={user}
+          maxCharsMobileUserDetails={maxCharsMobileUserDetails}
+        />
       </VStack>
 
-      <UserProfileFullnameAndBio userDetails={userDetails} website={website} />
-
-      {/* <Flex mt={8} mb={1}>
-        <ProfileHighlights />
-      </Flex> */}
+      <UserProfileFullnameAndBio
+        userDetails={user}
+        maxCharsMobileUserDetails={maxCharsMobileUserDetails}
+      />
     </>
   );
 };

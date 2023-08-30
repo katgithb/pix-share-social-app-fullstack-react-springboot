@@ -4,12 +4,21 @@ import {
   errorToastNotification,
   successToastNotification,
 } from "../../../utils/toastNotification";
-import { signIn, signOut, signUp } from "../../reducers/auth/authSlice";
+import {
+  authFailure,
+  signIn,
+  signInPending,
+  signOut,
+  signUp,
+  signUpPending,
+} from "../../reducers/auth/authSlice";
 import { clearUserLookup } from "../../reducers/user/userLookupSlice";
 import { clearUserProfile } from "../../reducers/user/userProfileSlice";
 import { clearUserSocial } from "../../reducers/user/userSocialSlice";
 
 export const signinAction = (data) => async (dispatch) => {
+  dispatch(signInPending());
+
   login(data)
     .then((response) => {
       //get token from response
@@ -26,12 +35,23 @@ export const signinAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(authFailure());
+
       // errorToastNotification(error.code, error.response.data.message);
-      errorToastNotification(error.response.data.message, null);
+      if (error.response) {
+        errorToastNotification(error.response.data.message, null);
+      } else if (error.code === "ERR_NETWORK") {
+        errorToastNotification(
+          "Network Error",
+          "We're having trouble connecting to the server. Please try again."
+        );
+      }
     });
 };
 
 export const signupAction = (data) => async (dispatch) => {
+  dispatch(signUpPending());
+
   createUser(data)
     .then((response) => {
       const user = data;
@@ -47,7 +67,16 @@ export const signupAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
-      errorToastNotification(error.response.data.message, null);
+      dispatch(authFailure());
+
+      if (error.response) {
+        errorToastNotification(error.response.data.message, null);
+      } else if (error.code === "ERR_NETWORK") {
+        errorToastNotification(
+          "Network Error",
+          "We're having trouble connecting to the server. Please try again."
+        );
+      }
     });
 };
 

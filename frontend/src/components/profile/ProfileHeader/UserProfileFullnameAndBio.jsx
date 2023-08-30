@@ -9,41 +9,102 @@ import {
 import React from "react";
 import { Link as RouteLink } from "react-router-dom";
 
-const UserProfileFullnameAndBio = ({ userDetails, website }) => {
+const UserProfileFullnameAndBio = ({
+  userDetails,
+  maxCharsMobileUserDetails,
+}) => {
   return (
-    <VStack align="start" gap={2} mt={{ base: "0", md: "8" }}>
+    <VStack
+      align="start"
+      w="full"
+      gap={2}
+      mt={{
+        base: "0",
+        md:
+          userDetails?.bio &&
+          userDetails?.bio?.length > maxCharsMobileUserDetails
+            ? "8"
+            : "0",
+      }}
+    >
       <Heading
         size="sm"
         pb={2}
-        alignSelf={{ base: "center", md: "start" }}
-        textAlign={{ base: "center", md: "start" }}
+        alignSelf={{
+          base: "center",
+          md:
+            userDetails?.bio &&
+            userDetails?.bio?.length > maxCharsMobileUserDetails
+              ? "start"
+              : "center",
+        }}
+        textAlign={{
+          base: "center",
+          md:
+            userDetails?.bio &&
+            userDetails?.bio?.length > maxCharsMobileUserDetails
+              ? "start"
+              : "center",
+        }}
         wordBreak="break-word"
       >
-        {userDetails?.fullname}
+        {userDetails?.name}
       </Heading>
 
-      <Box>
+      <Box
+        display={
+          userDetails?.bio && userDetails?.bio?.length > 0 ? "inherit" : "none"
+        }
+        alignSelf={{
+          base: "center",
+          md:
+            userDetails?.bio &&
+            userDetails?.bio?.length > maxCharsMobileUserDetails
+              ? "start"
+              : "center",
+        }}
+        textAlign={{
+          base: "center",
+          md:
+            userDetails?.bio &&
+            userDetails?.bio?.length > maxCharsMobileUserDetails
+              ? "start"
+              : "center",
+        }}
+      >
         <Text
           fontSize={"sm"}
           color={useColorModeValue("gray.500", "gray.400")}
           letterSpacing="wide"
         >
-          Be the type of person that you want to meet. Don’t treat people as bad
-          as they are, treat them as good as you are. I survived because the
-          fire inside me burned brighter than the fire around me. Be a warrior,
-          not a worrier Passion changes everything. Die having memories don’t
-          die with just dreams. See the good in the world. You become what you
-          believe, so believe in yourself. <br /> 🔥 Spread positive energy.{" "}
-          <br />
-          ❤️ Follow kindness <br />
-          💪 Support each other <br />
-          Follow the rules of Karma 🕉️ <br />
+          {userDetails?.bio}
         </Text>
       </Box>
 
       <Link
+        display={
+          userDetails?.website && userDetails?.website?.length > 0
+            ? "inherit"
+            : "none"
+        }
         as={RouteLink}
-        href={website}
+        to={userDetails?.website}
+        alignSelf={{
+          base: "center",
+          md:
+            userDetails?.bio &&
+            userDetails?.bio?.length > maxCharsMobileUserDetails
+              ? "start"
+              : "center",
+        }}
+        textAlign={{
+          base: "center",
+          md:
+            userDetails?.bio &&
+            userDetails?.bio?.length > maxCharsMobileUserDetails
+              ? "start"
+              : "center",
+        }}
         style={{ textDecoration: "none" }}
         isExternal
       >
@@ -53,7 +114,7 @@ const UserProfileFullnameAndBio = ({ userDetails, website }) => {
           fontWeight="semibold"
           wordBreak={"break-all"}
         >
-          {website}
+          {userDetails?.website}
         </Text>
       </Link>
     </VStack>

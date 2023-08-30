@@ -39,7 +39,7 @@ import { GiHamburgerMenu } from "react-icons/gi";
 import { GrSearch } from "react-icons/gr";
 import { PiHouseBold } from "react-icons/pi";
 import { TbLayoutNavbarCollapse, TbLayoutNavbarExpand } from "react-icons/tb";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink, NavLink, useLocation } from "react-router-dom";
 import logo from "../../assets/images/pixshare_logo.png";
 import altLogo from "../../assets/images/pixshare_logo_gray.png";
@@ -48,23 +48,23 @@ import CreatePostModal from "../post/CreatePostModal/CreatePostModal";
 import SearchInputBar from "../search/SearchInputBar";
 import SearchResultsListModal from "../search/SearchResultsListModal/SearchResultsListModal";
 
-const menuLinks = [
-  {
-    name: "Profile",
-    path: "/username",
-    icon: FaUser,
-  },
-  {
-    name: "Saved",
-    path: "/",
-    icon: FaBookmark,
-  },
-  {
-    name: "Settings",
-    path: "/account/settings",
-    icon: FaGear,
-  },
-];
+// const menuLinks = [
+//   {
+//     name: "Profile",
+//     path: `/profile/${userProfile.currUser?.username}`,
+//     icon: FaUser,
+//   },
+//   {
+//     name: "Saved",
+//     path: "/",
+//     icon: FaBookmark,
+//   },
+//   {
+//     name: "Settings",
+//     path: "/account/settings",
+//     icon: FaGear,
+//   },
+// ];
 
 const Navbar = () => {
   // const { isOpen, onOpen, onClose } = useDisclosure();
@@ -88,6 +88,25 @@ const Navbar = () => {
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(false);
   const [showNavBar, setShowNavBar] = useState(false);
   // const token = localStorage.getItem("token");
+  const userProfile = useSelector((store) => store.user.userProfile);
+
+  const menuLinks = [
+    {
+      name: "Profile",
+      path: `/profile/${userProfile.currUser?.username}`,
+      icon: FaUser,
+    },
+    {
+      name: "Saved",
+      path: "/",
+      icon: FaBookmark,
+    },
+    {
+      name: "Settings",
+      path: "/account/settings",
+      icon: FaGear,
+    },
+  ];
 
   const navLinks = [
     {
@@ -280,9 +299,8 @@ const Navbar = () => {
                 <MenuButton as={Button} size="sm" px={0} py={0} rounded="full">
                   <Avatar
                     size="sm"
-                    src={
-                      "https://api.dicebear.com/6.x/adventurer-neutral/svg?seed=Sam&backgroundColor=c0aede"
-                    }
+                    name={userProfile.currUser?.name}
+                    src={userProfile.currUser?.userImage}
                   />
                 </MenuButton>
                 <MenuList
@@ -293,21 +311,28 @@ const Navbar = () => {
                 >
                   <Link
                     as={RouteLink}
-                    to="/username"
+                    to={`/profile/${userProfile.currUser?.username}`}
                     _hover={{ textDecoration: "none" }}
                   >
                     <MenuItem justifyContent={"center"} alignItems={"center"}>
                       <VStack>
                         <Avatar
                           size="xl"
-                          src={
-                            "https://api.dicebear.com/6.x/adventurer-neutral/svg?seed=Sam&backgroundColor=c0aede"
-                          }
+                          name={userProfile.currUser?.name}
+                          src={userProfile.currUser?.userImage}
+                          boxShadow="md"
                         />
-                        <Text size="sm" color="gray.400" mt="0 !important">
-                          @darren_criss
+                        <Text
+                          size="sm"
+                          color="gray.400"
+                          mt="0 !important"
+                          wordBreak={"break-all"}
+                        >
+                          @{userProfile.currUser?.username}
                         </Text>
-                        <Text fontWeight="500">Darren Criss</Text>
+                        <Text fontWeight="500" wordBreak={"break-word"}>
+                          {userProfile.currUser?.name}
+                        </Text>
                       </VStack>
                     </MenuItem>
                   </Link>

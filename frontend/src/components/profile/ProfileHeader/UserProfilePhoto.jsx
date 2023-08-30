@@ -2,20 +2,20 @@ import { Avatar, Box, Link, Text, useColorModeValue } from "@chakra-ui/react";
 import React from "react";
 import { Link as RouteLink } from "react-router-dom";
 
-const UserProfilePhoto = ({ userDetails, username }) => {
+const UserProfilePhoto = ({ userDetails }) => {
   return (
     <>
       <Link
         as={RouteLink}
-        to={`/username`}
+        to={`/profile/${userDetails?.username}`}
         bgGradient={"linear(to-tr, yellow.400, pink.400, purple.600)"}
         p={"1"}
         rounded="full"
       >
         <Box bg="gray.50" p={"0.5"} rounded="full">
           <Avatar
-            name={username}
-            src={userDetails?.dp}
+            name={userDetails?.name}
+            src={userDetails?.userImage}
             size="xl"
             boxShadow={"md"}
             _hover={{
@@ -26,7 +26,7 @@ const UserProfilePhoto = ({ userDetails, username }) => {
         </Box>
       </Link>
 
-      <Link as={RouteLink} to={`/username`}>
+      <Link as={RouteLink} to={`/profile/${userDetails?.username}`}>
         <Text
           fontSize={"sm"}
           fontWeight="semibold"
@@ -35,7 +35,7 @@ const UserProfilePhoto = ({ userDetails, username }) => {
           textAlign="center"
           wordBreak={"break-all"}
         >
-          {username}
+          {userDetails?.username}
         </Text>
       </Link>
     </>

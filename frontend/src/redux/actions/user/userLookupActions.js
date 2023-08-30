@@ -6,12 +6,19 @@ import {
 } from "../../../services/api/userService";
 import {
   fetchPopularUsers,
+  fetchPopularUsersPending,
   findUserByUserName,
+  findUserByUserNamePending,
   findUsersByUserIds,
+  findUsersByUserIdsPending,
   searchUsers,
+  searchUsersPending,
+  userLookupFailure,
 } from "../../reducers/user/userLookupSlice";
 
 export const findUserByUserNameAction = (data) => async (dispatch) => {
+  dispatch(findUserByUserNamePending()); // Update loading state
+
   getUserByUserName(data)
     .then((response) => {
       const user = response.data;
@@ -22,10 +29,13 @@ export const findUserByUserNameAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(userLookupFailure());
     });
 };
 
 export const findUsersByUserIdsAction = (data) => async (dispatch) => {
+  dispatch(findUsersByUserIdsPending());
+
   getUsersByUserIds(data)
     .then((response) => {
       const users = response.data;
@@ -36,10 +46,13 @@ export const findUsersByUserIdsAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(userLookupFailure());
     });
 };
 
 export const searchUsersAction = (data) => async (dispatch) => {
+  dispatch(searchUsersPending());
+
   searchUsersBySearchTerm(data)
     .then((response) => {
       const users = response.data;
@@ -50,10 +63,13 @@ export const searchUsersAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(userLookupFailure());
     });
 };
 
 export const fetchPopularUsersAction = (data) => async (dispatch) => {
+  dispatch(fetchPopularUsersPending());
+
   getPopularUsers(data)
     .then((response) => {
       const users = response.data;
@@ -64,5 +80,6 @@ export const fetchPopularUsersAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(userLookupFailure());
     });
 };

@@ -165,8 +165,8 @@ const SignupForm = ({ initialValues, validationSchema }) => {
               <Button
                 type={"submit"}
                 isDisabled={!isValid || isSubmitting}
-                isLoading={isSubmitting}
-                loadingText="Submitting"
+                isLoading={auth.isLoading}
+                loadingText="Signing Up..."
                 bg="blue.400"
                 color="white"
                 _hover={{
