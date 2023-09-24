@@ -17,6 +17,10 @@ public interface UserService {
 
     void registerUser(UserRegistrationRequest registrationRequest) throws DuplicateResourceException;
 
+    boolean verifyPassword(Long userId, String password) throws ResourceNotFoundException;
+
+    void updatePassword(Long userId, String newPassword) throws ResourceNotFoundException, RequestValidationException;
+
     void updateUser(Long userId, UserUpdateRequest updateRequest) throws ResourceNotFoundException, DuplicateResourceException, RequestValidationException;
 
     void deleteUser(Long userId) throws ResourceNotFoundException;

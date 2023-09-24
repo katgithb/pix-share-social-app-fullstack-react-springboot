@@ -2,7 +2,6 @@ package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.dto.UserDTOMapper;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import com.pixshare.pixshareapi.story.StoryService;
 import org.springframework.http.HttpStatus;
@@ -21,13 +20,10 @@ public class UserController {
 
     private final StoryService storyService;
 
-    private final UserDTOMapper userDTOMapper;
-
-    public UserController(UserService userService, AuthenticationService authenticationService, StoryService storyService, UserDTOMapper userDTOMapper) {
+    public UserController(UserService userService, AuthenticationService authenticationService, StoryService storyService) {
         this.userService = userService;
         this.authenticationService = authenticationService;
         this.storyService = storyService;
-        this.userDTOMapper = userDTOMapper;
     }
 
     @GetMapping("/id/{userId}")
@@ -124,6 +120,27 @@ public class UserController {
         MessageResponse response = new MessageResponse(message);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/password/verify")
+    public ResponseEntity<Boolean> verifyPassword(
+            @RequestBody UserPasswordRequest passwordRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        boolean passwordsMatch = userService.verifyPassword(identity.getId(), passwordRequest.currPassword());
+
+        return new ResponseEntity<>(passwordsMatch, HttpStatus.OK);
+    }
+
+    @PutMapping("/password/update")
+    public void updatePassword(
+            @RequestBody UserPasswordRequest passwordRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+
+        userService.updatePassword(identity.getId(), passwordRequest.newPassword());
     }
 
     @PutMapping("/account/edit")

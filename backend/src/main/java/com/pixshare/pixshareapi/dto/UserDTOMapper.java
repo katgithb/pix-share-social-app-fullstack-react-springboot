@@ -31,6 +31,7 @@ public class UserDTOMapper implements Function<User, UserDTO> {
                 user.getWebsite(),
                 user.getBio(),
                 user.getGender(),
+                user.getUserImageUploadId(),
                 user.getUserImage(),
                 user.getFollower().stream()
                         .map(userViewMapper)

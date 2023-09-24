@@ -35,4 +35,14 @@ public class StoryController {
 
         return new ResponseEntity<>(stories, HttpStatus.OK);
     }
+
+    @DeleteMapping("/delete/{storyId}")
+    public void deleteStory(
+            @PathVariable("storyId") Long storyId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        storyService.deleteStory(storyId, identity.getId());
+    }
+
 }

@@ -14,6 +14,7 @@ import java.util.Set;
 public class PostDTO {
     private Long id;
     private String caption;
+    private String imageUploadId;
     private String image;
     private String location;
     private LocalDateTime createdAt;

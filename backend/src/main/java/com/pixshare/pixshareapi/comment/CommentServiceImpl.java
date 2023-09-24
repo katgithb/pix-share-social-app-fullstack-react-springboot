@@ -2,7 +2,9 @@ package com.pixshare.pixshareapi.comment;
 
 import com.pixshare.pixshareapi.dto.CommentDTO;
 import com.pixshare.pixshareapi.dto.CommentDTOMapper;
+import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.post.PostRepository;
 import com.pixshare.pixshareapi.user.User;
@@ -10,6 +12,7 @@ import com.pixshare.pixshareapi.user.UserRepository;
 import com.pixshare.pixshareapi.user.UserService;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,6 +52,25 @@ public class CommentServiceImpl implements CommentService {
                 post);
 
         commentRepository.save(comment);
+    }
+
+    @Override
+    @Transactional
+    public void deleteCommentsByPostId(Long postId) {
+        commentRepository.deleteByPostId(postId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteComment(Long commentId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
+        CommentDTO comment = findCommentById(commentId);
+        UserDTO user = userService.findUserById(userId);
+
+        if (!comment.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedActionException("You can't delete other user's comment");
+        }
+
+        commentRepository.deleteById(comment.getId());
     }
 
     @Override

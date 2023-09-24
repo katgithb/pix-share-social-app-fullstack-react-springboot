@@ -46,6 +46,15 @@ public class CommentController {
         return new ResponseEntity<>(comments, HttpStatus.OK);
     }
 
+    @DeleteMapping("/delete/{commentId}")
+    public void deleteComment(
+            @PathVariable("commentId") Long commentId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        commentService.deleteComment(commentId, identity.getId());
+    }
+
     @PutMapping("/like/{commentId}")
     public ResponseEntity<CommentDTO> likeComment(
             @PathVariable("commentId") Long commentId,

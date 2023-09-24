@@ -18,6 +18,7 @@ public class StoryDTOMapper implements Function<Story, StoryDTO> {
     public StoryDTO apply(Story story) {
         return new StoryDTO(
                 story.getId(),
+                story.getImageUploadId(),
                 story.getImage(),
                 story.getCaption(),
                 story.getTimestamp(),

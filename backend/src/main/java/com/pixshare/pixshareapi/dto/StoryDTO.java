@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode
 public class StoryDTO {
     private Long id;
+    private String imageUploadId;
     private String image;
     private String caption;
     private LocalDateTime timestamp;
