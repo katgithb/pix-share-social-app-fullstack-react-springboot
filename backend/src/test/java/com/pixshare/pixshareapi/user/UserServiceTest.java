@@ -1,5 +1,6 @@
 package com.pixshare.pixshareapi.user;
 
+import com.pixshare.pixshareapi.comment.CommentRepository;
 import com.pixshare.pixshareapi.dto.PostDTOMapper;
 import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.dto.UserDTOMapper;
@@ -7,6 +8,8 @@ import com.pixshare.pixshareapi.dto.UserViewMapper;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import com.pixshare.pixshareapi.post.PostRepository;
+import com.pixshare.pixshareapi.story.StoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,12 +39,18 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
+    private PostRepository postRepository;
+    @Mock
+    private CommentRepository commentRepository;
+    @Mock
+    private StoryRepository storyRepository;
+    @Mock
     private PasswordEncoder passwordEncoder;
 
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, passwordEncoder, userDTOMapper);
+        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, passwordEncoder, userDTOMapper);
     }
 
 
@@ -239,9 +248,9 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId, "newUsername", "newEmail@example.com", "newPassword",
+                "newUsername", "newEmail@example.com",
                 "newName", "newMobile", "newWebsite", "newBio",
-                Gender.MALE, "newUserImage");
+                Gender.MALE, "newUserImageUploadId", "newUserImage");
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
@@ -261,13 +270,13 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId, "newUsername", "existingEmail@example.com", "newPassword",
+                "newUsername", "existingEmail@example.com",
                 "newName", "newMobile", "newWebsite", "newBio",
-                Gender.MALE, "newUserImage");
+                Gender.MALE, "newUserImageUploadId", "newUserImage");
         User user = new User(
                 userId, "Username", "existingEmail@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(true);
@@ -289,13 +298,13 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId, "existingUsername", "newEmail@example.com", "newPassword",
+                "existingUsername", "newEmail@example.com",
                 "newName", "newMobile", "newWebsite", "newBio",
-                Gender.MALE, "newUserImage");
+                Gender.MALE, "newUserImageUploadId", "newUserImage");
         User user = new User(
                 userId, "existingUsername", "Email@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsUserByUserHandleName(updateRequest.username())).thenReturn(true);
@@ -317,13 +326,13 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId, "Username", "existingEmail@example.com", "Password",
+                "Username", "existingEmail@example.com",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage");
         User user = new User(
                 userId, "Username", "existingEmail@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(false);
@@ -332,7 +341,7 @@ class UserServiceTest {
         // Then
         assertThatThrownBy(() -> userService.updateUser(userId, updateRequest))
                 .isInstanceOf(RequestValidationException.class)
-                .hasMessage("No data changes found");
+                .hasMessage("No changes found");
 
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(1)).existsUserByEmail(updateRequest.email());
@@ -345,15 +354,14 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId,
                 "newUsername",
                 "newemail@example.com",
-                "newpassword",
                 "newName",
                 "newMobile",
                 "newWebsite",
                 "newBio",
                 Gender.MALE,
+                "newUserImageUploadId",
                 "newUserImage"
         );
         User user = new User(
@@ -366,6 +374,7 @@ class UserServiceTest {
                 "Website",
                 "Bio",
                 Gender.MALE,
+                "UserImageUploadId",
                 "UserImage"
         );
 
@@ -385,9 +394,10 @@ class UserServiceTest {
         assertThat(savedUser.getId()).isEqualTo(userId);
         assertThat(savedUser.getUserHandleName()).isEqualTo(updateRequest.username());
         assertThat(savedUser.getEmail()).isEqualTo(updateRequest.email());
-        assertThat(savedUser.getPassword()).isEqualTo(updateRequest.password());
         assertThat(savedUser.getName()).isEqualTo(updateRequest.name());
         assertThat(savedUser.getGender()).isEqualTo(updateRequest.gender());
+        assertThat(savedUser.getUserImageUploadId()).isEqualTo(updateRequest.userImageUploadId());
+        assertThat(savedUser.getUserImage()).isEqualTo(updateRequest.userImage());
     }
 
     @Test
@@ -396,15 +406,14 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId,
                 "newUsername",
                 "newemail@example.com",
-                "newpassword",
                 "newName",
                 "newMobile",
                 "newWebsite",
                 "newBio",
                 Gender.MALE,
+                "newUserImageUploadId",
                 "newUserImage"
         );
         User user = new User(
@@ -417,6 +426,7 @@ class UserServiceTest {
                 "Website",
                 "Bio",
                 Gender.MALE,
+                "UserImageUploadId",
                 "UserImage"
         );
 
@@ -436,9 +446,10 @@ class UserServiceTest {
         assertThat(savedUser.getId()).isEqualTo(userId);
         assertThat(savedUser.getUserHandleName()).isEqualTo(updateRequest.username());
         assertThat(savedUser.getEmail()).isEqualTo(updateRequest.email());
-        assertThat(savedUser.getPassword()).isEqualTo(updateRequest.password());
         assertThat(savedUser.getName()).isEqualTo(updateRequest.name());
         assertThat(savedUser.getGender()).isEqualTo(updateRequest.gender());
+        assertThat(savedUser.getUserImageUploadId()).isEqualTo(updateRequest.userImageUploadId());
+        assertThat(savedUser.getUserImage()).isEqualTo(updateRequest.userImage());
     }
 
     @Test
@@ -446,7 +457,7 @@ class UserServiceTest {
     void deleteUserByIdWhenUserDoesNotExistThenThrowException() {
         // Given
         Long userId = 1L;
-        when(userRepository.existsUserById(userId)).thenReturn(false);
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -454,7 +465,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).existsUserById(userId);
+        verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(0)).deleteById(userId);
     }
 
@@ -463,13 +474,18 @@ class UserServiceTest {
     void deleteUserByIdWhenUserExists() {
         // Given
         Long userId = 1L;
-        when(userRepository.existsUserById(userId)).thenReturn(true);
+        User user = new User(
+                userId, "john.doe", "john.doe@example.com", "password", "John Doe",
+                "1234567890", "www.example.com", "Bio",
+                Gender.MALE, "image123", "image.jpg");
+        
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // When
         userService.deleteUser(userId);
 
         // Then
-        verify(userRepository, times(1)).existsUserById(userId);
+        verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(1)).deleteById(userId);
     }
 
@@ -497,11 +513,11 @@ class UserServiceTest {
         User user = new User(
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
         UserDTO expectedUserDTO = new UserDTO(
                 userId, "john.doe", "john.doe@example.com", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg", new LinkedHashSet<>(),
+                Gender.MALE, "image123", "image.jpg", new LinkedHashSet<>(),
                 new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"));
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -541,7 +557,7 @@ class UserServiceTest {
         UserDTO expectedUserDTO = new UserDTO(
                 1L, username, "john.doe@example.com", "John Doe",
                 null, null, null,
-                Gender.MALE, null, new LinkedHashSet<>(),
+                Gender.MALE, null, null, new LinkedHashSet<>(),
                 new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), new ArrayList<String>(List.of("ROLE_USER")));
 
         when(userRepository.findByUserHandleName(username)).thenReturn(Optional.of(user));
@@ -564,7 +580,7 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.empty());
@@ -610,12 +626,12 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
         User followUser = new User(
                 followUserId, "jane.doe", "jane.doe@example.com",
                 "password", "Jane Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.FEMALE, "image.jpg");
+                Gender.FEMALE, "image123", "image.jpg");
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.of(followUser));
@@ -641,7 +657,7 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.empty());
@@ -687,12 +703,12 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
         User followUser = new User(
                 followUserId, "jane.doe", "jane.doe@example.com",
                 "password", "Jane Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.FEMALE, "image.jpg");
+                Gender.FEMALE, "image123", "image.jpg");
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.of(followUser));
@@ -745,21 +761,21 @@ class UserServiceTest {
         // Given
         List<Long> userIds = List.of(1L, 2L, 3L);
         List<User> users = List.of(
-                new User(1L, "user1", "user1@example.com", "password1", "User 1", null, null, null, Gender.MALE, null),
+                new User(1L, "user1", "user1@example.com", "password1", "User 1", null, null, null, Gender.MALE, null, null),
                 new User(2L, "user2", "user2@example.com", "password2", "User 2", null, null, null,
-                        Gender.FEMALE, null),
+                        Gender.FEMALE, null, null),
                 new User(3L, "user3", "user3@example.com", "password3", "User 3", null, null, null,
-                        Gender.OTHER, null)
+                        Gender.OTHER, null, null)
         );
         List<UserDTO> expectedUsers = List.of(
                 new UserDTO(1L, "user1", "user1@example.com", "User 1", null, null, null,
-                        Gender.MALE, null, new LinkedHashSet<>(),
+                        Gender.MALE, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(2L, "user2", "user2@example.com", "User 2", null, null, null,
-                        Gender.FEMALE, null, new LinkedHashSet<>(),
+                        Gender.FEMALE, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(3L, "user3", "user3@example.com", "User 3", null, null, null,
-                        Gender.OTHER, null, new LinkedHashSet<>(),
+                        Gender.OTHER, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
         );
 
@@ -827,16 +843,16 @@ class UserServiceTest {
         String searchQuery = "John";
         List<User> users = List.of(
                 new User(1L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
-                        Gender.MALE, null),
+                        Gender.MALE, null, null),
                 new User(2L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
-                        Gender.MALE, null)
+                        Gender.MALE, null, null)
         );
         List<UserDTO> expectedUsers = List.of(
                 new UserDTO(1L, "john.doe", "john.doe@example.com", "John Doe", null, null, null,
-                        Gender.MALE, null, new LinkedHashSet<>(),
+                        Gender.MALE, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(2L, "john.smith", "john.smith@example.com", "John Smith", null, null, null,
-                        Gender.MALE, null, new LinkedHashSet<>(),
+                        Gender.MALE, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
         );
 

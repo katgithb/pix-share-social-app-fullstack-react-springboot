@@ -96,12 +96,12 @@ class JWTUtilTest {
     @Test
     @DisplayName("Should return the subject from the token")
     void getSubjectFromToken() {
-        String token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzNDU2IiwiaXNzIjoicGl4c2hhcmUiLCJpYXQiOjE2OTIyODAxOTMsImV4cCI6MTY5MjM2NjU5M30.kMB3a2SDKn9b1-az8Oj1grVcV0DLTRSzwWtHkD6d2XI";
-        String expectedSubject = "user123456";
+        String subject = "user123456";
+        String token = jwtUtil.issueToken(subject);
 
         String actualSubject = jwtUtil.getSubject(token);
 
-        assertEquals(expectedSubject, actualSubject);
+        assertEquals(subject, actualSubject);
     }
 
     @Test
