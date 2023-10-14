@@ -7,8 +7,6 @@ public record UserUpdateRequest(
         String mobile,
         String website,
         String bio,
-        Gender gender,
-        String userImageUploadId,
-        String userImage
+        Gender gender
 ) {
 }

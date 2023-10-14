@@ -5,6 +5,7 @@ import com.pixshare.pixshareapi.dto.StoryDTOMapper;
 import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
+import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
 import com.pixshare.pixshareapi.user.UserService;
@@ -22,13 +23,16 @@ public class StoryServiceImpl implements StoryService {
 
     private final UserService userService;
 
+    private final UploadService uploadService;
+
     private final UserRepository userRepository;
 
     private final StoryDTOMapper storyDTOMapper;
 
-    public StoryServiceImpl(StoryRepository storyRepository, UserService userService, UserRepository userRepository, StoryDTOMapper storyDTOMapper) {
+    public StoryServiceImpl(StoryRepository storyRepository, UserService userService, UploadService uploadService, UserRepository userRepository, StoryDTOMapper storyDTOMapper) {
         this.storyRepository = storyRepository;
         this.userService = userService;
+        this.uploadService = uploadService;
         this.userRepository = userRepository;
         this.storyDTOMapper = storyDTOMapper;
     }
@@ -59,6 +63,7 @@ public class StoryServiceImpl implements StoryService {
             throw new UnauthorizedActionException("You can't delete other user's story");
         }
 
+        removeStoryImageResource(story.getImageUploadId());
         storyRepository.deleteById(story.getId());
     }
 
@@ -81,6 +86,13 @@ public class StoryServiceImpl implements StoryService {
                 .toList();
 
         return stories;
+    }
+
+    private void removeStoryImageResource(String storyImageUploadId) {
+        if (storyImageUploadId != null && !storyImageUploadId.isBlank()) {
+            // Delete story image resource from cloudinary
+            uploadService.deleteCloudinaryImageResourceByPublicId(storyImageUploadId, true);
+        }
     }
 
 }

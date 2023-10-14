@@ -8,11 +8,18 @@ import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.post.PostRepository;
+import com.pixshare.pixshareapi.story.Story;
 import com.pixshare.pixshareapi.story.StoryRepository;
+import com.pixshare.pixshareapi.upload.UploadService;
+import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
+import com.pixshare.pixshareapi.upload.UploadType;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -29,16 +36,19 @@ public class UserServiceImpl implements UserService {
 
     private final StoryRepository storyRepository;
 
+    private final UploadService uploadService;
+
     private final PasswordEncoder passwordEncoder;
 
     private final UserDTOMapper userDTOMapper;
 
     public UserServiceImpl(UserRepository userRepository, PostRepository postRepository, CommentRepository commentRepository,
-                           StoryRepository storyRepository, PasswordEncoder passwordEncoder, UserDTOMapper userDTOMapper) {
+                           StoryRepository storyRepository, UploadService uploadService, PasswordEncoder passwordEncoder, UserDTOMapper userDTOMapper) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.storyRepository = storyRepository;
+        this.uploadService = uploadService;
         this.passwordEncoder = passwordEncoder;
         this.userDTOMapper = userDTOMapper;
     }
@@ -86,6 +96,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
+        // Check if the password matches
         return passwordEncoder.matches(password, user.getPassword());
     }
 
@@ -100,8 +111,53 @@ public class UserServiceImpl implements UserService {
             throw new RequestValidationException("New password must not be the same as the current password");
         }
 
-        // update password
+        // Update password
         user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Override
+    public void updateUserImage(Long userId, MultipartFile imageFile) throws ResourceNotFoundException, RequestValidationException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
+
+        byte[] imageBytes;
+        // Check if the file is an image
+        if (!Objects.requireNonNull(imageFile.getContentType()).startsWith("image")) {
+            throw new RequestValidationException("File is not an image");
+        }
+
+        // Check if the image file can be read
+        try {
+            imageBytes = imageFile.getBytes();
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+            throw new RequestValidationException("File does not exist or could not be read");
+        }
+
+        // Upload user image to cloudinary and get the public ID and secure URL
+        UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, UploadType.AVATAR.name());
+        Map<String, String> uploadedImageResult = uploadService.uploadImageResourceToCloudinary(user.getId(), imageBytes, signatureRequest);
+        String publicId = uploadedImageResult.get("publicId");
+        String secureUrl = uploadedImageResult.get("secureUrl");
+
+        // Update user image and userImageUploadId with the public ID and secure URL from cloudinary
+        user.setUserImage(secureUrl);
+        user.setUserImageUploadId(publicId);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void removeUserImage(Long userId) throws ResourceNotFoundException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
+
+        // Delete the image resource from cloudinary by public ID
+        removeUserImageResource(user.getUserImageUploadId());
+
+        // Update user image and userImageUploadId with empty string
+        user.setUserImage("");
+        user.setUserImageUploadId("");
         userRepository.save(user);
     }
 
@@ -151,16 +207,19 @@ public class UserServiceImpl implements UserService {
         removeSavedPostsByUser(user);
         removeUserFromFollowers(user);
 
+        removeStoryImageResourcesByUser(user);
         // Delete the stories associated with the user
         storyRepository.deleteByUserId(user.getId());
 
-        deleteCommentsOnPostsByUser(user);
+        deleteCommentsFromUserPosts(user);
         // Delete the comments associated with the user
         commentRepository.deleteByUserId(user.getId());
 
+        removePostImageResourcesByUser(user);
         // Delete the posts associated with the user
         postRepository.deleteByUserId(user.getId());
 
+        removeUserImageResource(user.getUserImageUploadId());
         userRepository.deleteById(user.getId());
     }
 
@@ -287,13 +346,40 @@ public class UserServiceImpl implements UserService {
                                 fieldUpdateEntry(req.mobile(), user.getMobile(), c -> c.setMobile(req.mobile())),
                                 fieldUpdateEntry(req.website(), user.getWebsite(), c -> c.setWebsite(req.website())),
                                 fieldUpdateEntry(req.bio(), user.getBio(), c -> c.setBio(req.bio())),
-                                fieldUpdateEntry(req.gender(), user.getGender(), c -> c.setGender(req.gender())),
-                                fieldUpdateEntry(req.userImageUploadId(), user.getUserImageUploadId(), c -> c.setUserImageUploadId(req.userImageUploadId())),
-                                fieldUpdateEntry(req.userImage(), user.getUserImage(), c -> c.setUserImage(req.userImage()))
+                                fieldUpdateEntry(req.gender(), user.getGender(), c -> c.setGender(req.gender()))
                         )
                         .filter(Objects::nonNull)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
                 .orElse(Collections.emptyMap());
+    }
+
+    private void removeUserImageResource(String userImageUploadId) {
+        if (userImageUploadId != null && !userImageUploadId.isBlank()) {
+            // Delete user image resource from cloudinary
+            uploadService.deleteCloudinaryImageResourceByPublicId(userImageUploadId, true);
+        }
+    }
+
+    private void removePostImageResourcesByUser(User user) {
+        List<String> postImageUploadIds = postRepository.findByUserId(user.getId())
+                .stream()
+                .map(Post::getImageUploadId)
+                .filter(imageUploadId -> imageUploadId != null && !imageUploadId.isBlank())
+                .toList();
+
+        // Delete post image resources associated with user from cloudinary
+        postImageUploadIds.forEach(postImageUploadId -> uploadService.deleteCloudinaryImageResourceByPublicId(postImageUploadId, true));
+    }
+
+    private void removeStoryImageResourcesByUser(User user) {
+        List<String> storyImageUploadIds = storyRepository.findStoriesByUserId(user.getId(), Sort.unsorted())
+                .stream()
+                .map(Story::getImageUploadId)
+                .filter(imageUploadId -> imageUploadId != null && !imageUploadId.isBlank())
+                .toList();
+
+        // Delete story image resources associated with user from cloudinary
+        storyImageUploadIds.forEach(storyImageUploadId -> uploadService.deleteCloudinaryImageResourceByPublicId(storyImageUploadId, true));
     }
 
     private void removeUserFromLikedComments(User user) {
@@ -322,7 +408,7 @@ public class UserServiceImpl implements UserService {
         userFollowings.forEach(u -> u.removeFollower(user));
     }
 
-    private void deleteCommentsOnPostsByUser(User user) {
+    private void deleteCommentsFromUserPosts(User user) {
         List<Long> postIds = postRepository.findByUserId(user.getId())
                 .stream()
                 .map(Post::getId)

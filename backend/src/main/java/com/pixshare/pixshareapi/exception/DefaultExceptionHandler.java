@@ -58,7 +58,19 @@ public class DefaultExceptionHandler {
 
         return new ResponseEntity<>(apiError, status);
     }
-    
+
+    @ExceptionHandler(CloudinaryResourceException.class)
+    public ResponseEntity<ApiError> handleCloudinaryResourceException(CloudinaryResourceException e,
+                                                                      HttpServletRequest request) {
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                e.getMessage(),
+                status.value(),
+                LocalDateTime.now());
+
+        return new ResponseEntity<>(apiError, status);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleException(Exception e,
                                                     HttpServletRequest request) {

@@ -10,6 +10,9 @@ import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.post.PostRepository;
 import com.pixshare.pixshareapi.story.StoryRepository;
+import com.pixshare.pixshareapi.upload.UploadService;
+import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
+import com.pixshare.pixshareapi.upload.UploadType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,12 +20,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
+import java.io.IOException;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -45,12 +48,14 @@ class UserServiceTest {
     @Mock
     private StoryRepository storyRepository;
     @Mock
+    private UploadService uploadService;
+    @Mock
     private PasswordEncoder passwordEncoder;
 
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, passwordEncoder, userDTOMapper);
+        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, uploadService, passwordEncoder, userDTOMapper);
     }
 
 
@@ -243,6 +248,272 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw a ResourceNotFoundException when user does not exist")
+    void verifyPasswordWhenUserDoesNotExistThenThrowException() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.verifyPassword(userId, password))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+    }
+
+    @Test
+    @DisplayName("Should return false when user exists and password does not match")
+    void verifyPasswordWhenUserExistsAndPasswordDoesNotMatchThenReturnsFalse() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        String wrongPassword = "wrongPassword";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(wrongPassword, user.getPassword())).thenReturn(false);
+
+        // When
+        boolean result = userService.verifyPassword(userId, wrongPassword);
+
+        // Then
+        verify(userRepository, times(1)).findById(userId);
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should return true when user exists and password matches")
+    void verifyPasswordWhenUserExistsAndPasswordMatchesThenReturnsTrue() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(password, user.getPassword())).thenReturn(true);
+
+        // When
+        boolean result = userService.verifyPassword(userId, password);
+
+        // Then
+        verify(userRepository, times(1)).findById(userId);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when user does not exist")
+    void updatePasswordWhenUserDoesNotExistThenThrowException() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        String newPassword = "newPassword123";
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updatePassword(userId, newPassword))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a RequestValidationException when new password is same as current password")
+    void updatePasswordWhenNewPasswordIsSameAsCurrentPasswordThenThrowException() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        String newPassword = "password123";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(newPassword, user.getPassword())).thenReturn(true);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updatePassword(userId, newPassword))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessage("New password must not be the same as the current password");
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should update password when user exists and new password provided")
+    void updatePasswordWhenUserExistsAndNewPasswordProvided() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        String newPassword = "newPassword123";
+        String newEncodedPassword = "newEncodedPassword123";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(newPassword)).thenReturn(newEncodedPassword);
+
+        // When
+        userService.updatePassword(userId, newPassword);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getPassword()).isEqualTo(newEncodedPassword);
+    }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when userId is invalid")
+    void updateUserImageWhenUserIdIsInvalidThenThrowException() {
+        // Given
+        Long userId = 1L;
+        MockMultipartFile imageFile = new MockMultipartFile("imageFile", "hello.jpg", "image/jpeg", new byte[]{});
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updateUserImage(userId, imageFile))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a RequestValidationException when file is not an image")
+    void updateUserImageWhenFileIsNotAnImageThenThrowException() {
+        // Given
+        Long userId = 1L;
+        MockMultipartFile notImageFile = new MockMultipartFile("imageFile", "hello.txt", "text/plain", new byte[]{});
+        User user = new User();
+        user.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updateUserImage(userId, notImageFile))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessage("File is not an image");
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a RequestValidationException when file cannot be read")
+    void updateUserImageWhenFileCannotBeReadThenThrowException() throws IOException {
+        // Given
+        Long userId = 1L;
+        MultipartFile unreadableImageFile = mock(MultipartFile.class);
+        User user = new User();
+        user.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(unreadableImageFile.getContentType()).thenReturn("image/jpeg");
+        doThrow(IOException.class).when(unreadableImageFile).getBytes();
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updateUserImage(userId, unreadableImageFile))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessage("File does not exist or could not be read");
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should update user image when userId and imageFile are valid")
+    void updateUserImageWhenUserIdAndImageFileAreValid() {
+        // Given
+        Long userId = 1L;
+        MockMultipartFile imageFile = new MockMultipartFile("imageFile", "hello.jpg", "image/jpeg", new byte[]{});
+        User user = new User();
+        user.setId(userId);
+        UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, UploadType.AVATAR.name());
+        Map<String, String> uploadedImageResult = Map.of("publicId", "publicId", "secureUrl", "secureUrl");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(uploadService.uploadImageResourceToCloudinary(userId, new byte[]{}, signatureRequest)).thenReturn(uploadedImageResult);
+
+        // When
+        userService.updateUserImage(userId, imageFile);
+
+        // Then
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(1)).uploadImageResourceToCloudinary(userId, new byte[]{}, signatureRequest);
+
+        assertThat(user.getUserImage()).isEqualTo("secureUrl");
+        assertThat(user.getUserImageUploadId()).isEqualTo("publicId");
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when user does not exist")
+    void removeUserImageWhenUserDoesNotExistThenThrowException() {
+        // Given
+        Long userId = 1L;
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.removeUserImage(userId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(0)).deleteCloudinaryImageResourceByPublicId(anyString(), eq(true));
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should remove user image when user exists")
+    void removeUserImageWhenUserExistsThenImageRemoved() {
+        // Given
+        Long userId = 1L;
+        User user = new User(userId, "username", "email@test.com", "password", "name",
+                null, null, null, Gender.MALE, "imageUploadId", "imageUrl");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // When
+        userService.removeUserImage(userId);
+
+        // Then
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(1))
+                .deleteCloudinaryImageResourceByPublicId(anyString(), eq(true));
+
+        assertThat(user.getUserImage()).isEmpty();
+        assertThat(user.getUserImageUploadId()).isEmpty();
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
     @DisplayName("Should throw a ResourceNotFoundException when the user ID does not exist")
     void updateUserWhenUserIdDoesNotExistThenThrowException() {
         // Given
@@ -250,7 +521,7 @@ class UserServiceTest {
         UserUpdateRequest updateRequest = new UserUpdateRequest(
                 "newUsername", "newEmail@example.com",
                 "newName", "newMobile", "newWebsite", "newBio",
-                Gender.MALE, "newUserImageUploadId", "newUserImage");
+                Gender.MALE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
@@ -272,7 +543,7 @@ class UserServiceTest {
         UserUpdateRequest updateRequest = new UserUpdateRequest(
                 "newUsername", "existingEmail@example.com",
                 "newName", "newMobile", "newWebsite", "newBio",
-                Gender.MALE, "newUserImageUploadId", "newUserImage");
+                Gender.MALE);
         User user = new User(
                 userId, "Username", "existingEmail@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
@@ -300,7 +571,7 @@ class UserServiceTest {
         UserUpdateRequest updateRequest = new UserUpdateRequest(
                 "existingUsername", "newEmail@example.com",
                 "newName", "newMobile", "newWebsite", "newBio",
-                Gender.MALE, "newUserImageUploadId", "newUserImage");
+                Gender.MALE);
         User user = new User(
                 userId, "existingUsername", "Email@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
@@ -328,7 +599,7 @@ class UserServiceTest {
         UserUpdateRequest updateRequest = new UserUpdateRequest(
                 "Username", "existingEmail@example.com",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImageUploadId", "UserImage");
+                Gender.MALE);
         User user = new User(
                 userId, "Username", "existingEmail@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
@@ -360,9 +631,7 @@ class UserServiceTest {
                 "newMobile",
                 "newWebsite",
                 "newBio",
-                Gender.MALE,
-                "newUserImageUploadId",
-                "newUserImage"
+                Gender.MALE
         );
         User user = new User(
                 userId,
@@ -395,9 +664,10 @@ class UserServiceTest {
         assertThat(savedUser.getUserHandleName()).isEqualTo(updateRequest.username());
         assertThat(savedUser.getEmail()).isEqualTo(updateRequest.email());
         assertThat(savedUser.getName()).isEqualTo(updateRequest.name());
+        assertThat(savedUser.getMobile()).isEqualTo(updateRequest.mobile());
+        assertThat(savedUser.getWebsite()).isEqualTo(updateRequest.website());
+        assertThat(savedUser.getBio()).isEqualTo(updateRequest.bio());
         assertThat(savedUser.getGender()).isEqualTo(updateRequest.gender());
-        assertThat(savedUser.getUserImageUploadId()).isEqualTo(updateRequest.userImageUploadId());
-        assertThat(savedUser.getUserImage()).isEqualTo(updateRequest.userImage());
     }
 
     @Test
@@ -412,9 +682,7 @@ class UserServiceTest {
                 "newMobile",
                 "newWebsite",
                 "newBio",
-                Gender.MALE,
-                "newUserImageUploadId",
-                "newUserImage"
+                Gender.MALE
         );
         User user = new User(
                 userId,
@@ -447,9 +715,10 @@ class UserServiceTest {
         assertThat(savedUser.getUserHandleName()).isEqualTo(updateRequest.username());
         assertThat(savedUser.getEmail()).isEqualTo(updateRequest.email());
         assertThat(savedUser.getName()).isEqualTo(updateRequest.name());
+        assertThat(savedUser.getMobile()).isEqualTo(updateRequest.mobile());
+        assertThat(savedUser.getWebsite()).isEqualTo(updateRequest.website());
+        assertThat(savedUser.getBio()).isEqualTo(updateRequest.bio());
         assertThat(savedUser.getGender()).isEqualTo(updateRequest.gender());
-        assertThat(savedUser.getUserImageUploadId()).isEqualTo(updateRequest.userImageUploadId());
-        assertThat(savedUser.getUserImage()).isEqualTo(updateRequest.userImage());
     }
 
     @Test
@@ -478,7 +747,7 @@ class UserServiceTest {
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image123", "image.jpg");
-        
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // When

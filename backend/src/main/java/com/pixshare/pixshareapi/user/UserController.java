@@ -7,6 +7,7 @@ import com.pixshare.pixshareapi.story.StoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -122,7 +123,7 @@ public class UserController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @PostMapping("/password/verify")
+    @PostMapping("/account/password/verify")
     public ResponseEntity<Boolean> verifyPassword(
             @RequestBody UserPasswordRequest passwordRequest,
             @RequestHeader("Authorization") String authHeader) {
@@ -133,7 +134,7 @@ public class UserController {
         return new ResponseEntity<>(passwordsMatch, HttpStatus.OK);
     }
 
-    @PutMapping("/password/update")
+    @PutMapping("/account/password/update")
     public void updatePassword(
             @RequestBody UserPasswordRequest passwordRequest,
             @RequestHeader("Authorization") String authHeader) {
@@ -142,6 +143,25 @@ public class UserController {
 
         userService.updatePassword(identity.getId(), passwordRequest.newPassword());
     }
+
+    @PutMapping("/account/profile/image/update")
+    public void updateUserImage(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam("image") MultipartFile imageFile
+    ) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        userService.updateUserImage(identity.getId(), imageFile);
+    }
+
+    @DeleteMapping("/account/profile/image/delete")
+    public void removeUserImage(
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        userService.removeUserImage(identity.getId());
+    }
+
 
     @PutMapping("/account/edit")
     public void updateUser(
