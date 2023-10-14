@@ -31,3 +31,7 @@ jwt:
   token-issuer: ${JWT_TOKEN_ISSUER}
   token-expiry-seconds: ${JWT_TOKEN_EXPIRY_SECONDS}
 
+cloudinary:
+  api-env-url: ${CLOUDINARY_URL}
+  upload-preset: ${CLOUDINARY_UPLOAD_PRESET}
+
