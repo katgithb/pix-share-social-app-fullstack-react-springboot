@@ -17,12 +17,3 @@ export const generateCloudinaryUploadSignature = async (data) => {
     headers,
   });
 };
-
-// export const deleteImageResourceFromCloudinary = async (data) => {
-//   const headers = { Authorization: `Bearer ${data.token}` };
-
-//   return await axiosInstance.delete("/delete", {
-//     headers,
-//     data: data.uploadDeleteData,
-//   });
-// };

@@ -17,31 +17,6 @@ const UserAvatarDeleteDialog = ({ isOpen, onClose, cancelRef, currUser }) => {
     (store) => store.user.userProfile
   );
   const token = localStorage.getItem("token");
-  // const upload = useSelector((store) => store.upload);
-
-  // const handleImageDestroy = () => {
-  //   if (token && currUser?.userImageUploadId) {
-  //     const imageUploadId = currUser?.userImageUploadId;
-  //     // const uploadType = "avatar";
-  //     // const data = {
-  //     //   token,
-  //     //   signatureData: { uploadType },
-  //     // };
-  //     const data = {
-  //       token,
-  //       uploadDeleteData: { imageUploadId },
-  //     };
-  //     dispatch(cloudinaryImageDestroyAction(data))
-  //       .then(() => {
-  //         onClose();
-  //       })
-  //       .catch((error) => {
-  //         console.log(error);
-  //       });
-
-  //     console.log("Destroyed Media Upload Id: ", currUser?.userImageUploadId);
-  //   }
-  // };
 
   const handleUserAvatarDelete = () => {
     if (token) {
@@ -86,11 +61,9 @@ const UserAvatarDeleteDialog = ({ isOpen, onClose, cancelRef, currUser }) => {
               Cancel
             </Button>
             <Button
-              // isLoading={upload.isLoading}
               isLoading={isRemovingUserImage}
               loadingText="Removing..."
               colorScheme="red"
-              // onClick={handleImageDestroy}
               onClick={handleUserAvatarDelete}
               ml={3}
             >

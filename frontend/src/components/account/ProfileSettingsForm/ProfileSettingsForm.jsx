@@ -85,70 +85,8 @@ const ProfileSettingsForm = ({ currUser }) => {
   const [isAvatarUpdated, setIsAvatarUpdated] = useState(false);
 
   const dispatch = useDispatch();
-  // const upload = useSelector((store) => store.upload);
   const userProfile = useSelector((store) => store.user.userProfile);
   const token = localStorage.getItem("token");
-
-  // const handleImageUpload = () => {
-  //   if (token && processedImageSrc) {
-  //     const uploadType = UploadType.AVATAR;
-  //     const data = {
-  //       token,
-  //       image: processedImageSrc,
-  //       signatureData: { uploadType },
-  //     };
-  //     dispatch(cloudinaryImageUploadAction(data));
-
-  //     console.log(
-  //       "Processed Image Src and Upload signature: ",
-  //       processedImageSrc,
-  //       upload.uploadSignature
-  //     );
-  //     console.log("Media upload id:", upload.mediaUploadId);
-  //   }
-  // };
-
-  // const handleUserAvatarUpdate = (uploadedImageId, uploadedImageUrl) => {
-  //   if (token && uploadedImageId && uploadedImageUrl) {
-  //     const data = {
-  //       token,
-  //       user: {
-  //         userImageUploadId: uploadedImageId,
-  //         userImage: uploadedImageUrl,
-  //       },
-  //     };
-
-  //     dispatch(editUserProfileAction(data))
-  //       .then(() => {
-  //         setIsAvatarUpdated(true);
-  //         dispatch(fetchUserProfileAction({ token }));
-  //       })
-  //       .catch((error) => {
-  //         console.log(error);
-  //       });
-  //   }
-  // };
-
-  // const handleUserAvatarDelete = useCallback(() => {
-  //   if (token) {
-  //     const data = {
-  //       token,
-  //       user: {
-  //         userImageUploadId: "",
-  //         userImage: "",
-  //       },
-  //     };
-
-  //     dispatch(editUserProfileAction(data))
-  //       .then(() => {
-  //         dispatch(fetchUserProfileAction({ token }));
-  //         dispatch(clearUpload());
-  //       })
-  //       .catch((error) => {
-  //         console.log(error);
-  //       });
-  //   }
-  // }, [dispatch, token]);
 
   const handleUserAvatarUpdate = () => {
     if (token && processedImageFile) {
@@ -157,13 +95,7 @@ const ProfileSettingsForm = ({ currUser }) => {
         image: processedImageFile,
       };
 
-      dispatch(editUserImageAction(data))
-        .then(() => {
-          // setIsAvatarUpdated(true);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+      dispatch(editUserImageAction(data));
     }
   };
 
@@ -242,7 +174,6 @@ const ProfileSettingsForm = ({ currUser }) => {
       actionText: "Upload",
       actionIcon: <FiUpload />,
       actionHandler: () => {
-        // handleImageUpload();
         handleUserAvatarUpdate();
       },
       backHandler: () => {
@@ -262,14 +193,12 @@ const ProfileSettingsForm = ({ currUser }) => {
       setProcessedImageSrc(null);
       setProcessedImageFile(null);
       setActiveStep(0);
-      // dispatch(clearUpload());
       setIsAvatarUpdated(false);
     },
     backHandler: () => {
       setProcessedImageSrc(null);
       setProcessedImageFile(null);
       setActiveStep(0);
-      // dispatch(clearUpload());
       setIsAvatarUpdated(false);
     },
   };
@@ -286,25 +215,6 @@ const ProfileSettingsForm = ({ currUser }) => {
       setActiveStep(1);
     }
   }, [processedImageSrc, activeStep, setActiveStep]);
-
-  // useEffect(() => {
-  //   if (!isAvatarUpdated && upload.isMediaUploaded) {
-  //     if (upload.mediaUploadId && upload.mediaSecureUrl) {
-  //       handleUserAvatarUpdate(upload.mediaUploadId, upload.mediaSecureUrl);
-  //     }
-  //   }
-  // }, [
-  //   isAvatarUpdated,
-  //   upload.isMediaUploaded,
-  //   upload.mediaSecureUrl,
-  //   upload.mediaUploadId,
-  // ]);
-
-  // useEffect(() => {
-  //   if (upload.isMediaDestroyed) {
-  //     handleUserAvatarDelete();
-  //   }
-  // }, [handleUserAvatarDelete, upload.isMediaDestroyed]);
 
   useEffect(() => {
     if (
@@ -359,7 +269,6 @@ const ProfileSettingsForm = ({ currUser }) => {
             rounded={"xl"}
             boxShadow={"lg"}
             p={6}
-            // mx={{ base: 0, md: 6 }}
             justify={"space-between"}
           >
             <VStack spacing={4} w="full">
