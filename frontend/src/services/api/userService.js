@@ -67,6 +67,50 @@ export const updateUnfollow = async (data) => {
   });
 };
 
+export const verifyPassword = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+
+  return await axiosInstance.post(
+    "/account/password/verify",
+    data.passwordData,
+    {
+      headers,
+    }
+  );
+};
+
+export const updatePassword = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+
+  return await axiosInstance.put(
+    "/account/password/update",
+    data.passwordData,
+    {
+      headers,
+    }
+  );
+};
+
+export const updateUserImage = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+
+  return await axiosInstance.put(
+    "/account/profile/image/update",
+    data.formData,
+    {
+      headers,
+    }
+  );
+};
+
+export const deleteUserImage = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+
+  return await axiosInstance.delete("/account/profile/image/delete", {
+    headers,
+  });
+};
+
 export const updateUser = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 

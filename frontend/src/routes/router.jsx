@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
+import UserProfileDetailsEdit from "../components/account/UserProfileDetailsEdit";
 import Signin from "../components/auth/Signin/Signin";
 import Signup from "../components/auth/Signup/Signup";
 import Footer from "../components/shared/Footer";
@@ -31,10 +32,19 @@ const router = createBrowserRouter([
             element: <Home />,
           },
           {
-            path: "/username",
+            path: "/profile/:username",
             element: (
               <>
                 <Profile />
+                <Footer />
+              </>
+            ),
+          },
+          {
+            path: "/account/edit",
+            element: (
+              <>
+                <UserProfileDetailsEdit />
                 <Footer />
               </>
             ),

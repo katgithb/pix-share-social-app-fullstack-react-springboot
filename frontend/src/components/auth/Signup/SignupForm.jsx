@@ -28,7 +28,6 @@ const SignupForm = ({ initialValues, validationSchema }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const auth = useSelector((store) => store.auth);
-  // const token = localStorage.getItem("token");
 
   const handleFormSubmission = (values, { setSubmitting }) => {
     setSubmitting(true);
@@ -140,6 +139,7 @@ const SignupForm = ({ initialValues, validationSchema }) => {
                     <option value="MALE">Male</option>
                     <option value="FEMALE">Female</option>
                     <option value="OTHER">Other</option>
+                    <option value="UNSPECIFIED">Prefer not to say</option>
                   </CustomSelect>
                 </Box>
               </Stack>

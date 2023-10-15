@@ -103,7 +103,7 @@ const Navbar = () => {
     },
     {
       name: "Settings",
-      path: "/account/settings",
+      path: "/account/edit",
       icon: FaGear,
     },
   ];

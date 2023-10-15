@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   followUser: null,
   unfollowUser: null,
+  isLoading: false,
 };
 
 const loadingReducers = {

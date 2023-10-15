@@ -76,6 +76,8 @@ const UserProfileFullnameAndBio = ({
           fontSize={"sm"}
           color={useColorModeValue("gray.500", "gray.400")}
           letterSpacing="wide"
+          whiteSpace="pre-line" // Preserves line breaks
+          lineHeight="1.5"
         >
           {userDetails?.bio}
         </Text>

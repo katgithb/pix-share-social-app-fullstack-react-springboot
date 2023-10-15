@@ -18,6 +18,8 @@ const CustomizableModal = ({
   showModalCloseButton,
   isCentered = true,
   scrollBehavior,
+  closeOnEsc,
+  closeOnOverlayClick,
   children,
 }) => {
   return (
@@ -27,6 +29,8 @@ const CustomizableModal = ({
       onClose={onClose}
       scrollBehavior={scrollBehavior}
       isCentered={isCentered}
+      closeOnEsc={closeOnEsc}
+      closeOnOverlayClick={closeOnOverlayClick}
     >
       <ModalOverlay />
       <ModalContent>

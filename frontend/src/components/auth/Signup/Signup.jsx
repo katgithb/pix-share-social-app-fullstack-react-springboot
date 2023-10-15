@@ -30,7 +30,7 @@ const validationSchema = Yup.object().shape({
     .max(50, "Must be at most 50 characters")
     .required("Username is required"),
   gender: Yup.string()
-    .oneOf(["MALE", "FEMALE", "OTHER"], "Invalid Gender")
+    .oneOf(["MALE", "FEMALE", "OTHER", "UNSPECIFIED"], "Invalid Gender")
     .required("Gender is required"),
   email: Yup.string()
     .email("Invalid email address")
