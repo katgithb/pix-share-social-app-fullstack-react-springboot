@@ -13,12 +13,12 @@ import React from "react";
 import { Link as RouteLink } from "react-router-dom";
 import SuggestionsListCard from "./SuggestionsListCard";
 
-const SuggestionsList = ({ userIds, fullnames }) => {
-  function generateUsernameFromName(fullname) {
-    const username = fullname.replace(/\s+/g, "_").toLowerCase();
+const SuggestionsList = ({ users }) => {
+  // function generateUsernameFromName(fullname) {
+  //   const username = fullname.replace(/\s+/g, "_").toLowerCase();
 
-    return username;
-  }
+  //   return username;
+  // }
 
   return (
     <Card
@@ -51,18 +51,18 @@ const SuggestionsList = ({ userIds, fullnames }) => {
         </Box> */}
         </Flex>
 
-        {userIds?.slice(0, 5).map((item, index) => {
-          const id = item;
-          const gender = id % 2 === 0 ? "men" : "women";
-          const userDetails = {
-            dp: `https://randomuser.me/api/portraits/${gender}/${Math.round(
-              id
-            )}.jpg`,
-            fullname: fullnames[index],
-            username: generateUsernameFromName(fullnames[index]),
-          };
+        {users?.map((user, index) => {
+          // const id = item;
+          // const gender = id % 2 === 0 ? "men" : "women";
+          // const userDetails = {
+          //   dp: `https://randomuser.me/api/portraits/${gender}/${Math.round(
+          //     id
+          //   )}.jpg`,
+          //   fullname: fullnames[index],
+          //   username: generateUsernameFromName(fullnames[index]),
+          // };
 
-          return <SuggestionsListCard key={index} user={userDetails} />;
+          return <SuggestionsListCard key={index} user={user} />;
         })}
       </Box>
     </Card>

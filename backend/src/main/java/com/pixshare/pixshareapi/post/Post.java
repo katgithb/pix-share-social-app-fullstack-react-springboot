@@ -26,6 +26,9 @@ public class Post {
     @Column(name = "caption")
     private String caption;
 
+    @Column(name = "image_upload_id")
+    private String imageUploadId;
+
     @Column(name = "image")
     private String image;
 
@@ -40,11 +43,18 @@ public class Post {
     private User user;
 
     @ToString.Exclude
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name = "post_user_likes",
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<User> likedByUsers = new LinkedHashSet<>();
+
+    @ToString.Exclude
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(name = "user_saved_posts",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private Set<User> savedByUsers = new LinkedHashSet<>();
 
     public Post(String caption, String image, String location, LocalDateTime createdAt, User user) {
         this.caption = caption;

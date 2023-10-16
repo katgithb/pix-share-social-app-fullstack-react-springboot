@@ -66,6 +66,33 @@ class UserRepositoryTest extends AbstractTestcontainers {
     }
 
     @Test
+    @DisplayName("Should return false when the user with given handle name does not exist")
+    void existsUserByUserHandleNameWhenUserDoesNotExist() {
+        // Given
+        String userHandleName = "nonexistentuser";
+
+        // When
+        boolean actual = userRepository.existsUserByUserHandleName(userHandleName);
+
+        // Then
+        assertThat(actual).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should return true when the user with given handle name exists")
+    void existsUserByUserHandleNameWhenUserExists() {
+        // Given
+        User user = new User(username, email, password, name, Gender.MALE);
+        userRepository.save(user);
+
+        // When
+        boolean actual = userRepository.existsUserByUserHandleName(username);
+
+        // Then
+        assertThat(actual).isTrue();
+    }
+
+    @Test
     @DisplayName("Should return false when user does not exist by given id")
     void existsUserByIdWhenUserDoesNotExist() {
         // Given
@@ -228,5 +255,4 @@ class UserRepositoryTest extends AbstractTestcontainers {
         assertThat(actualUsers.contains(user1)).isTrue();
         assertThat(actualUsers.contains(user3)).isTrue();
     }
-
 }

@@ -3,39 +3,54 @@ import {
   Card,
   Grid,
   GridItem,
+  Spinner,
   useBreakpointValue,
-  useColorModeValue,
 } from "@chakra-ui/react";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
 import ProfileHeader from "../components/profile/ProfileHeader/ProfileHeader";
 import ProfilePosts from "../components/profile/ProfilePosts/ProfilePosts";
+import { findUserByUserNameAction } from "../redux/actions/user/userLookupActions";
+import { isCurrUser } from "../utils/userUtils";
 
 const Profile = () => {
-  const userIdList = [
-    20, 72, 58, 29, 89, 17, 94, 69, 11, 23, 10, 90, 18, 81, 79,
-  ];
-
-  const userId = userIdList[Math.floor(Math.random() * userIdList.length)];
   const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
   const isSmallScreen = breakpoint === "base" || breakpoint === "sm";
+
+  const dispatch = useDispatch();
+  const { username } = useParams();
+  const { userProfile, userLookup } = useSelector((store) => store.user);
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    if (token) {
+      const data = { token, username };
+      dispatch(findUserByUserNameAction(data));
+    }
+  }, [dispatch, token, username]);
+
+  if (userLookup.isLoading) {
+    return <Spinner />; // Display a loading spinner or placeholder
+  }
+
+  const isGivenUserCurrUser = isCurrUser(
+    userProfile.currUser?.id,
+    userLookup.findByUsername?.id
+  );
 
   return (
     <>
       {isSmallScreen ? (
         <Box maxW="5xl" mx="auto">
           <Box>
-            <ProfileHeader user={{ id: userId }} />
-
-            {/* <Card
-              p="1"
-              mb={8}
-              variant="outline"
-              _dark={{ variant: "elevated" }}
-              rounded="lg"
-              boxShadow={"md"}
-            >
-              <ProfileHighlights />
-            </Card> */}
+            <ProfileHeader
+              user={
+                isGivenUserCurrUser
+                  ? userProfile.currUser
+                  : userLookup.findByUsername
+              }
+            />
 
             <Card
               mb={5}
@@ -51,7 +66,13 @@ const Profile = () => {
       ) : (
         <Grid templateColumns="repeat(4, 1fr)" gap={"2"}>
           <GridItem colSpan={"1"} flexBasis="250px">
-            <ProfileHeader user={{ id: userId }} />
+            <ProfileHeader
+              user={
+                isGivenUserCurrUser
+                  ? userProfile.currUser
+                  : userLookup.findByUsername
+              }
+            />
           </GridItem>
           <GridItem colSpan={"3"}>
             <ProfilePosts />

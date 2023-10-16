@@ -8,12 +8,13 @@ const SuggestionsListCard = ({ user }) => {
       <Flex alignItems="center">
         <Link as={RouteLink} href="#">
           <Avatar
-            name={user?.fullname}
-            src={user?.dp}
+            name={user?.name}
+            src={user?.userImage}
             // size="sm"
             boxSize="10"
             alt="User Avatar"
             boxShadow={"md"}
+            loading="lazy"
             _hover={{
               transition: "transform 0.3s ease",
               transform: "rotate(8deg) scale(1.2)",
@@ -29,7 +30,7 @@ const SuggestionsListCard = ({ user }) => {
             wordBreak={"break-word"}
             noOfLines={2}
           >
-            <Link as={RouteLink} to={`/username`}>
+            <Link as={RouteLink} to={`/profile/${user?.username}`}>
               {user?.username}
             </Link>
           </Text>

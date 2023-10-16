@@ -9,7 +9,7 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 
-const UserProfileStats = () => {
+const UserProfileStats = ({ userDetails, maxCharsMobileUserDetails }) => {
   return (
     <>
       <HStack
@@ -18,7 +18,14 @@ const UserProfileStats = () => {
         justify={{ base: "center", md: "space-between" }}
         color={useColorModeValue("gray.500", "gray.400")}
         p="2"
-        mt={{ base: "1", md: "4" }}
+        mt={{
+          base: "1",
+          md:
+            userDetails?.bio &&
+            userDetails?.bio?.length > maxCharsMobileUserDetails
+              ? "4"
+              : "3",
+        }}
       >
         <Box flex={{ base: "1", md: "0" }} textAlign="center">
           <Text
@@ -29,7 +36,7 @@ const UserProfileStats = () => {
             textTransform="uppercase"
             display="block"
           >
-            108
+            10
           </Text>{" "}
           posts
         </Box>
@@ -42,9 +49,9 @@ const UserProfileStats = () => {
             textTransform="uppercase"
             display="block"
           >
-            120.38k
+            {userDetails?.follower.length}
           </Text>{" "}
-          followers
+          {userDetails?.follower.length > 1 ? "followers" : "follower"}
         </Box>
         <Box flex={{ base: "1", md: "0" }} textAlign="center">
           <Text
@@ -55,7 +62,7 @@ const UserProfileStats = () => {
             textTransform="uppercase"
             display="block"
           >
-            608.50k
+            {userDetails?.following.length}
           </Text>{" "}
           following
         </Box>

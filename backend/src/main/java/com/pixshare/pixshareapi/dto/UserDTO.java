@@ -20,6 +20,7 @@ public class UserDTO {
     private String website;
     private String bio;
     private Gender gender;
+    private String userImageUploadId;
     private String userImage;
     private Set<UserView> follower;
     private Set<UserView> following;

@@ -1,5 +1,6 @@
 package com.pixshare.pixshareapi.user;
 
+import com.pixshare.pixshareapi.comment.CommentRepository;
 import com.pixshare.pixshareapi.dto.PostDTOMapper;
 import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.dto.UserDTOMapper;
@@ -7,6 +8,11 @@ import com.pixshare.pixshareapi.dto.UserViewMapper;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import com.pixshare.pixshareapi.post.PostRepository;
+import com.pixshare.pixshareapi.story.StoryRepository;
+import com.pixshare.pixshareapi.upload.UploadService;
+import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
+import com.pixshare.pixshareapi.upload.UploadType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,13 +20,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
+import java.io.IOException;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,14 +42,20 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
+    private PostRepository postRepository;
+    @Mock
+    private CommentRepository commentRepository;
+    @Mock
+    private StoryRepository storyRepository;
+    @Mock
+    private UploadService uploadService;
+    @Mock
     private PasswordEncoder passwordEncoder;
-
-    @Autowired
 
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, passwordEncoder, userDTOMapper);
+        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, uploadService, passwordEncoder, userDTOMapper);
     }
 
 
@@ -109,7 +120,37 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw a ResourceNotFoundException when the email is already taken")
+    @DisplayName("Should return false when the user with the given username does not exist")
+    void existsUserWithUserHandleNameWhenUserDoesNotExist() {
+        // Given
+        String username = "testUser";
+        when(userRepository.existsUserByUserHandleName(username)).thenReturn(false);
+
+        // When
+        boolean actual = userService.existsUserWithUserHandleName(username);
+
+        // Then
+        assertThat(actual).isFalse();
+        verify(userRepository, times(1)).existsUserByUserHandleName(username);
+    }
+
+    @Test
+    @DisplayName("Should return true when the user with the given username exists")
+    void existsUserWithUserHandleNameWhenUserExists() {
+        // Given
+        String username = "john_doe";
+        when(userRepository.existsUserByUserHandleName(username)).thenReturn(true);
+
+        // When
+        boolean actual = userService.existsUserWithUserHandleName(username);
+
+        // Then
+        assertThat(actual).isTrue();
+        verify(userRepository, times(1)).existsUserByUserHandleName(username);
+    }
+
+    @Test
+    @DisplayName("Should throw a DuplicateResourceException when the email is already taken")
     void registerUserWhenEmailIsAlreadyTakenThenThrowException() {
         // Given
         UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
@@ -158,14 +199,329 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw a DuplicateResourceException when the username is already taken")
+    void registerUserWhenUserHandleNameIsAlreadyTakenThenThrowException() {
+        // Given
+        UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
+                "john.doe", "john.doe@example.com", "John Doe",
+                "password123", Gender.MALE);
+
+        when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(true);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.registerUser(registrationRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("This username is already taken");
+
+        verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should register a new user when the username is not taken")
+    void registerUserWhenUserHandleNameIsNotTaken() {
+        // Given
+        String userHandleName = "john.doe";
+        String passwordHash = "MThubHBpN3d4b2RsN2RkYzV3bW1mdnl0bm5pOGNpY2o2ZnQxZTN4ZmY2Nmk4ZW05bjJ1Y3o2ZnhleXBmOW84MzF3ZWQ4MDJsbmltNTl4amk0ZGhhNWZiOWJiN3BwemdubWM0dWJqamt4NDJuaW4wMWxzazNlOTFzY3diMjlocDM=";
+        UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
+                userHandleName, "john.doe@example.com", "John Doe",
+                "password123", Gender.MALE);
+
+        when(userRepository.existsUserByUserHandleName(userHandleName)).thenReturn(false);
+        when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
+
+        // When
+        userService.registerUser(registrationRequest);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getUserHandleName()).isEqualTo(registrationRequest.username());
+        assertThat(savedUser.getEmail()).isEqualTo(registrationRequest.email());
+        assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
+        assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
+        assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
+    }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when user does not exist")
+    void verifyPasswordWhenUserDoesNotExistThenThrowException() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.verifyPassword(userId, password))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+    }
+
+    @Test
+    @DisplayName("Should return false when user exists and password does not match")
+    void verifyPasswordWhenUserExistsAndPasswordDoesNotMatchThenReturnsFalse() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        String wrongPassword = "wrongPassword";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(wrongPassword, user.getPassword())).thenReturn(false);
+
+        // When
+        boolean result = userService.verifyPassword(userId, wrongPassword);
+
+        // Then
+        verify(userRepository, times(1)).findById(userId);
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should return true when user exists and password matches")
+    void verifyPasswordWhenUserExistsAndPasswordMatchesThenReturnsTrue() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(password, user.getPassword())).thenReturn(true);
+
+        // When
+        boolean result = userService.verifyPassword(userId, password);
+
+        // Then
+        verify(userRepository, times(1)).findById(userId);
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when user does not exist")
+    void updatePasswordWhenUserDoesNotExistThenThrowException() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        String newPassword = "newPassword123";
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updatePassword(userId, newPassword))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a RequestValidationException when new password is same as current password")
+    void updatePasswordWhenNewPasswordIsSameAsCurrentPasswordThenThrowException() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        String newPassword = "password123";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(newPassword, user.getPassword())).thenReturn(true);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updatePassword(userId, newPassword))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessage("New password must not be the same as the current password");
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should update password when user exists and new password provided")
+    void updatePasswordWhenUserExistsAndNewPasswordProvided() {
+        // Given
+        Long userId = 1L;
+        String password = "password123";
+        String newPassword = "newPassword123";
+        String newEncodedPassword = "newEncodedPassword123";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(newPassword)).thenReturn(newEncodedPassword);
+
+        // When
+        userService.updatePassword(userId, newPassword);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getPassword()).isEqualTo(newEncodedPassword);
+    }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when userId is invalid")
+    void updateUserImageWhenUserIdIsInvalidThenThrowException() {
+        // Given
+        Long userId = 1L;
+        MockMultipartFile imageFile = new MockMultipartFile("imageFile", "hello.jpg", "image/jpeg", new byte[]{});
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updateUserImage(userId, imageFile))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a RequestValidationException when file is not an image")
+    void updateUserImageWhenFileIsNotAnImageThenThrowException() {
+        // Given
+        Long userId = 1L;
+        MockMultipartFile notImageFile = new MockMultipartFile("imageFile", "hello.txt", "text/plain", new byte[]{});
+        User user = new User();
+        user.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updateUserImage(userId, notImageFile))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessage("File is not an image");
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a RequestValidationException when file cannot be read")
+    void updateUserImageWhenFileCannotBeReadThenThrowException() throws IOException {
+        // Given
+        Long userId = 1L;
+        MultipartFile unreadableImageFile = mock(MultipartFile.class);
+        User user = new User();
+        user.setId(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(unreadableImageFile.getContentType()).thenReturn("image/jpeg");
+        doThrow(IOException.class).when(unreadableImageFile).getBytes();
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updateUserImage(userId, unreadableImageFile))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessage("File does not exist or could not be read");
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should update user image when userId and imageFile are valid")
+    void updateUserImageWhenUserIdAndImageFileAreValid() {
+        // Given
+        Long userId = 1L;
+        MockMultipartFile imageFile = new MockMultipartFile("imageFile", "hello.jpg", "image/jpeg", new byte[]{});
+        User user = new User();
+        user.setId(userId);
+        UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, UploadType.AVATAR.name());
+        Map<String, String> uploadedImageResult = Map.of("publicId", "publicId", "secureUrl", "secureUrl");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(uploadService.uploadImageResourceToCloudinary(userId, new byte[]{}, signatureRequest)).thenReturn(uploadedImageResult);
+
+        // When
+        userService.updateUserImage(userId, imageFile);
+
+        // Then
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(1)).uploadImageResourceToCloudinary(userId, new byte[]{}, signatureRequest);
+
+        assertThat(user.getUserImage()).isEqualTo("secureUrl");
+        assertThat(user.getUserImageUploadId()).isEqualTo("publicId");
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when user does not exist")
+    void removeUserImageWhenUserDoesNotExistThenThrowException() {
+        // Given
+        Long userId = 1L;
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.removeUserImage(userId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(0)).deleteCloudinaryImageResourceByPublicId(anyString(), eq(true));
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should remove user image when user exists")
+    void removeUserImageWhenUserExistsThenImageRemoved() {
+        // Given
+        Long userId = 1L;
+        User user = new User(userId, "username", "email@test.com", "password", "name",
+                null, null, null, Gender.MALE, "imageUploadId", "imageUrl");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // When
+        userService.removeUserImage(userId);
+
+        // Then
+        verify(userRepository, times(1)).findById(userId);
+        verify(uploadService, times(1))
+                .deleteCloudinaryImageResourceByPublicId(anyString(), eq(true));
+
+        assertThat(user.getUserImage()).isEmpty();
+        assertThat(user.getUserImageUploadId()).isEmpty();
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
     @DisplayName("Should throw a ResourceNotFoundException when the user ID does not exist")
     void updateUserWhenUserIdDoesNotExistThenThrowException() {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId, "newUsername", "newEmail@example.com", "newPassword",
+                "newUsername", "newEmail@example.com",
                 "newName", "newMobile", "newWebsite", "newBio",
-                Gender.MALE, "newUserImage");
+                Gender.MALE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
@@ -185,13 +541,13 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId, "newUsername", "existingEmail@example.com", "newPassword",
+                "newUsername", "existingEmail@example.com",
                 "newName", "newMobile", "newWebsite", "newBio",
-                Gender.MALE, "newUserImage");
+                Gender.MALE);
         User user = new User(
                 userId, "Username", "existingEmail@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(true);
@@ -208,18 +564,46 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw an exception when the username is already taken")
+    void updateUserWhenUserHandleNameIsAlreadyTakenThenThrowException() {
+        // Given
+        Long userId = 1L;
+        UserUpdateRequest updateRequest = new UserUpdateRequest(
+                "existingUsername", "newEmail@example.com",
+                "newName", "newMobile", "newWebsite", "newBio",
+                Gender.MALE);
+        User user = new User(
+                userId, "existingUsername", "Email@example.com", "Password",
+                "Name", "Mobile", "Website", "Bio",
+                Gender.MALE, "UserImageUploadId", "UserImage");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsUserByUserHandleName(updateRequest.username())).thenReturn(true);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updateUser(userId, updateRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("This username is already taken");
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).existsUserByUserHandleName(updateRequest.username());
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
     @DisplayName("Should throw an exception when no changes are found")
     void updateUserWhenNoChangesFoundThenThrowException() {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId, "Username", "existingEmail@example.com", "Password",
+                "Username", "existingEmail@example.com",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImage");
+                Gender.MALE);
         User user = new User(
                 userId, "Username", "existingEmail@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(false);
@@ -228,7 +612,7 @@ class UserServiceTest {
         // Then
         assertThatThrownBy(() -> userService.updateUser(userId, updateRequest))
                 .isInstanceOf(RequestValidationException.class)
-                .hasMessage("No data changes found");
+                .hasMessage("No changes found");
 
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(1)).existsUserByEmail(updateRequest.email());
@@ -241,16 +625,13 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                userId,
                 "newUsername",
                 "newemail@example.com",
-                "newpassword",
                 "newName",
                 "newMobile",
                 "newWebsite",
                 "newBio",
-                Gender.MALE,
-                "newUserImage"
+                Gender.MALE
         );
         User user = new User(
                 userId,
@@ -262,6 +643,7 @@ class UserServiceTest {
                 "Website",
                 "Bio",
                 Gender.MALE,
+                "UserImageUploadId",
                 "UserImage"
         );
 
@@ -281,8 +663,61 @@ class UserServiceTest {
         assertThat(savedUser.getId()).isEqualTo(userId);
         assertThat(savedUser.getUserHandleName()).isEqualTo(updateRequest.username());
         assertThat(savedUser.getEmail()).isEqualTo(updateRequest.email());
-        assertThat(savedUser.getPassword()).isEqualTo(updateRequest.password());
         assertThat(savedUser.getName()).isEqualTo(updateRequest.name());
+        assertThat(savedUser.getMobile()).isEqualTo(updateRequest.mobile());
+        assertThat(savedUser.getWebsite()).isEqualTo(updateRequest.website());
+        assertThat(savedUser.getBio()).isEqualTo(updateRequest.bio());
+        assertThat(savedUser.getGender()).isEqualTo(updateRequest.gender());
+    }
+
+    @Test
+    @DisplayName("Should update the user when the user ID exists and the username is not taken")
+    void updateUserWhenUserIdExistsAndUserHandleNameIsNotTaken() {
+        // Given
+        Long userId = 1L;
+        UserUpdateRequest updateRequest = new UserUpdateRequest(
+                "newUsername",
+                "newemail@example.com",
+                "newName",
+                "newMobile",
+                "newWebsite",
+                "newBio",
+                Gender.MALE
+        );
+        User user = new User(
+                userId,
+                "Username",
+                "email@example.com",
+                "password",
+                "Name",
+                "Mobile",
+                "Website",
+                "Bio",
+                Gender.MALE,
+                "UserImageUploadId",
+                "UserImage"
+        );
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.existsUserByUserHandleName(updateRequest.username())).thenReturn(false);
+
+        // When
+        userService.updateUser(userId, updateRequest);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).existsUserByUserHandleName(updateRequest.username());
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getId()).isEqualTo(userId);
+        assertThat(savedUser.getUserHandleName()).isEqualTo(updateRequest.username());
+        assertThat(savedUser.getEmail()).isEqualTo(updateRequest.email());
+        assertThat(savedUser.getName()).isEqualTo(updateRequest.name());
+        assertThat(savedUser.getMobile()).isEqualTo(updateRequest.mobile());
+        assertThat(savedUser.getWebsite()).isEqualTo(updateRequest.website());
+        assertThat(savedUser.getBio()).isEqualTo(updateRequest.bio());
         assertThat(savedUser.getGender()).isEqualTo(updateRequest.gender());
     }
 
@@ -291,7 +726,7 @@ class UserServiceTest {
     void deleteUserByIdWhenUserDoesNotExistThenThrowException() {
         // Given
         Long userId = 1L;
-        when(userRepository.existsUserById(userId)).thenReturn(false);
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -299,7 +734,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).existsUserById(userId);
+        verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(0)).deleteById(userId);
     }
 
@@ -308,13 +743,18 @@ class UserServiceTest {
     void deleteUserByIdWhenUserExists() {
         // Given
         Long userId = 1L;
-        when(userRepository.existsUserById(userId)).thenReturn(true);
+        User user = new User(
+                userId, "john.doe", "john.doe@example.com", "password", "John Doe",
+                "1234567890", "www.example.com", "Bio",
+                Gender.MALE, "image123", "image.jpg");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // When
         userService.deleteUser(userId);
 
         // Then
-        verify(userRepository, times(1)).existsUserById(userId);
+        verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(1)).deleteById(userId);
     }
 
@@ -342,11 +782,11 @@ class UserServiceTest {
         User user = new User(
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
         UserDTO expectedUserDTO = new UserDTO(
                 userId, "john.doe", "john.doe@example.com", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg", new LinkedHashSet<>(),
+                Gender.MALE, "image123", "image.jpg", new LinkedHashSet<>(),
                 new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"));
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -386,7 +826,7 @@ class UserServiceTest {
         UserDTO expectedUserDTO = new UserDTO(
                 1L, username, "john.doe@example.com", "John Doe",
                 null, null, null,
-                Gender.MALE, null, new LinkedHashSet<>(),
+                Gender.MALE, null, null, new LinkedHashSet<>(),
                 new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), new ArrayList<String>(List.of("ROLE_USER")));
 
         when(userRepository.findByUserHandleName(username)).thenReturn(Optional.of(user));
@@ -409,7 +849,7 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.empty());
@@ -455,12 +895,12 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
         User followUser = new User(
                 followUserId, "jane.doe", "jane.doe@example.com",
                 "password", "Jane Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.FEMALE, "image.jpg");
+                Gender.FEMALE, "image123", "image.jpg");
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.of(followUser));
@@ -486,7 +926,7 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.empty());
@@ -532,12 +972,12 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image.jpg");
+                Gender.MALE, "image123", "image.jpg");
         User followUser = new User(
                 followUserId, "jane.doe", "jane.doe@example.com",
                 "password", "Jane Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.FEMALE, "image.jpg");
+                Gender.FEMALE, "image123", "image.jpg");
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.of(followUser));
@@ -590,21 +1030,21 @@ class UserServiceTest {
         // Given
         List<Long> userIds = List.of(1L, 2L, 3L);
         List<User> users = List.of(
-                new User(1L, "user1", "user1@example.com", "password1", "User 1", null, null, null, Gender.MALE, null),
+                new User(1L, "user1", "user1@example.com", "password1", "User 1", null, null, null, Gender.MALE, null, null),
                 new User(2L, "user2", "user2@example.com", "password2", "User 2", null, null, null,
-                        Gender.FEMALE, null),
+                        Gender.FEMALE, null, null),
                 new User(3L, "user3", "user3@example.com", "password3", "User 3", null, null, null,
-                        Gender.OTHER, null)
+                        Gender.OTHER, null, null)
         );
         List<UserDTO> expectedUsers = List.of(
                 new UserDTO(1L, "user1", "user1@example.com", "User 1", null, null, null,
-                        Gender.MALE, null, new LinkedHashSet<>(),
+                        Gender.MALE, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(2L, "user2", "user2@example.com", "User 2", null, null, null,
-                        Gender.FEMALE, null, new LinkedHashSet<>(),
+                        Gender.FEMALE, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(3L, "user3", "user3@example.com", "User 3", null, null, null,
-                        Gender.OTHER, null, new LinkedHashSet<>(),
+                        Gender.OTHER, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
         );
 
@@ -672,16 +1112,16 @@ class UserServiceTest {
         String searchQuery = "John";
         List<User> users = List.of(
                 new User(1L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
-                        Gender.MALE, null),
+                        Gender.MALE, null, null),
                 new User(2L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
-                        Gender.MALE, null)
+                        Gender.MALE, null, null)
         );
         List<UserDTO> expectedUsers = List.of(
                 new UserDTO(1L, "john.doe", "john.doe@example.com", "John Doe", null, null, null,
-                        Gender.MALE, null, new LinkedHashSet<>(),
+                        Gender.MALE, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
                 new UserDTO(2L, "john.smith", "john.smith@example.com", "John Smith", null, null, null,
-                        Gender.MALE, null, new LinkedHashSet<>(),
+                        Gender.MALE, null, null, new LinkedHashSet<>(),
                         new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
         );
 

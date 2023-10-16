@@ -1,47 +1,32 @@
-import altLogo from "../../assets/images/pixshare_logo_gray.png";
-import logo from "../../assets/images/pixshare_logo.png";
+import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import {
-  Box,
-  Flex,
   Avatar,
-  HStack,
+  Box,
   Button,
-  Text,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Stack,
+  Collapse,
+  Flex,
+  HStack,
   Icon,
   IconButton,
-  useDisclosure,
-  useColorModeValue,
   Image,
-  VStack,
-  MenuDivider,
-  useColorMode,
-  Input,
   Link,
-  Center,
-  chakra,
-  InputGroup,
-  InputLeftElement,
-  Collapse,
-  Fade,
-  ScaleFade,
+  Menu,
+  MenuButton,
+  MenuDivider,
+  MenuItem,
+  MenuList,
+  Stack,
+  Text,
+  useColorMode,
+  useColorModeValue,
+  useDisclosure,
+  VStack,
 } from "@chakra-ui/react";
-import { GiHamburgerMenu } from "react-icons/gi";
-import { AiOutlineClose, AiOutlineSearch } from "react-icons/ai";
-import { FiMenu, FiMoon, FiSun, FiX } from "react-icons/fi";
-import {
-  MdExpandCircleDown,
-  MdOutlineExpandCircleDown,
-  MdOutlineSearch,
-} from "react-icons/md";
+import { useState } from "react";
+import { AiOutlineClose } from "react-icons/ai";
 import {
   FaBookmark,
   FaGear,
-  FaMagnifyingGlass,
   FaRegCommentDots,
   FaRegCompass,
   FaRegHeart,
@@ -49,40 +34,42 @@ import {
   FaRightFromBracket,
   FaUser,
 } from "react-icons/fa6";
-import { PiHouseBold } from "react-icons/pi";
-import { Link as RouteLink, NavLink, useLocation } from "react-router-dom";
-import { MoonIcon, SunIcon } from "@chakra-ui/icons";
-import CreatePostModal from "../post/CreatePostModal/CreatePostModal";
-import { useEffect, useState } from "react";
-import { TbLayoutNavbarCollapse, TbLayoutNavbarExpand } from "react-icons/tb";
-import SearchResultsListModal from "../search/SearchResultsListModal/SearchResultsListModal";
-import { BiSearch, BiSearchAlt } from "react-icons/bi";
-import { ImSearch } from "react-icons/im";
+import { FiMoon, FiSun } from "react-icons/fi";
+import { GiHamburgerMenu } from "react-icons/gi";
 import { GrSearch } from "react-icons/gr";
-import { BsSearch } from "react-icons/bs";
+import { PiHouseBold } from "react-icons/pi";
+import { TbLayoutNavbarCollapse, TbLayoutNavbarExpand } from "react-icons/tb";
+import { useDispatch, useSelector } from "react-redux";
+import { Link as RouteLink, NavLink, useLocation } from "react-router-dom";
+import logo from "../../assets/images/pixshare_logo.png";
+import altLogo from "../../assets/images/pixshare_logo_gray.png";
+import { signoutAction } from "../../redux/actions/auth/authActions";
+import CreatePostModal from "../post/CreatePostModal/CreatePostModal";
 import SearchInputBar from "../search/SearchInputBar";
+import SearchResultsListModal from "../search/SearchResultsListModal/SearchResultsListModal";
 
-const menuLinks = [
-  {
-    name: "Profile",
-    path: "/username",
-    icon: FaUser,
-  },
-  {
-    name: "Saved",
-    path: "/",
-    icon: FaBookmark,
-  },
-  {
-    name: "Settings",
-    path: "/account/settings",
-    icon: FaGear,
-  },
-];
+// const menuLinks = [
+//   {
+//     name: "Profile",
+//     path: `/profile/${userProfile.currUser?.username}`,
+//     icon: FaUser,
+//   },
+//   {
+//     name: "Saved",
+//     path: "/",
+//     icon: FaBookmark,
+//   },
+//   {
+//     name: "Settings",
+//     path: "/account/settings",
+//     icon: FaGear,
+//   },
+// ];
 
 const Navbar = () => {
   // const { isOpen, onOpen, onClose } = useDisclosure();
   const { colorMode, toggleColorMode } = useColorMode();
+  const dispatch = useDispatch();
   const {
     isOpen: isOpenNavModal,
     onOpen: onOpenNavModal,
@@ -100,9 +87,26 @@ const Navbar = () => {
   } = useDisclosure();
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(false);
   const [showNavBar, setShowNavBar] = useState(false);
-  const [hideNavBar, setHideNavBar] = useState(false);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const [isButtonClickPending, setIsButtonClickPending] = useState(false);
+  // const token = localStorage.getItem("token");
+  const userProfile = useSelector((store) => store.user.userProfile);
+
+  const menuLinks = [
+    {
+      name: "Profile",
+      path: `/profile/${userProfile.currUser?.username}`,
+      icon: FaUser,
+    },
+    {
+      name: "Saved",
+      path: "/",
+      icon: FaBookmark,
+    },
+    {
+      name: "Settings",
+      path: "/account/edit",
+      icon: FaGear,
+    },
+  ];
 
   const navLinks = [
     {
@@ -180,46 +184,9 @@ const Navbar = () => {
     },
   ];
 
-  // useEffect(() => {
-  //   const handleScroll = () => {
-  //     const isScrolledToTop = window.scrollY === 0;
-  //     const isScrollingDown = window.scrollY > 0;
-
-  //     if (isScrolledToTop && !isScrolling) {
-  //       setIsNavbarCollapsed(false);
-  //       setHideNavBar(false);
-  //     } else {
-  //       setIsNavbarCollapsed(true);
-  //       setHideNavBar(true);
-  //     }
-
-  //     //   setIsNavbarCollapsed(true);
-  //     //   setHideNavBar(true);
-  //     // } else {
-  //     //   setIsNavbarCollapsed(false);
-  //     //   setHideNavBar(false);
-  //     // }
-  //     // setIsNavbarCollapsed(isScrollingDown);
-  //   };
-
-  //   window.addEventListener("scroll", handleScroll);
-
-  //   return () => {
-  //     window.removeEventListener("scroll", handleScroll);
-  //   };
-  // }, [isScrolling]);
-
-  // const handleToggleNav = () => {
-  //   setHideNavBar(!hideNavBar);
-  // };
-
-  // const handleToggleNav = () => {
-  //   setIsButtonClickPending(true);
-  //   setTimeout(() => {
-  //     setHideNavBar((prevHideNavBar) => !prevHideNavBar);
-  //     setIsButtonClickPending(false);
-  //   }, 200); // Adjust the delay as needed
-  // };
+  const handleSignOutClick = () => {
+    dispatch(signoutAction());
+  };
 
   const handleScroll = () => {
     const isScrollingDown = window.scrollY > 0;
@@ -332,9 +299,8 @@ const Navbar = () => {
                 <MenuButton as={Button} size="sm" px={0} py={0} rounded="full">
                   <Avatar
                     size="sm"
-                    src={
-                      "https://api.dicebear.com/6.x/adventurer-neutral/svg?seed=Sam&backgroundColor=c0aede"
-                    }
+                    name={userProfile.currUser?.name}
+                    src={userProfile.currUser?.userImage}
                   />
                 </MenuButton>
                 <MenuList
@@ -345,21 +311,28 @@ const Navbar = () => {
                 >
                   <Link
                     as={RouteLink}
-                    to="/username"
+                    to={`/profile/${userProfile.currUser?.username}`}
                     _hover={{ textDecoration: "none" }}
                   >
                     <MenuItem justifyContent={"center"} alignItems={"center"}>
                       <VStack>
                         <Avatar
                           size="xl"
-                          src={
-                            "https://api.dicebear.com/6.x/adventurer-neutral/svg?seed=Sam&backgroundColor=c0aede"
-                          }
+                          name={userProfile.currUser?.name}
+                          src={userProfile.currUser?.userImage}
+                          boxShadow="md"
                         />
-                        <Text size="sm" color="gray.400" mt="0 !important">
-                          @darren_criss
+                        <Text
+                          size="sm"
+                          color="gray.400"
+                          mt="0 !important"
+                          wordBreak={"break-all"}
+                        >
+                          @{userProfile.currUser?.username}
                         </Text>
-                        <Text fontWeight="500">Darren Criss</Text>
+                        <Text fontWeight="500" wordBreak={"break-word"}>
+                          {userProfile.currUser?.name}
+                        </Text>
                       </VStack>
                     </MenuItem>
                   </Link>
@@ -392,7 +365,7 @@ const Navbar = () => {
                     _hover={{
                       textDecoration: "none",
                     }}
-                    onClick={() => onCloseNavModal()}
+                    onClick={() => handleSignOutClick()}
                   >
                     <MenuItem
                       _hover={{

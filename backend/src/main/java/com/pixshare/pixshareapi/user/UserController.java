@@ -2,12 +2,12 @@ package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.dto.UserDTOMapper;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import com.pixshare.pixshareapi.story.StoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,13 +21,10 @@ public class UserController {
 
     private final StoryService storyService;
 
-    private final UserDTOMapper userDTOMapper;
-
-    public UserController(UserService userService, AuthenticationService authenticationService, StoryService storyService, UserDTOMapper userDTOMapper) {
+    public UserController(UserService userService, AuthenticationService authenticationService, StoryService storyService) {
         this.userService = userService;
         this.authenticationService = authenticationService;
         this.storyService = storyService;
-        this.userDTOMapper = userDTOMapper;
     }
 
     @GetMapping("/id/{userId}")
@@ -125,6 +122,46 @@ public class UserController {
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+    @PostMapping("/account/password/verify")
+    public ResponseEntity<Boolean> verifyPassword(
+            @RequestBody UserPasswordRequest passwordRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        boolean passwordsMatch = userService.verifyPassword(identity.getId(), passwordRequest.currPassword());
+
+        return new ResponseEntity<>(passwordsMatch, HttpStatus.OK);
+    }
+
+    @PutMapping("/account/password/update")
+    public void updatePassword(
+            @RequestBody UserPasswordRequest passwordRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+
+        userService.updatePassword(identity.getId(), passwordRequest.newPassword());
+    }
+
+    @PutMapping("/account/profile/image/update")
+    public void updateUserImage(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam("image") MultipartFile imageFile
+    ) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        userService.updateUserImage(identity.getId(), imageFile);
+    }
+
+    @DeleteMapping("/account/profile/image/delete")
+    public void removeUserImage(
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        userService.removeUserImage(identity.getId());
+    }
+
 
     @PutMapping("/account/edit")
     public void updateUser(

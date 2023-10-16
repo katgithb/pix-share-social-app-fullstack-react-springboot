@@ -1,12 +1,24 @@
 import { Box, Flex, Grid, GridItem, Link, Text } from "@chakra-ui/react";
-import React from "react";
+import React, { useEffect } from "react";
 import BasicProfileCard from "../components/profile/BasicProfileCard";
 import Footer from "../components/shared/Footer";
 import PostFeed from "../components/post/PostFeed/PostFeed";
 import StoriesBar from "../components/story/StoriesBar/StoriesBar";
 import SuggestionsList from "../components/suggestions/SuggestionsList/SuggestionsList";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchPopularUsersAction } from "../redux/actions/user/userLookupActions";
 
 const Home = () => {
+  const dispatch = useDispatch();
+  const { userProfile, userLookup } = useSelector((store) => store.user);
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    if (token) {
+      dispatch(fetchPopularUsersAction({ token }));
+    }
+  }, [dispatch, token]);
+
   const userIdList = [
     20, 72, 58, 29, 89, 17, 94, 69, 11, 23, 10, 90, 18, 81, 79,
   ];
@@ -148,8 +160,8 @@ const Home = () => {
           flex={1}
           overflow="hidden"
         >
-          <BasicProfileCard user={currUser} />
-          <SuggestionsList userIds={userIdList} fullnames={fullnameList} />
+          <BasicProfileCard user={userProfile.currUser} />
+          <SuggestionsList users={userLookup.popularUsers} />
           <Footer />
         </Flex>
       </GridItem>

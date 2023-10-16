@@ -4,15 +4,22 @@ import {
   Button,
   Card,
   Flex,
-  Image,
   Link,
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
 import React from "react";
+import { useDispatch } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
+import { signoutAction } from "../../redux/actions/auth/authActions";
 
 const BasicProfileCard = ({ user }) => {
+  const dispatch = useDispatch();
+
+  const handleSignOutClick = () => {
+    dispatch(signoutAction());
+  };
+
   return (
     <Card
       p={3}
@@ -24,19 +31,20 @@ const BasicProfileCard = ({ user }) => {
         <Flex alignItems="center" overflow="hidden">
           <Link
             as={RouteLink}
-            to={`/username`}
+            to={`/profile/${user?.username}`}
             bgGradient={"linear(to-tr, yellow.400, pink.400, purple.600)"}
             p={"1"}
             rounded="full"
           >
             <Box bg="gray.50" p={"0.5"} rounded="full">
               <Avatar
-                name={user?.fullname}
-                src={user?.dp}
+                name={user?.name}
+                src={user?.userImage}
                 // size="md"
                 boxSize="14"
                 alt="User Avatar"
                 boxShadow={"md"}
+                loading="lazy"
                 _hover={{
                   transition: "transform 0.3s ease",
                   transform: "rotate(8deg) scale(1.2)",
@@ -44,14 +52,7 @@ const BasicProfileCard = ({ user }) => {
               />
             </Box>
           </Link>
-          {/* <Link as={RouteLink} href="#" cursor="pointer">
-            <Image
-              src={`https://randomuser.me/api/portraits/men/71.jpg`}
-              alt="User Profile"
-              borderRadius="full"
-              width="75px"
-            />
-          </Link> */}
+
           <Box px="2" mb={-0.5}>
             <Text
               fontSize="sm"
@@ -60,20 +61,19 @@ const BasicProfileCard = ({ user }) => {
               wordBreak={"break-word"}
               noOfLines={2}
             >
-              <Link as={RouteLink} to={`/username`}>
+              <Link as={RouteLink} to={`/profile/${user?.username}`}>
                 {user?.username}
               </Link>
             </Text>
             <Text
               fontSize="sm"
               textAlign="start"
-              // h="5"
               overflow="hidden"
               color="gray.500"
               wordBreak={"break-word"}
               noOfLines={2}
             >
-              {user?.fullname}
+              {user?.name}
             </Text>
           </Box>
         </Flex>
@@ -86,6 +86,7 @@ const BasicProfileCard = ({ user }) => {
             color={useColorModeValue("cyan.500", "cyan.400")}
             fontWeight="bold"
             cursor="pointer"
+            onClick={handleSignOutClick}
           >
             <Button
               colorScheme="cyan"
@@ -95,7 +96,6 @@ const BasicProfileCard = ({ user }) => {
             >
               Sign Out
             </Button>
-            {/* Sign Out */}
           </Link>
         </Flex>
       </Flex>

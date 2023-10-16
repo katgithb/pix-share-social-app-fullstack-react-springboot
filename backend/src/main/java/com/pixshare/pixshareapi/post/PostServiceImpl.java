@@ -1,15 +1,18 @@
 package com.pixshare.pixshareapi.post;
 
+import com.pixshare.pixshareapi.comment.CommentService;
 import com.pixshare.pixshareapi.dto.PostDTO;
 import com.pixshare.pixshareapi.dto.PostDTOMapper;
 import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
+import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
 import com.pixshare.pixshareapi.user.UserService;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,15 +24,20 @@ public class PostServiceImpl implements PostService {
 
     private final UserService userService;
 
-    private final UserRepository userRepository;
+    private final CommentService commentService;
 
+    private final UploadService uploadService;
+
+    private final UserRepository userRepository;
 
     private final PostDTOMapper postDTOMapper;
 
 
-    public PostServiceImpl(PostRepository postRepository, UserService userService, UserRepository userRepository, PostDTOMapper postDTOMapper) {
+    public PostServiceImpl(PostRepository postRepository, UserService userService, CommentService commentService, UploadService uploadService, UserRepository userRepository, PostDTOMapper postDTOMapper) {
         this.postRepository = postRepository;
         this.userService = userService;
+        this.commentService = commentService;
+        this.uploadService = uploadService;
         this.userRepository = userRepository;
         this.postDTOMapper = postDTOMapper;
     }
@@ -51,6 +59,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
     public void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
         PostDTO post = findPostById(postId);
         UserDTO user = userService.findUserById(userId);
@@ -59,6 +68,10 @@ public class PostServiceImpl implements PostService {
             throw new UnauthorizedActionException("You can't delete other user's post");
         }
 
+        // Delete the comments associated with the post
+        commentService.deleteCommentsByPostId(postId);
+
+        removePostImageResource(post.getImageUploadId());
         postRepository.deleteById(post.getId());
     }
 
@@ -99,7 +112,7 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         if (!user.getSavedPosts().contains(post)) {
-            user.getSavedPosts().add(post);
+            user.addSavedPost(post);
             userRepository.save(user);
         }
     }
@@ -112,7 +125,7 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         if (user.getSavedPosts().contains(post)) {
-            user.getSavedPosts().remove(post);
+            user.removeSavedPost(post);
             userRepository.save(user);
         }
     }
@@ -139,6 +152,13 @@ public class PostServiceImpl implements PostService {
         post.getLikedByUsers().remove(user);
 
         return postDTOMapper.apply(postRepository.save(post));
+    }
+
+    private void removePostImageResource(String postImageUploadId) {
+        if (postImageUploadId != null && !postImageUploadId.isBlank()) {
+            // Delete post image resource from cloudinary
+            uploadService.deleteCloudinaryImageResourceByPublicId(postImageUploadId, true);
+        }
     }
 
 }

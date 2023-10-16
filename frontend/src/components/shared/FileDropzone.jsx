@@ -34,10 +34,10 @@ const FileDropzone = ({
           transform={isDragActive ? "scale(1.2)" : "scale(1)"}
         />
         <Heading pt={2} fontSize="2xl" fontWeight="light" textAlign="center">
-          Drag and drop photos here, or click to select files
+          Drag and drop, or click to select files
         </Heading>
-        <Text fontSize="sm" colorScheme="gray" opacity="0.6">
-          Only images under {maxSizeInMB} MB will be accepted (max{" "}
+        <Text fontSize="sm" colorScheme="gray" opacity="0.6" textAlign="center">
+          Images up to {maxSizeInMB} MB (max{" "}
           {maxFiles > 1 ? `${maxFiles} files` : `${maxFiles} file`})
         </Text>
         <Button

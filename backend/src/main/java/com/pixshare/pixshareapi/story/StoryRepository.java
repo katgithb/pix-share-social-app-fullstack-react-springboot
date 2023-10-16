@@ -13,4 +13,6 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
     List<Story> findStoriesByUserId(@Param("userId") Long userId,
                                     Sort sort);
 
+    void deleteByUserId(Long userId);
+
 }

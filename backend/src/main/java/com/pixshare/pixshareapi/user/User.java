@@ -4,6 +4,7 @@ import com.pixshare.pixshareapi.post.Post;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Hibernate;
+import org.hibernate.annotations.BatchSize;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,8 +17,9 @@ import java.util.*;
 @Getter
 @Setter
 @Entity
-@Table(name = "\"user\"",
+@Table(name = "user_identity",
         uniqueConstraints = {
+                @UniqueConstraint(name = "user_username_unique", columnNames = "username"),
                 @UniqueConstraint(name = "user_email_unique", columnNames = "email")
         }
 )
@@ -58,31 +60,28 @@ public class User implements UserDetails {
     @Column(name = "gender", nullable = false)
     private Gender gender;
 
+    @Column(name = "user_image_upload_id")
+    private String userImageUploadId;
+
     @Column(name = "user_image")
     private String userImage;
 
     @ToString.Exclude
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name = "user_follower",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "follower_id"))
     private Set<User> follower = new LinkedHashSet<>();
 
-    @ToString.Exclude
-    @ManyToMany
-    @JoinTable(name = "user_following",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "following_id"))
+    @ManyToMany(mappedBy = "follower")
+    @BatchSize(size = 10)
     private Set<User> following = new LinkedHashSet<>();
 
-    @ToString.Exclude
-    @ManyToMany
-    @JoinTable(name = "user_saved_posts",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "post_id"))
+    @ManyToMany(mappedBy = "savedByUsers")
+    @BatchSize(size = 10)
     private Set<Post> savedPosts = new LinkedHashSet<>();
 
-    public User(Long id, @NonNull String userHandleName, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImage) {
+    public User(Long id, @NonNull String userHandleName, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImageUploadId, String userImage) {
         this.id = id;
         this.userHandleName = userHandleName;
         this.email = email;
@@ -92,7 +91,28 @@ public class User implements UserDetails {
         this.website = website;
         this.bio = bio;
         this.gender = gender;
+        this.userImageUploadId = userImageUploadId;
         this.userImage = userImage;
+    }
+
+    public void addSavedPost(Post post) {
+        this.savedPosts.add(post);
+        post.getSavedByUsers().add(this);
+    }
+
+    public void removeSavedPost(Post post) {
+        this.savedPosts.remove(post);
+        post.getSavedByUsers().remove(this);
+    }
+
+    public void addFollower(User user) {
+        this.follower.add(user);
+        user.getFollowing().add(this);
+    }
+
+    public void removeFollower(User user) {
+        this.follower.remove(user);
+        user.getFollowing().remove(this);
     }
 
     @Override
