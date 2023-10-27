@@ -28,7 +28,7 @@ public class PostController {
 
     @PostMapping("/create")
     public void createPost(
-            @RequestBody PostRequest request,
+            @ModelAttribute PostRequest request,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);

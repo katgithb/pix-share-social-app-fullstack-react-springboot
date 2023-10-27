@@ -13,6 +13,7 @@ import com.pixshare.pixshareapi.story.StoryRepository;
 import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
 import com.pixshare.pixshareapi.upload.UploadType;
+import com.pixshare.pixshareapi.util.ImageUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,9 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,12 +49,14 @@ class UserServiceTest {
     @Mock
     private UploadService uploadService;
     @Mock
+    private ImageUtil imageUtil;
+    @Mock
     private PasswordEncoder passwordEncoder;
 
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, uploadService, passwordEncoder, userDTOMapper);
+        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, uploadService, imageUtil, passwordEncoder, userDTOMapper);
     }
 
 
@@ -395,52 +396,7 @@ class UserServiceTest {
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
         verify(userRepository, times(1)).findById(userId);
-        verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
-        verify(userRepository, times(0)).save(any(User.class));
-    }
-
-    @Test
-    @DisplayName("Should throw a RequestValidationException when file is not an image")
-    void updateUserImageWhenFileIsNotAnImageThenThrowException() {
-        // Given
-        Long userId = 1L;
-        MockMultipartFile notImageFile = new MockMultipartFile("imageFile", "hello.txt", "text/plain", new byte[]{});
-        User user = new User();
-        user.setId(userId);
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-
-        // When
-        // Then
-        assertThatThrownBy(() -> userService.updateUserImage(userId, notImageFile))
-                .isInstanceOf(RequestValidationException.class)
-                .hasMessage("File is not an image");
-
-        verify(userRepository, times(1)).findById(userId);
-        verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
-        verify(userRepository, times(0)).save(any(User.class));
-    }
-
-    @Test
-    @DisplayName("Should throw a RequestValidationException when file cannot be read")
-    void updateUserImageWhenFileCannotBeReadThenThrowException() throws IOException {
-        // Given
-        Long userId = 1L;
-        MultipartFile unreadableImageFile = mock(MultipartFile.class);
-        User user = new User();
-        user.setId(userId);
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(unreadableImageFile.getContentType()).thenReturn("image/jpeg");
-        doThrow(IOException.class).when(unreadableImageFile).getBytes();
-
-        // When
-        // Then
-        assertThatThrownBy(() -> userService.updateUserImage(userId, unreadableImageFile))
-                .isInstanceOf(RequestValidationException.class)
-                .hasMessage("File does not exist or could not be read");
-
-        verify(userRepository, times(1)).findById(userId);
+        verify(imageUtil, times(0)).getImageBytesFromMultipartFile(imageFile);
         verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
         verify(userRepository, times(0)).save(any(User.class));
     }
@@ -453,17 +409,20 @@ class UserServiceTest {
         MockMultipartFile imageFile = new MockMultipartFile("imageFile", "hello.jpg", "image/jpeg", new byte[]{});
         User user = new User();
         user.setId(userId);
+        byte[] imageBytes = new byte[]{};
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, UploadType.AVATAR.name());
         Map<String, String> uploadedImageResult = Map.of("publicId", "publicId", "secureUrl", "secureUrl");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(uploadService.uploadImageResourceToCloudinary(userId, new byte[]{}, signatureRequest)).thenReturn(uploadedImageResult);
+        when(imageUtil.getImageBytesFromMultipartFile(imageFile)).thenReturn(imageBytes);
+        when(uploadService.uploadImageResourceToCloudinary(userId, imageBytes, signatureRequest)).thenReturn(uploadedImageResult);
 
         // When
         userService.updateUserImage(userId, imageFile);
 
         // Then
         verify(userRepository, times(1)).findById(userId);
+        verify(imageUtil, times(1)).getImageBytesFromMultipartFile(imageFile);
         verify(uploadService, times(1)).uploadImageResourceToCloudinary(userId, new byte[]{}, signatureRequest);
 
         assertThat(user.getUserImage()).isEqualTo("secureUrl");

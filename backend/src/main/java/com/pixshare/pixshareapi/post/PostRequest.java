@@ -1,8 +1,10 @@
 package com.pixshare.pixshareapi.post;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public record PostRequest(
         String caption,
-        String image,
+        MultipartFile image,
         String location
 ) {
 }

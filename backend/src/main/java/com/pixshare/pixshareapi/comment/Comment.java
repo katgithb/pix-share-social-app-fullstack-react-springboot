@@ -3,6 +3,7 @@ package com.pixshare.pixshareapi.comment;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 
@@ -24,7 +25,8 @@ public class Comment {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "content")
+    @Size(max = 250)
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "created_at")

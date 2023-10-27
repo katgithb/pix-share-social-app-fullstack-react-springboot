@@ -7,15 +7,20 @@ import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.upload.UploadService;
+import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
+import com.pixshare.pixshareapi.upload.UploadType;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
 import com.pixshare.pixshareapi.user.UserService;
+import com.pixshare.pixshareapi.util.ImageUtil;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -28,43 +33,78 @@ public class PostServiceImpl implements PostService {
 
     private final UploadService uploadService;
 
+    private final ImageUtil imageUtil;
+
     private final UserRepository userRepository;
 
     private final PostDTOMapper postDTOMapper;
 
 
-    public PostServiceImpl(PostRepository postRepository, UserService userService, CommentService commentService, UploadService uploadService, UserRepository userRepository, PostDTOMapper postDTOMapper) {
+    public PostServiceImpl(PostRepository postRepository, UserService userService, CommentService commentService, UploadService uploadService, ImageUtil imageUtil, UserRepository userRepository, PostDTOMapper postDTOMapper) {
         this.postRepository = postRepository;
         this.userService = userService;
         this.commentService = commentService;
         this.uploadService = uploadService;
+        this.imageUtil = imageUtil;
         this.userRepository = userRepository;
         this.postDTOMapper = postDTOMapper;
     }
 
     @Override
+    @Transactional
     public void createPost(PostRequest postRequest, Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
+        // Create post
         Post post = new Post(
                 postRequest.caption(),
-                postRequest.image(),
+                "",
+                "",
                 postRequest.location(),
                 LocalDateTime.now(),
                 user
         );
 
+        Post savedPost = postRepository.save(post);
+
+        updatePostImage(savedPost.getId(), user.getId(), postRequest.image());
+    }
+
+    @Override
+    public void updatePostImage(Long postId, Long userId, MultipartFile imageFile) throws ResourceNotFoundException, UnauthorizedActionException {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
+        Long postUserId = post.getUser().getId();
+
+        if (!postUserId.equals(userId)) {
+            throw new UnauthorizedActionException("You can't edit other user's post");
+        }
+
+        // Get image bytes from image file
+        byte[] imageBytes = imageUtil.getImageBytesFromMultipartFile(imageFile);
+
+        // Upload post image to cloudinary and get the public ID and secure URL
+        UploadSignatureRequest signatureRequest = new UploadSignatureRequest(post.getId(), UploadType.POST.name());
+        Map<String, String> uploadedImageResult = uploadService.uploadImageResourceToCloudinary(userId, imageBytes, signatureRequest);
+        String publicId = uploadedImageResult.get("publicId");
+        String secureUrl = uploadedImageResult.get("secureUrl");
+
+        // Update post imageUploadId and image with the public ID and secure URL from cloudinary
+        post.setImageUploadId(publicId);
+        post.setImage(secureUrl);
         postRepository.save(post);
     }
+
 
     @Override
     @Transactional
     public void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
         PostDTO post = findPostById(postId);
         UserDTO user = userService.findUserById(userId);
+        Long postUserId = post.getUser().getId();
 
-        if (!post.getUser().getId().equals(user.getId())) {
+        if (!postUserId.equals(user.getId())) {
             throw new UnauthorizedActionException("You can't delete other user's post");
         }
 

@@ -13,13 +13,13 @@ import com.pixshare.pixshareapi.story.StoryRepository;
 import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
 import com.pixshare.pixshareapi.upload.UploadType;
+import com.pixshare.pixshareapi.util.ImageUtil;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -38,17 +38,21 @@ public class UserServiceImpl implements UserService {
 
     private final UploadService uploadService;
 
+    private final ImageUtil imageUtil;
+
     private final PasswordEncoder passwordEncoder;
 
     private final UserDTOMapper userDTOMapper;
 
     public UserServiceImpl(UserRepository userRepository, PostRepository postRepository, CommentRepository commentRepository,
-                           StoryRepository storyRepository, UploadService uploadService, PasswordEncoder passwordEncoder, UserDTOMapper userDTOMapper) {
+                           StoryRepository storyRepository, UploadService uploadService, ImageUtil imageUtil,
+                           PasswordEncoder passwordEncoder, UserDTOMapper userDTOMapper) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.storyRepository = storyRepository;
         this.uploadService = uploadService;
+        this.imageUtil = imageUtil;
         this.passwordEncoder = passwordEncoder;
         this.userDTOMapper = userDTOMapper;
     }
@@ -121,19 +125,8 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        byte[] imageBytes;
-        // Check if the file is an image
-        if (!Objects.requireNonNull(imageFile.getContentType()).startsWith("image")) {
-            throw new RequestValidationException("File is not an image");
-        }
-
-        // Check if the image file can be read
-        try {
-            imageBytes = imageFile.getBytes();
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-            throw new RequestValidationException("File does not exist or could not be read");
-        }
+        // Get image bytes from image file
+        byte[] imageBytes = imageUtil.getImageBytesFromMultipartFile(imageFile);
 
         // Upload user image to cloudinary and get the public ID and secure URL
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, UploadType.AVATAR.name());

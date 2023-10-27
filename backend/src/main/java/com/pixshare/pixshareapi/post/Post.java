@@ -2,6 +2,7 @@ package com.pixshare.pixshareapi.post;
 
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 
@@ -23,7 +24,8 @@ public class Post {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "caption")
+    @Size(max = 500)
+    @Column(name = "caption", columnDefinition = "TEXT")
     private String caption;
 
     @Column(name = "image_upload_id")
@@ -56,8 +58,9 @@ public class Post {
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<User> savedByUsers = new LinkedHashSet<>();
 
-    public Post(String caption, String image, String location, LocalDateTime createdAt, User user) {
+    public Post(String caption, String imageUploadId, String image, String location, LocalDateTime createdAt, User user) {
         this.caption = caption;
+        this.imageUploadId = imageUploadId;
         this.image = image;
         this.location = location;
         this.createdAt = createdAt;

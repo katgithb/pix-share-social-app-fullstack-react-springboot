@@ -3,12 +3,15 @@ package com.pixshare.pixshareapi.post;
 import com.pixshare.pixshareapi.dto.PostDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface PostService {
 
     void createPost(PostRequest postRequest, Long userId) throws ResourceNotFoundException;
+
+    void updatePostImage(Long postId, Long userId, MultipartFile imageFile) throws ResourceNotFoundException, UnauthorizedActionException;
 
     void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException;
 

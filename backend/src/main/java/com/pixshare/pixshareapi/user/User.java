@@ -2,6 +2,7 @@ package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.post.Post;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 import org.hibernate.annotations.BatchSize;
@@ -49,10 +50,12 @@ public class User implements UserDetails {
     @Column(name = "mobile")
     private String mobile;
 
+    @Size(max = 250)
     @Column(name = "website")
     private String website;
 
-    @Column(name = "bio")
+    @Size(max = 250)
+    @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
     @NonNull

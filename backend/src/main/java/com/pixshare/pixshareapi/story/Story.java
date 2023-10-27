@@ -2,6 +2,7 @@ package com.pixshare.pixshareapi.story;
 
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,7 +31,8 @@ public class Story {
     @Column(name = "image")
     private String image;
 
-    @Column(name = "caption")
+    @Size(max = 250)
+    @Column(name = "caption", columnDefinition = "TEXT")
     private String caption;
 
     @Column(name = "timestamp")
