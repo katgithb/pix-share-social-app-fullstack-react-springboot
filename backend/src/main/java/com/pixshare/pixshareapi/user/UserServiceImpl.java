@@ -14,6 +14,7 @@ import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
 import com.pixshare.pixshareapi.upload.UploadType;
 import com.pixshare.pixshareapi.util.ImageUtil;
+import com.pixshare.pixshareapi.validation.ValidationUtil;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,11 +43,13 @@ public class UserServiceImpl implements UserService {
 
     private final PasswordEncoder passwordEncoder;
 
+    private final ValidationUtil validationUtil;
+
     private final UserDTOMapper userDTOMapper;
 
     public UserServiceImpl(UserRepository userRepository, PostRepository postRepository, CommentRepository commentRepository,
                            StoryRepository storyRepository, UploadService uploadService, ImageUtil imageUtil,
-                           PasswordEncoder passwordEncoder, UserDTOMapper userDTOMapper) {
+                           PasswordEncoder passwordEncoder, ValidationUtil validationUtil, UserDTOMapper userDTOMapper) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
@@ -54,6 +57,7 @@ public class UserServiceImpl implements UserService {
         this.uploadService = uploadService;
         this.imageUtil = imageUtil;
         this.passwordEncoder = passwordEncoder;
+        this.validationUtil = validationUtil;
         this.userDTOMapper = userDTOMapper;
     }
 
@@ -87,11 +91,16 @@ public class UserServiceImpl implements UserService {
         }
 
         // save
+        validationUtil.performValidationOnField(User.class, "password", registrationRequest.password());
+
         User user = new User(registrationRequest.username(),
                 registrationRequest.email(),
                 passwordEncoder.encode(registrationRequest.password()),
                 registrationRequest.name(),
                 registrationRequest.gender());
+
+        List<String> omittedFields = Collections.singletonList("password");
+        validationUtil.performValidation(user, omittedFields);
         userRepository.save(user);
     }
 
@@ -116,6 +125,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // Update password
+        validationUtil.performValidationOnField(User.class, "password", newPassword);
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
@@ -322,24 +332,40 @@ public class UserServiceImpl implements UserService {
     }
 
     // Helper method to create field update entries
-    private <T> Map.Entry<Object, Map<Object, Consumer<User>>> fieldUpdateEntry(T reqField, T userField, Consumer<User> consumer) {
-        Object key = reqField != null && !reqField.toString().trim().isEmpty() ? reqField : UUID.randomUUID().toString();
-
+    private <T> Map.Entry<Object, Map<Object, Consumer<User>>> fieldUpdateEntry(String fieldName, T reqField, T userField, Consumer<User> consumer) {
         return isFieldValueChanged(reqField, userField)
-                ? Map.entry(key, Collections.singletonMap(userField, consumer))
+                ? Map.entry(fieldName, Collections.singletonMap(userField, consumer))
                 : null;
     }
 
     private Map<Object, Map<Object, Consumer<User>>> populateFieldUpdateMap(UserUpdateRequest updateRequest, User user) {
         return Optional.ofNullable(updateRequest)
                 .map(req -> Stream.of(
-                                fieldUpdateEntry(req.username(), user.getUserHandleName(), c -> c.setUserHandleName(req.username())),
-                                fieldUpdateEntry(req.email(), user.getEmail(), c -> c.setEmail(req.email())),
-                                fieldUpdateEntry(req.name(), user.getName(), c -> c.setName(req.name())),
-                                fieldUpdateEntry(req.mobile(), user.getMobile(), c -> c.setMobile(req.mobile())),
-                                fieldUpdateEntry(req.website(), user.getWebsite(), c -> c.setWebsite(req.website())),
-                                fieldUpdateEntry(req.bio(), user.getBio(), c -> c.setBio(req.bio())),
-                                fieldUpdateEntry(req.gender(), user.getGender(), c -> c.setGender(req.gender()))
+                                fieldUpdateEntry("userHandleName", req.username(), user.getUserHandleName(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "userHandleName", req.username());
+                                    c.setUserHandleName(req.username());
+                                }),
+                                fieldUpdateEntry("email", req.email(), user.getEmail(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "email", req.email());
+                                    c.setEmail(req.email());
+                                }),
+                                fieldUpdateEntry("name", req.name(), user.getName(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "name", req.name());
+                                    c.setName(req.name());
+                                }),
+                                fieldUpdateEntry("mobile", req.mobile(), user.getMobile(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "mobile", req.mobile());
+                                    c.setMobile(req.mobile());
+                                }),
+                                fieldUpdateEntry("website", req.website(), user.getWebsite(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "website", req.website());
+                                    c.setWebsite(req.website());
+                                }),
+                                fieldUpdateEntry("bio", req.bio(), user.getBio(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "bio", req.bio());
+                                    c.setBio(req.bio());
+                                }),
+                                fieldUpdateEntry("gender", req.gender(), user.getGender(), c -> c.setGender(req.gender()))
                         )
                         .filter(Objects::nonNull)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))

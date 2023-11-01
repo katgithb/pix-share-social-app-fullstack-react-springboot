@@ -13,6 +13,7 @@ import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
 import com.pixshare.pixshareapi.user.UserService;
 import com.pixshare.pixshareapi.util.ImageUtil;
+import com.pixshare.pixshareapi.validation.ValidationUtil;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,16 +38,19 @@ public class PostServiceImpl implements PostService {
 
     private final UserRepository userRepository;
 
+    private final ValidationUtil validationUtil;
+
     private final PostDTOMapper postDTOMapper;
 
 
-    public PostServiceImpl(PostRepository postRepository, UserService userService, CommentService commentService, UploadService uploadService, ImageUtil imageUtil, UserRepository userRepository, PostDTOMapper postDTOMapper) {
+    public PostServiceImpl(PostRepository postRepository, UserService userService, CommentService commentService, UploadService uploadService, ImageUtil imageUtil, UserRepository userRepository, ValidationUtil validationUtil, PostDTOMapper postDTOMapper) {
         this.postRepository = postRepository;
         this.userService = userService;
         this.commentService = commentService;
         this.uploadService = uploadService;
         this.imageUtil = imageUtil;
         this.userRepository = userRepository;
+        this.validationUtil = validationUtil;
         this.postDTOMapper = postDTOMapper;
     }
 
@@ -66,6 +70,7 @@ public class PostServiceImpl implements PostService {
                 user
         );
 
+        validationUtil.performValidation(post);
         Post savedPost = postRepository.save(post);
 
         updatePostImage(savedPost.getId(), user.getId(), postRequest.image());

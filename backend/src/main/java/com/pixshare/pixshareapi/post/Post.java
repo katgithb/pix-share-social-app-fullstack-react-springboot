@@ -2,6 +2,7 @@ package com.pixshare.pixshareapi.post;
 
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
@@ -28,20 +29,25 @@ public class Post {
     @Column(name = "caption", columnDefinition = "TEXT")
     private String caption;
 
-    @Column(name = "image_upload_id")
+    @NonNull
+    @Column(name = "image_upload_id", nullable = false)
     private String imageUploadId;
 
-    @Column(name = "image")
+    @NonNull
+    @Column(name = "image", nullable = false)
     private String image;
 
     @Column(name = "location")
     private String location;
 
-    @Column(name = "created_at")
+    @NonNull
+    @PastOrPresent
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ToString.Exclude
@@ -58,7 +64,7 @@ public class Post {
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<User> savedByUsers = new LinkedHashSet<>();
 
-    public Post(String caption, String imageUploadId, String image, String location, LocalDateTime createdAt, User user) {
+    public Post(String caption, @NonNull String imageUploadId, @NonNull String image, String location, @NonNull LocalDateTime createdAt, @NonNull User user) {
         this.caption = caption;
         this.imageUploadId = imageUploadId;
         this.image = image;

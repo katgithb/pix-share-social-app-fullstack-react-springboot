@@ -2,6 +2,9 @@ package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.post.Post;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
@@ -32,24 +35,41 @@ public class User implements UserDetails {
     private Long id;
 
     @NonNull
+    @NotBlank
+    @Pattern(regexp = "^(?![^a-z\\d])[a-z\\d][a-z\\d_.+-]*$",
+            message = "Username must start with an alphanumeric character (a-z, 0-9) and can contain alphanumeric characters, underscore (_), period (.), dash (-), or plus (+)")
+    @Size(min = 5, max = 50)
     @Column(name = "username", nullable = false)
     private String userHandleName;
 
     @NonNull
+    @NotBlank
+    @Email
     @Column(name = "email", nullable = false)
     private String email;
 
     @NonNull
+    @NotBlank
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%&*\\-_=./])[A-Za-z\\d!@#$%&*\\-_=./]+$",
+            message = "Password must include at least one alphabet, one digit and one special character (!@#$%&*-_=./)")
+    @Size(min = 8, max = 128)
     @Column(name = "password", nullable = false)
     private String password;
 
     @NonNull
+    @NotBlank
+    @Pattern(regexp = "^[a-zA-Z][a-zA-Z '.-]+$",
+            message = "Name must start with an alphabetic character (a-zA-Z) and can contain alphabetic characters (both uppercase and lowercase), spaces, hyphens, apostrophes, single quotes, and periods")
+    @Size(min = 3, max = 128)
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Size(max = 15)
     @Column(name = "mobile")
     private String mobile;
 
+    @Pattern(regexp = "^(https?://)?([\\da-z.-]+)\\.([a-z.]{2,6})([/\\w.-]*)/?$|^$",
+            message = "Must be a valid URL")
     @Size(max = 250)
     @Column(name = "website")
     private String website;

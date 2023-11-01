@@ -14,6 +14,8 @@ import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
 import com.pixshare.pixshareapi.upload.UploadType;
 import com.pixshare.pixshareapi.util.ImageUtil;
+import com.pixshare.pixshareapi.validation.ValidationUtil;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,8 +23,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.*;
 
@@ -31,13 +36,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(SpringExtension.class)
 @ExtendWith(MockitoExtension.class)
+@Import(ValidationUtilTestConfig.class)
 class UserServiceTest {
 
     private final UserViewMapper userViewMapper = new UserViewMapper();
     private final PostDTOMapper postDTOMapper = new PostDTOMapper(userViewMapper);
     private final UserDTOMapper userDTOMapper = new UserDTOMapper(userViewMapper, postDTOMapper);
     private UserService userService;
+
     @Mock
     private UserRepository userRepository;
     @Mock
@@ -52,11 +60,12 @@ class UserServiceTest {
     private ImageUtil imageUtil;
     @Mock
     private PasswordEncoder passwordEncoder;
-
+    @SpyBean
+    private ValidationUtil validationUtil;
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, uploadService, imageUtil, passwordEncoder, userDTOMapper);
+        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, uploadService, imageUtil, passwordEncoder, validationUtil, userDTOMapper);
     }
 
 
@@ -156,7 +165,7 @@ class UserServiceTest {
         // Given
         UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
                 "john.doe", "john.doe@example.com", "John Doe",
-                "password123", Gender.MALE);
+                "password123#", Gender.MALE);
 
         when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(true);
 
@@ -167,6 +176,8 @@ class UserServiceTest {
                 .hasMessage("This email is already taken");
 
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(validationUtil, times(0)).performValidationOnField(User.class, "password", registrationRequest.password());
+        verify(validationUtil, times(0)).performValidation(any(User.class), anyList());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -178,7 +189,7 @@ class UserServiceTest {
         String passwordHash = "MThubHBpN3d4b2RsN2RkYzV3bW1mdnl0bm5pOGNpY2o2ZnQxZTN4ZmY2Nmk4ZW05bjJ1Y3o2ZnhleXBmOW84MzF3ZWQ4MDJsbmltNTl4amk0ZGhhNWZiOWJiN3BwemdubWM0dWJqamt4NDJuaW4wMWxzazNlOTFzY3diMjlocDM=";
         UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
                 "john.doe", email, "John Doe",
-                "password123", Gender.MALE);
+                "password123#", Gender.MALE);
 
         when(userRepository.existsUserByEmail(email)).thenReturn(false);
         when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
@@ -189,6 +200,8 @@ class UserServiceTest {
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
+        verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
         verify(userRepository, times(1)).save(userCaptor.capture());
 
         User savedUser = userCaptor.getValue();
@@ -205,7 +218,7 @@ class UserServiceTest {
         // Given
         UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
                 "john.doe", "john.doe@example.com", "John Doe",
-                "password123", Gender.MALE);
+                "password123#", Gender.MALE);
 
         when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(true);
 
@@ -216,6 +229,8 @@ class UserServiceTest {
                 .hasMessage("This username is already taken");
 
         verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(validationUtil, times(0)).performValidationOnField(User.class, "password", registrationRequest.password());
+        verify(validationUtil, times(0)).performValidation(any(User.class), anyList());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -227,7 +242,7 @@ class UserServiceTest {
         String passwordHash = "MThubHBpN3d4b2RsN2RkYzV3bW1mdnl0bm5pOGNpY2o2ZnQxZTN4ZmY2Nmk4ZW05bjJ1Y3o2ZnhleXBmOW84MzF3ZWQ4MDJsbmltNTl4amk0ZGhhNWZiOWJiN3BwemdubWM0dWJqamt4NDJuaW4wMWxzazNlOTFzY3diMjlocDM=";
         UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
                 userHandleName, "john.doe@example.com", "John Doe",
-                "password123", Gender.MALE);
+                "password123#", Gender.MALE);
 
         when(userRepository.existsUserByUserHandleName(userHandleName)).thenReturn(false);
         when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
@@ -238,6 +253,124 @@ class UserServiceTest {
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
+        verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getUserHandleName()).isEqualTo(registrationRequest.username());
+        assertThat(savedUser.getEmail()).isEqualTo(registrationRequest.email());
+        assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
+        assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
+        assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
+    }
+
+    @Test
+    @DisplayName("Should throw a ConstraintViolationException when password is invalid")
+    void registerUserWhenPasswordIsInvalidThenThrowException() {
+        // Given
+        String invalidPassword = "abc";
+        UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
+                "john.doe", "john.doe@example.com", "John Doe",
+                invalidPassword, Gender.MALE);
+
+        when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
+        when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(false);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.registerUser(registrationRequest))
+                .isInstanceOf(ConstraintViolationException.class);
+
+        verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
+        verify(validationUtil, times(0)).performValidation(any(User.class), anyList());
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should register a new user when password is valid")
+    void registerUserWhenPasswordIsValid() {
+        // Given
+        String password = "password123#";
+        String passwordHash = "MThubHBpN3d4b2RsN2RkYzV3bW1mdnl0bm5pOGNpY2o2ZnQxZTN4ZmY2Nmk4ZW05bjJ1Y3o2ZnhleXBmOW84MzF3ZWQ4MDJsbmltNTl4amk0ZGhhNWZiOWJiN3BwemdubWM0dWJqamt4NDJuaW4wMWxzazNlOTFzY3diMjlocDM=";
+        UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
+                "john.doe", "john.doe@example.com", "John Doe",
+                password, Gender.MALE);
+
+        when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
+        when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(false);
+        when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
+
+        // When
+        userService.registerUser(registrationRequest);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
+        verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getUserHandleName()).isEqualTo(registrationRequest.username());
+        assertThat(savedUser.getEmail()).isEqualTo(registrationRequest.email());
+        assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
+        assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
+        assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
+    }
+
+    @Test
+    @DisplayName("Should throw a ConstraintViolationException when email is invalid")
+    void registerUserWhenEmailIsInvalidThenThrowException() {
+        // Given
+        String email = "john-doe.com";
+        String passwordHash = "MThubHBpN3d4b2RsN2RkYzV3bW1mdnl0bm5pOGNpY2o2ZnQxZTN4ZmY2Nmk4ZW05bjJ1Y3o2ZnhleXBmOW84MzF3ZWQ4MDJsbmltNTl4amk0ZGhhNWZiOWJiN3BwemdubWM0dWJqamt4NDJuaW4wMWxzazNlOTFzY3diMjlocDM=";
+        UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
+                "john.doe", email, "John Doe",
+                "password123#", Gender.MALE);
+
+        when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
+        when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(false);
+        when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.registerUser(registrationRequest))
+                .isInstanceOf(ConstraintViolationException.class);
+
+        verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
+        verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should register a new user when email is valid")
+    void registerUserWhenEmailIsValid() {
+        // Given
+        String email = "john.doe@example.com";
+        String passwordHash = "MThubHBpN3d4b2RsN2RkYzV3bW1mdnl0bm5pOGNpY2o2ZnQxZTN4ZmY2Nmk4ZW05bjJ1Y3o2ZnhleXBmOW84MzF3ZWQ4MDJsbmltNTl4amk0ZGhhNWZiOWJiN3BwemdubWM0dWJqamt4NDJuaW4wMWxzazNlOTFzY3diMjlocDM=";
+        UserRegistrationRequest registrationRequest = new UserRegistrationRequest(
+                "john.doe", email, "John Doe",
+                "password123#", Gender.MALE);
+
+        when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
+        when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(false);
+        when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
+
+        // When
+        userService.registerUser(registrationRequest);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
+        verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
         verify(userRepository, times(1)).save(userCaptor.capture());
 
         User savedUser = userCaptor.getValue();
@@ -253,7 +386,7 @@ class UserServiceTest {
     void verifyPasswordWhenUserDoesNotExistThenThrowException() {
         // Given
         Long userId = 1L;
-        String password = "password123";
+        String password = "password123#";
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
@@ -271,8 +404,8 @@ class UserServiceTest {
     void verifyPasswordWhenUserExistsAndPasswordDoesNotMatchThenReturnsFalse() {
         // Given
         Long userId = 1L;
-        String password = "password123";
-        String wrongPassword = "wrongPassword";
+        String password = "password123#";
+        String wrongPassword = "wrongPassword123#";
         User user = new User();
         user.setId(userId);
         user.setPassword(password);
@@ -293,7 +426,7 @@ class UserServiceTest {
     void verifyPasswordWhenUserExistsAndPasswordMatchesThenReturnsTrue() {
         // Given
         Long userId = 1L;
-        String password = "password123";
+        String password = "password123#";
         User user = new User();
         user.setId(userId);
         user.setPassword(password);
@@ -314,8 +447,7 @@ class UserServiceTest {
     void updatePasswordWhenUserDoesNotExistThenThrowException() {
         // Given
         Long userId = 1L;
-        String password = "password123";
-        String newPassword = "newPassword123";
+        String newPassword = "newPassword123#";
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
@@ -326,6 +458,7 @@ class UserServiceTest {
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
         verify(userRepository, times(1)).findById(userId);
+        verify(validationUtil, times(0)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -334,8 +467,8 @@ class UserServiceTest {
     void updatePasswordWhenNewPasswordIsSameAsCurrentPasswordThenThrowException() {
         // Given
         Long userId = 1L;
-        String password = "password123";
-        String newPassword = "password123";
+        String password = "password123#";
+        String newPassword = "password123#";
         User user = new User();
         user.setId(userId);
         user.setPassword(password);
@@ -350,22 +483,48 @@ class UserServiceTest {
                 .hasMessage("New password must not be the same as the current password");
 
         verify(userRepository, times(1)).findById(userId);
+        verify(validationUtil, times(0)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(0)).save(any(User.class));
     }
 
     @Test
-    @DisplayName("Should update password when user exists and new password provided")
-    void updatePasswordWhenUserExistsAndNewPasswordProvided() {
+    @DisplayName("Should throw a ConstraintViolationException when new password is invalid")
+    void updatePasswordWhenNewPasswordIsInvalidThenThrowException() {
         // Given
         Long userId = 1L;
-        String password = "password123";
-        String newPassword = "newPassword123";
-        String newEncodedPassword = "newEncodedPassword123";
+        String password = "password123#";
+        String invalidNewPassword = "abc";
         User user = new User();
         user.setId(userId);
         user.setPassword(password);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(invalidNewPassword, user.getPassword())).thenReturn(false);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.updatePassword(userId, invalidNewPassword))
+                .isInstanceOf(ConstraintViolationException.class);
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", invalidNewPassword);
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should update password when user exists and new password is valid")
+    void updatePasswordWhenUserExistsAndNewPasswordIsValid() {
+        // Given
+        Long userId = 1L;
+        String password = "password123#";
+        String newPassword = "newPassword123#";
+        String newEncodedPassword = "newEncodedPassword123#";
+        User user = new User();
+        user.setId(userId);
+        user.setPassword(password);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(newPassword, user.getPassword())).thenReturn(false);
         when(passwordEncoder.encode(newPassword)).thenReturn(newEncodedPassword);
 
         // When
@@ -374,6 +533,7 @@ class UserServiceTest {
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).findById(userId);
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(1)).save(userCaptor.capture());
 
         User savedUser = userCaptor.getValue();
@@ -584,22 +744,22 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                "newUsername",
+                "new_username",
                 "newemail@example.com",
                 "newName",
                 "newMobile",
-                "newWebsite",
+                "new-website.com",
                 "newBio",
                 Gender.MALE
         );
         User user = new User(
                 userId,
-                "Username",
+                "username",
                 "email@example.com",
                 "password",
                 "Name",
                 "Mobile",
-                "Website",
+                "website.com",
                 "Bio",
                 Gender.MALE,
                 "UserImageUploadId",
@@ -635,22 +795,22 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         UserUpdateRequest updateRequest = new UserUpdateRequest(
-                "newUsername",
+                "new_username",
                 "newemail@example.com",
                 "newName",
                 "newMobile",
-                "newWebsite",
+                "new-website.com",
                 "newBio",
                 Gender.MALE
         );
         User user = new User(
                 userId,
-                "Username",
+                "username",
                 "email@example.com",
                 "password",
                 "Name",
                 "Mobile",
-                "Website",
+                "website.com",
                 "Bio",
                 Gender.MALE,
                 "UserImageUploadId",
@@ -759,6 +919,46 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw a ResourceNotFoundException when the email does not exist")
+    void findUserByEmailWhenEmailDoesNotExistThenThrowException() {
+        // Given
+        String email = "nonexistentuser@example.com";
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.findUserByEmail(email))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User not found with email: " + email);
+
+        verify(userRepository, times(1)).findByEmail(email);
+    }
+
+    @Test
+    @DisplayName("Should return the user when the email exists")
+    void findUserByEmailWhenEmailExists() {
+        // Given
+        String email = "john.doe@example.com";
+        User user = new User("john_doe", email,
+                "password", "John Doe", Gender.MALE);
+        user.setId(1L);
+        UserDTO expectedUserDTO = new UserDTO(
+                1L, "john_doe", email, "John Doe",
+                null, null, null,
+                Gender.MALE, null, null, new LinkedHashSet<>(),
+                new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), new ArrayList<String>(List.of("ROLE_USER")));
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        // When
+        UserDTO actualUserDTO = userService.findUserByEmail(email);
+
+        // Then
+        assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
+        verify(userRepository, times(1)).findByEmail(email);
+    }
+
+    @Test
     @DisplayName("Should throw a ResourceNotFoundException when the username does not exist")
     void findUserByUsernameWhenUsernameDoesNotExistThenThrowException() {
         // Given
@@ -845,8 +1045,31 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Should return 'Followed' when the user successfully follows another user")
-    void followUserWhenSuccessful() {
+    @DisplayName("Should throw a RequestValidationException when user attempts to follow self")
+    void followUserWhenSelfFollowAttemptedThenThrowException() {
+        // Given
+        Long reqUserId = 1L;
+        User reqUser = new User();
+        reqUser.setId(reqUserId);
+        User followUser = new User();
+        followUser.setId(reqUserId);
+
+        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
+        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(followUser));
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.followUser(reqUserId, reqUserId))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessage("Invalid Request: You cannot follow your own profile.");
+
+        verify(userRepository, times(2)).findById(reqUserId);
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should follow the user successfully when both users exist")
+    void followUserWhenBothUsersExist() {
         // Given
         Long reqUserId = 1L;
         Long followUserId = 2L;
@@ -918,6 +1141,29 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).findById(reqUserId);
         verify(userRepository, times(0)).findById(followUserId);
+        verify(userRepository, times(0)).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a RequestValidationException when user attempts to unfollow self")
+    void unfollowUserWhenSelfUnfollowAttemptedThenThrowException() {
+        // Given
+        Long reqUserId = 1L;
+        User reqUser = new User();
+        reqUser.setId(reqUserId);
+        User followUser = new User();
+        followUser.setId(reqUserId);
+
+        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
+        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(followUser));
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.unfollowUser(reqUserId, reqUserId))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessage("Invalid Request: You cannot unfollow your own profile.");
+
+        verify(userRepository, times(2)).findById(reqUserId);
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -1102,4 +1348,62 @@ class UserServiceTest {
         assertThat(actualUsers.get(1).getName()).isEqualTo(expectedUsers.get(1).getName());
         assertThat(actualUsers.get(1).getGender()).isEqualTo(expectedUsers.get(1).getGender());
     }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when the user does not exist")
+    void findPopularUsersWhenUserDoesNotExistThenThrowException() {
+        // Given
+        Long userId = 1L;
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.findPopularUsers(userId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(userId));
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(0)).findPopularUsers(userId);
+    }
+
+    @Test
+    @DisplayName("Should return a list of popular users when the user exists")
+    void findPopularUsersWhenUserExists() {
+        // Given
+        Long userId = 1L;
+        User user = new User(1L, "will.smith", "will.smith@example.com", "password", "Will Smith", null, null, null,
+                Gender.MALE, null, null);
+
+        List<User> popularUsers = List.of(
+                new User(2L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
+                        Gender.MALE, null, null),
+                new User(3L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
+                        Gender.MALE, null, null)
+        );
+        List<UserDTO> expectedPopularUsers = List.of(
+                new UserDTO(2L, "john.doe", "john.doe@example.com", "John Doe", null, null, null,
+                        Gender.MALE, null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
+                new UserDTO(3L, "john.smith", "john.smith@example.com", "John Smith", null, null, null,
+                        Gender.MALE, null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
+        );
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findPopularUsers(userId)).thenReturn(popularUsers);
+
+        // When
+        List<UserDTO> actualPopularUsers = userService.findPopularUsers(userId);
+
+        // Then
+        assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findPopularUsers(userId);
+        assertThat(actualPopularUsers.get(0).getUsername()).isEqualTo(expectedPopularUsers.get(0).getUsername());
+        assertThat(actualPopularUsers.get(1).getUsername()).isEqualTo(expectedPopularUsers.get(1).getUsername());
+    }
+
 }
+
