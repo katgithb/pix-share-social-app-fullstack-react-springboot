@@ -17,8 +17,8 @@ const PasswordChangeForm = () => {
     currPassword: Yup.string().required("Current Password is required"),
     newPassword: Yup.string()
       .matches(
-        /^[A-Za-z\d!@#$%&*?-_]+$/,
-        "Password can only include alphabets, digits, and the specified special characters (!@#$%&*?-_)"
+        /^[A-Za-z\d!@#$%&*\-_=./]+$/,
+        "Password can only include alphabets, digits, and the specified special characters (!@#$%&*-_=./)"
       )
       .min(8, "Must be at least 8 characters")
       .max(128, "Must be at most 128 characters")
@@ -28,8 +28,8 @@ const PasswordChangeForm = () => {
       )
       .matches(/(?=.*\d)/, "Password must include at least one digit (0-9)")
       .matches(
-        /(?=.*[!@#$%&*?-_])/,
-        "Password must include at least one special character (!@#$%&*?-_)"
+        /(?=.*[!@#$%&*\-_=./])/,
+        "Password must include at least one special character (!@#$%&*-_=./)"
       )
       .required("New Password is required"),
     confirmPassword: Yup.string()

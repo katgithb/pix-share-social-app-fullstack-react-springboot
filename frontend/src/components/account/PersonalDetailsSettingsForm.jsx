@@ -28,7 +28,7 @@ const PersonalDetailsSettingsForm = ({ currUser }) => {
       .max(15, "Must be at most 15 characters")
       .test(
         "mobile",
-        "Please enter a valid international phone number starting with '+' sign and the country code, without spaces or special characters. For example, '+1 1234567890'.",
+        "Please enter a valid international phone number starting with '+' sign and the country code, without spaces or special characters. For example, '+11234567890'.",
         (value) => {
           if (!value) return true; // Allow empty value
           return isPossiblePhoneNumber(value);

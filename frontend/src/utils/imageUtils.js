@@ -9,6 +9,7 @@ export const compressAndResizeImage = async (file, maxWidth, maxHeight) => {
       initialQuality: 0.85,
       fileType: "image/jpeg",
     };
+    console.log(file, file?.size / 1024 + " KB");
 
     const compressedImageBlob = await imageCompression(file, options);
 
@@ -163,4 +164,35 @@ export function rotateSize(width, height, rotation) {
 
 export function getRadianAngle(degreeValue) {
   return (degreeValue * Math.PI) / 180;
+}
+
+export function getImageDimensionsFromImageFile(imageFile) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+      const image = new Image();
+
+      image.onload = function () {
+        const width = this.naturalWidth;
+        const height = this.naturalHeight;
+
+        console.log("Image width:", width, "Image height:", height);
+
+        resolve({ width, height });
+      };
+
+      image.onerror = function () {
+        reject(new Error("Failed to load image"));
+      };
+
+      image.src = event.target.result;
+    };
+
+    reader.onerror = function () {
+      reject(new Error("Failed to read file"));
+    };
+
+    reader.readAsDataURL(imageFile);
+  });
 }

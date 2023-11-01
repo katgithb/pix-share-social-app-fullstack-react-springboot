@@ -1,6 +1,13 @@
-import { useBreakpointValue, useColorMode, useTheme } from "@chakra-ui/react";
-import { Cities, Countries, States } from "countries-states-cities-service";
-import React from "react";
+import {
+  HStack,
+  Spinner,
+  Text,
+  useBreakpointValue,
+  useColorMode,
+  useTheme,
+} from "@chakra-ui/react";
+// import { Cities, Countries, States } from "countries-states-cities-service";
+import React, { useEffect, useState } from "react";
 import { AsyncPaginate } from "react-select-async-paginate";
 import unidecode from "unidecode";
 
@@ -9,6 +16,22 @@ const CustomAsyncPaginateSelect = ({ location, setLocation }) => {
   const isSmallScreen = breakpoint === "base" || breakpoint === "sm";
   const { colorMode } = useColorMode();
   const theme = useTheme();
+  const [countriesStatesCities, setCountriesStatesCities] = useState(null);
+  const [isLoadingCountriesStatesCities, setIsLoadingCountriesStatesCities] =
+    useState(true);
+
+  useEffect(() => {
+    const loadCountriesStatesCities = async () => {
+      const { Cities, Countries, States } = await import(
+        "countries-states-cities-service"
+      );
+      setCountriesStatesCities({ Cities, Countries, States });
+      setIsLoadingCountriesStatesCities(false);
+    };
+
+    // Load the module when the modal is opened
+    loadCountriesStatesCities();
+  }, []);
 
   const generateQueryRegexPattern = (string1, string2) => {
     const trimmedString1 = string1.trim();
@@ -29,7 +52,7 @@ const CustomAsyncPaginateSelect = ({ location, setLocation }) => {
   };
 
   const getMatchedCities = (queryArr) => {
-    return Cities.getCities().filter((city) =>
+    return countriesStatesCities.Cities.getCities().filter((city) =>
       queryArr.some((term) =>
         unidecode(city.name.toLowerCase()).includes(term.trim())
       )
@@ -37,7 +60,7 @@ const CustomAsyncPaginateSelect = ({ location, setLocation }) => {
   };
 
   const getMatchedStates = (queryArr) => {
-    return States.getStates().filter((state) =>
+    return countriesStatesCities.States.getStates().filter((state) =>
       queryArr.some((term) =>
         new RegExp(
           generateQueryRegexPattern(term.trim(), unidecode(state.name)),
@@ -48,7 +71,7 @@ const CustomAsyncPaginateSelect = ({ location, setLocation }) => {
   };
 
   const getMatchedCountries = (queryArr) => {
-    return Countries.getCountries().filter((country) =>
+    return countriesStatesCities.Countries.getCountries().filter((country) =>
       queryArr.some((term) =>
         unidecode(country.name.toLowerCase()).includes(term.trim())
       )
@@ -59,10 +82,12 @@ const CustomAsyncPaginateSelect = ({ location, setLocation }) => {
     const cityName = city.name;
     const stateName = state
       ? state.name
-      : States.getStates().find((state) => state.id === city.state_id)?.name;
+      : countriesStatesCities.States.getStates().find(
+          (state) => state.id === city.state_id
+        )?.name;
     const countryName = country
       ? country.name
-      : Countries.getCountries().find(
+      : countriesStatesCities.Countries.getCountries().find(
           (country) => country.id === city.country_id
         )?.name;
 
@@ -139,7 +164,7 @@ const CustomAsyncPaginateSelect = ({ location, setLocation }) => {
         // Search for states
         const stateMatches = getMatchedStates(searchQueryArr);
         stateMatches.forEach((state) => {
-          const stateCities = Cities.getCities().filter(
+          const stateCities = countriesStatesCities.Cities.getCities().filter(
             (city) => city.state_id === state.id
           );
           matchedOptions.push(
@@ -153,7 +178,7 @@ const CustomAsyncPaginateSelect = ({ location, setLocation }) => {
         // Search for countries
         const countryMatches = getMatchedCountries(searchQueryArr);
         countryMatches.forEach((country) => {
-          const countryCities = Cities.getCities().filter(
+          const countryCities = countriesStatesCities.Cities.getCities().filter(
             (city) => city.country_id === country.id
           );
           matchedOptions.push(
@@ -281,22 +306,34 @@ const CustomAsyncPaginateSelect = ({ location, setLocation }) => {
   };
 
   return (
-    <AsyncPaginate
-      value={location}
-      loadOptions={loadSearchOptions}
-      debounceTimeout={400}
-      onChange={setLocation}
-      additional={{
-        page: 1,
-      }}
-      loadOptionsOnMenuOpen={false}
-      maxMenuHeight={isSmallScreen ? "50vh" : "45vh"}
-      menuPlacement={isSmallScreen ? "top" : "auto"}
-      cacheOptions
-      isClearable
-      isSearchable
-      styles={asyncSelectStyles}
-    />
+    <>
+      {isLoadingCountriesStatesCities ? (
+        // Render a loading state while the module is being loaded
+        <HStack p={1} align="center" justify="center">
+          <Spinner size="sm" speed="0.65s" color="gray.400" />
+          <Text fontSize="sm" opacity="0.7" colorScheme="gray">
+            Loading...
+          </Text>
+        </HStack>
+      ) : (
+        <AsyncPaginate
+          value={location}
+          loadOptions={loadSearchOptions}
+          debounceTimeout={400}
+          onChange={setLocation}
+          additional={{
+            page: 1,
+          }}
+          loadOptionsOnMenuOpen={false}
+          maxMenuHeight={isSmallScreen ? "45vh" : "33.05vh"}
+          menuPlacement={isSmallScreen ? "top" : "auto"}
+          cacheOptions
+          isClearable
+          isSearchable
+          styles={asyncSelectStyles}
+        />
+      )}
+    </>
   );
 };
 
