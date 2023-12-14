@@ -1,6 +1,7 @@
 package com.pixshare.pixshareapi.post;
 
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,8 +14,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByUserId(Long userId);
 
     @Query("select p from Post p where p.user.id in :users")
-    List<Post> findAllPostsByUserIds(@Param("users") List<Long> userIds,
-                                     Sort sort);
+    Page<Post> findAllPostsByUserIds(@Param("users") List<Long> userIds,
+                                     Pageable pageable);
 
     @Query("SELECT p FROM Post p JOIN p.likedByUsers u WHERE u.id = :userId")
     List<Post> findLikedPostsByUserId(@Param("userId") Long userId);

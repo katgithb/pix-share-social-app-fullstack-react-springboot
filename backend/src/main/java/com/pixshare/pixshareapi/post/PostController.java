@@ -2,6 +2,8 @@ package com.pixshare.pixshareapi.post;
 
 import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.comment.CommentService;
+import com.pixshare.pixshareapi.dto.PageRequestDTO;
+import com.pixshare.pixshareapi.dto.PagedResponse;
 import com.pixshare.pixshareapi.dto.PostDTO;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import org.springframework.http.HttpStatus;
@@ -57,14 +59,12 @@ public class PostController {
     }
 
     @GetMapping("/following/{userIds}")
-    public ResponseEntity<List<PostDTO>> findAllPostsByUserIds(@PathVariable("userIds") List<Long> userIds) {
-        List<PostDTO> posts = postService.findAllPostsByUserIds(userIds).stream()
-                .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId())
-                ))
-                .toList();
+    public ResponseEntity<PagedResponse<PostDTO>> findAllPostsByUserIds(
+            @PathVariable("userIds") List<Long> userIds,
+            @ModelAttribute PageRequestDTO pageRequest) {
+        PagedResponse<PostDTO> postResponse = postService.findAllPostsByUserIds(userIds, pageRequest);
 
-        return new ResponseEntity<>(posts, HttpStatus.OK);
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
     }
 
     @DeleteMapping("/delete/{postId}")

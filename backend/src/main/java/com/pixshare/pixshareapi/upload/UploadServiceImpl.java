@@ -34,6 +34,9 @@ public class UploadServiceImpl implements UploadService {
     @Value("${cloudinary.upload-preset}")
     private String cloudinaryUploadPreset;
 
+    @Value("${cloudinary.upload-folder}")
+    private String cloudinaryUploadFolder;
+
 
     public UploadServiceImpl(UserRepository userRepository, PostRepository postRepository, StoryRepository storyRepository, Cloudinary cloudinary) {
         this.userRepository = userRepository;
@@ -136,7 +139,7 @@ public class UploadServiceImpl implements UploadService {
     }
 
     private Map<UploadType, Function<Long, String>> getUploadTypeActionMap() {
-        String rootFolder = "pixshare_upload";
+        String rootFolder = cloudinaryUploadFolder;
 
         return Map.of(
                 UploadType.AVATAR, (Long userId) -> {

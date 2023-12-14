@@ -1,9 +1,7 @@
 package com.pixshare.pixshareapi.post;
 
 import com.pixshare.pixshareapi.comment.CommentService;
-import com.pixshare.pixshareapi.dto.PostDTO;
-import com.pixshare.pixshareapi.dto.PostDTOMapper;
-import com.pixshare.pixshareapi.dto.UserDTO;
+import com.pixshare.pixshareapi.dto.*;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.upload.UploadService;
@@ -14,7 +12,8 @@ import com.pixshare.pixshareapi.user.UserRepository;
 import com.pixshare.pixshareapi.user.UserService;
 import com.pixshare.pixshareapi.util.ImageUtil;
 import com.pixshare.pixshareapi.validation.ValidationUtil;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -139,14 +138,28 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public List<PostDTO> findAllPostsByUserIds(List<Long> userIds) throws ResourceNotFoundException {
-        List<PostDTO> posts = postRepository.findAllPostsByUserIds(userIds,
-                        Sort.by(Sort.Direction.DESC, "createdAt"))
+    public PagedResponse<PostDTO> findAllPostsByUserIds(List<Long> userIds, PageRequestDTO pageRequest) throws ResourceNotFoundException {
+        // create Pageable instance
+        Pageable pageable = pageRequest.toPageable();
+        Page<Post> pagedPosts = postRepository.findAllPostsByUserIds(userIds, pageable);
+
+        // get posts content from Page
+        List<PostDTO> content = pagedPosts
+                .getContent()
                 .stream()
                 .map(postDTOMapper)
+                .peek(postDTO -> postDTO.setComments(
+                        commentService.findCommentsByPostId(postDTO.getId())
+                ))
                 .toList();
 
-        return posts;
+        return new PagedResponse<>(
+                content,
+                pagedPosts.getNumber(),
+                pagedPosts.getSize(),
+                pagedPosts.getTotalElements(),
+                pagedPosts.getTotalPages(),
+                pagedPosts.isLast());
     }
 
     @Override

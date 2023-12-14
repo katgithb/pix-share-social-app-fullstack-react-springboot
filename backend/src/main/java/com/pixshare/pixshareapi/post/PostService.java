@@ -1,5 +1,7 @@
 package com.pixshare.pixshareapi.post;
 
+import com.pixshare.pixshareapi.dto.PageRequestDTO;
+import com.pixshare.pixshareapi.dto.PagedResponse;
 import com.pixshare.pixshareapi.dto.PostDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
@@ -19,7 +21,7 @@ public interface PostService {
 
     PostDTO findPostById(Long postId) throws ResourceNotFoundException;
 
-    List<PostDTO> findAllPostsByUserIds(List<Long> userIds) throws ResourceNotFoundException;
+    PagedResponse<PostDTO> findAllPostsByUserIds(List<Long> userIds, PageRequestDTO pageRequest) throws ResourceNotFoundException;
 
     void savePost(Long postId, Long userId) throws ResourceNotFoundException;
 

@@ -34,4 +34,6 @@ jwt:
 cloudinary:
   api-env-url: ${CLOUDINARY_URL}
   upload-preset: ${CLOUDINARY_UPLOAD_PRESET}
+  upload-folder: ${CLOUDINARY_UPLOAD_FOLDER}
+
 
