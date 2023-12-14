@@ -6,7 +6,7 @@ export const compressAndResizeImage = async (file, maxWidth, maxHeight) => {
       maxSizeMB: 1, // Maximum file size in megabytes
       maxWidthOrHeight: Math.max(maxWidth, maxHeight), // Maximum width or height
       useWebWorker: true, // Enable web worker for faster compression (optional)
-      initialQuality: 0.85,
+      initialQuality: 0.9,
       fileType: "image/jpeg",
     };
     console.log(file, file?.size / 1024 + " KB");

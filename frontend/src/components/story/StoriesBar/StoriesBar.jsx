@@ -1,57 +1,80 @@
-import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import {
   Box,
-  Flex,
-  Grid,
-  GridItem,
-  Link,
-  Icon,
-  IconButton,
   Card,
+  Flex,
+  IconButton,
+  Link,
   useColorModeValue,
-  Text,
-  VStack,
-  useBreakpointValue,
-  useDisclosure,
 } from "@chakra-ui/react";
-import React, { useEffect, useRef, useState } from "react";
-import { FaChevronLeft, FaChevronRight, FaPlay } from "react-icons/fa6";
+import React, { useRef } from "react";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { Link as RouteLink } from "react-router-dom";
 import StoriesBarCard from "./StoriesBarCard";
 import WatchAllLink from "./WatchAllLink";
 
 const StoriesBar = ({ currUser }) => {
-  const userIdList = [
-    20, 72, 58, 29, 89, 17, 94, 69, 11, 23, 10, 90, 18, 81, 79,
+  const stories = [
+    {
+      id: 20,
+      username: "jane_smith",
+    },
+    {
+      id: 46,
+      username: "alex_johnson_hades_kate_wilber_robert",
+    },
+    {
+      id: 58,
+      username: "sarah_thompson",
+    },
+    {
+      id: 29,
+      username: "john_doe",
+    },
+    {
+      id: 89,
+      username: "jane_smith",
+    },
+    {
+      id: 17,
+      username: "alex_johnson_hades_kate_wilber_robert",
+    },
+    {
+      id: 94,
+      username: "sarah_thompson",
+    },
+    {
+      id: 69,
+      username: "john_doe",
+    },
+    {
+      id: 11,
+      username: "jane_smith",
+    },
+    {
+      id: 23,
+      username: "alex_johnson_hades_kate_wilber_robert",
+    },
+    {
+      id: 10,
+      username: "sarah_thompson",
+    },
+    {
+      id: 90,
+      username: "john_doe",
+    },
+    {
+      id: 18,
+      username: "alex_johnson",
+    },
+    {
+      id: 81,
+      username: "alex_johnson_hades_kate_wilber_robert",
+    },
+    {
+      id: 79,
+      username: "sarah_thompson",
+    },
   ];
-  const fullnameList = [
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-    "John Doe",
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-    "John Doe",
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-    "John Doe",
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-  ];
-
-  const stories = userIdList.map((userId, index) => ({
-    id: userId,
-    username: generateUsernameFromName(fullnameList[index]),
-  }));
-
-  function generateUsernameFromName(fullname) {
-    const username = fullname.replace(/\s+/g, "_").toLowerCase();
-
-    return username;
-  }
 
   return (
     <Card
@@ -60,11 +83,10 @@ const StoriesBar = ({ currUser }) => {
       rounded="lg"
       boxShadow={"md"}
     >
-      <Box display={{ base: "initial", md: "none" }}>
+      <Box hideFrom="md">
         <StoriesBarMobile currUser={currUser} stories={stories} />
       </Box>
-
-      <Box display={{ base: "none", md: "initial" }}>
+      <Box hideBelow="md">
         <StoriesBarNonMobile currUser={currUser} stories={stories} />
       </Box>
     </Card>

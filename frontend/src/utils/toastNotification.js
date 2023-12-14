@@ -24,3 +24,21 @@ export const infoToastNotification = (title, description) => {
 export const errorToastNotification = (title, description) => {
   toastNotification(title, description, "error");
 };
+
+export const asyncToastNotification = (
+  promise,
+  {
+    loadingTitle,
+    loadingDesc,
+    successTitle,
+    successDesc,
+    errorTitle,
+    errorDesc,
+  }
+) => {
+  toast.promise(promise, {
+    loading: { title: loadingTitle || "", description: loadingDesc || "" },
+    success: { title: successTitle || "", description: successDesc || "" },
+    error: { title: errorTitle || "", description: errorDesc || "" },
+  });
+};

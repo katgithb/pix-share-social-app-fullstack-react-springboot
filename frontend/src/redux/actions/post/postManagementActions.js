@@ -3,6 +3,7 @@ import {
   deletePostRequest,
 } from "../../../services/api/postService";
 import {
+  asyncToastNotification,
   errorToastNotification,
   successToastNotification,
 } from "../../../utils/toastNotification";
@@ -12,7 +13,7 @@ import {
   deletePost,
   deletePostPending,
   postCreationFailure,
-  postManagementFailure,
+  postDeletionFailure,
 } from "../../reducers/post/postManagementSlice";
 
 export const createPostAction = (data) => async (dispatch) => {
@@ -35,16 +36,24 @@ export const createPostAction = (data) => async (dispatch) => {
 export const deletePostAction = (data) => async (dispatch) => {
   dispatch(deletePostPending());
 
-  deletePostRequest(data)
-    .then(() => {
-      dispatch(deletePost());
+  const deletePostPromise = new Promise((resolve, reject) => {
+    deletePostRequest(data)
+      .then(() => {
+        resolve();
+        dispatch(deletePost(data.postId));
 
-      console.log("Post Deletion Success");
-      successToastNotification("Post has been removed", null);
-    })
-    .catch((error) => {
-      console.log(error);
-      dispatch(postManagementFailure());
-      errorToastNotification("Failed to delete post", null);
-    });
+        console.log("Post Deletion Success");
+      })
+      .catch((error) => {
+        reject(error);
+        console.log(error);
+        dispatch(postDeletionFailure());
+      });
+  });
+
+  asyncToastNotification(deletePostPromise, {
+    loadingTitle: "Deleting post... Please wait",
+    successTitle: "Post has been removed",
+    errorTitle: "Failed to delete post",
+  });
 };

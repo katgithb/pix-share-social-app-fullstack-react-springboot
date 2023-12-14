@@ -6,11 +6,10 @@ const SuggestionsListCard = ({ user }) => {
   return (
     <Flex py="2">
       <Flex alignItems="center">
-        <Link as={RouteLink} href="#">
+        <Link as={RouteLink} to={`/profile/${user?.username}`} rounded="full">
           <Avatar
             name={user?.name}
             src={user?.userImage}
-            // size="sm"
             boxSize="10"
             alt="User Avatar"
             boxShadow={"md"}

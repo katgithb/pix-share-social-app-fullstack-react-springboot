@@ -1,25 +1,8 @@
-import {
-  Avatar,
-  Box,
-  Button,
-  Card,
-  Flex,
-  Image,
-  Link,
-  Text,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { Box, Card, Flex, Text, useColorModeValue } from "@chakra-ui/react";
 import React from "react";
-import { Link as RouteLink } from "react-router-dom";
 import SuggestionsListCard from "./SuggestionsListCard";
 
 const SuggestionsList = ({ users }) => {
-  // function generateUsernameFromName(fullname) {
-  //   const username = fullname.replace(/\s+/g, "_").toLowerCase();
-
-  //   return username;
-  // }
-
   return (
     <Card
       mt={5}
@@ -27,6 +10,7 @@ const SuggestionsList = ({ users }) => {
       variant={useColorModeValue("outline", "elevated")}
       rounded="lg"
       boxShadow={"md"}
+      w="full"
     >
       <Box>
         <Flex>
@@ -52,16 +36,6 @@ const SuggestionsList = ({ users }) => {
         </Flex>
 
         {users?.map((user, index) => {
-          // const id = item;
-          // const gender = id % 2 === 0 ? "men" : "women";
-          // const userDetails = {
-          //   dp: `https://randomuser.me/api/portraits/${gender}/${Math.round(
-          //     id
-          //   )}.jpg`,
-          //   fullname: fullnames[index],
-          //   username: generateUsernameFromName(fullnames[index]),
-          // };
-
           return <SuggestionsListCard key={index} user={user} />;
         })}
       </Box>

@@ -3,8 +3,9 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   isPostCreated: false,
   isPostDeleted: false,
+  deletedPostId: null,
   isCreatingPost: false,
-  isLoading: false,
+  isDeletingPost: false,
 };
 
 const loadingReducers = {
@@ -12,7 +13,7 @@ const loadingReducers = {
     state.isCreatingPost = true;
   },
   deletePostPending: (state) => {
-    state.isLoading = true;
+    state.isDeletingPost = true;
   },
 };
 
@@ -25,15 +26,16 @@ const postManagementSlice = createSlice({
       state.isPostCreated = true;
       state.isCreatingPost = false;
     },
-    deletePost: (state) => {
+    deletePost: (state, action) => {
       state.isPostDeleted = true;
-      state.isLoading = false;
+      state.deletedPostId = action.payload;
+      state.isDeletingPost = false;
     },
     postCreationFailure: (state) => {
       state.isCreatingPost = false;
     },
-    postManagementFailure: (state) => {
-      state.isLoading = false;
+    postDeletionFailure: (state) => {
+      state.isDeletingPost = false;
     },
     clearPostManagement: () => initialState,
   },
@@ -45,7 +47,7 @@ export const {
   createPost,
   deletePost,
   postCreationFailure,
-  postManagementFailure,
+  postDeletionFailure,
   clearPostManagement,
 } = postManagementSlice.actions;
 export default postManagementSlice.reducer;

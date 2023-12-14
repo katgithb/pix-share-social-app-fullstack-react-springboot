@@ -1,18 +1,11 @@
 import {
   Avatar,
   Box,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
   Flex,
-  Heading,
   IconButton,
   Image,
   Link,
-  Stack,
   Text,
-  useBreakpointValue,
   useDisclosure,
   VStack,
 } from "@chakra-ui/react";
@@ -22,49 +15,42 @@ import { Link as RouteLink } from "react-router-dom";
 import CreateStoryModal from "../CreateStoryModal/CreateStoryModal";
 
 const StoriesBarCard = ({ currUser, story }) => {
+  const { id, username } = story ? story : {};
+  const gender = id % 2 === 0 ? "men" : "women";
+  const image = `https://picsum.photos/id/${id}/315/560`;
+  const storyObj = story
+    ? {
+        id,
+        username,
+        image,
+        user: {
+          dp: `https://randomuser.me/api/portraits/${gender}/${id}.jpg`,
+        },
+      }
+    : undefined;
+
   return (
     <div>
-      <Box display={{ base: "initial", md: "none" }}>
-        <StoriesBarCardMobile currUser={currUser} story={story} />
+      <Box hideFrom="md">
+        <StoriesBarCardMobile currUser={currUser} story={storyObj} />
       </Box>
-
-      <Box display={{ base: "none", md: "initial" }}>
-        <StoriesBarCardNonMobile currUser={currUser} story={story} />
+      <Box hideBelow="md">
+        <StoriesBarCardNonMobile currUser={currUser} story={storyObj} />
       </Box>
     </div>
   );
 };
 
 const StoriesBarCardNonMobile = ({ currUser, story }) => {
-  const { id, username } = story ? story : {};
-  const gender = id % 2 === 0 ? "men" : "women";
-  const image = `https://picsum.photos/400/300?random=${Math.random()}`;
-  const user = {
-    dp: `https://randomuser.me/api/portraits/${gender}/${Math.round(id)}.jpg`,
-    fullname: generateRandomName(),
-  };
-
   const {
     isOpen: isOpenNewStoryModal,
     onOpen: onOpenNewStoryModal,
     onClose: onCloseNewStoryModal,
   } = useDisclosure();
 
-  function generateRandomName() {
-    const names = [
-      "John Doe",
-      "Jane Smith",
-      "Alex Johnson Hades Kate Wilber Robert",
-      "Sarah Thompson",
-    ];
-    const randomIndex = Math.floor(Math.random() * names.length);
-    return names[randomIndex];
-  }
-
   return (
     <Flex
       role={"group"}
-      // mt={12}
       w="10rem"
       h="16rem"
       position="relative"
@@ -74,13 +60,11 @@ const StoriesBarCardNonMobile = ({ currUser, story }) => {
       // borderWidth="1px"
       // overflow="hidden"
       // bgGradient="linear(to-pink-500)"
-      // boxShadow="md"
       // borderColor="gray.200"
       cursor={story ? "pointer" : "default"}
-      backgroundImage={story ? `url(${image})` : `url(${currUser?.dp})`}
+      backgroundImage={story ? `url(${story?.image})` : `url(${currUser?.dp})`}
       backgroundSize="cover"
       backgroundPosition="center"
-      // boxShadow={"lg"}
       boxShadow="0px 4px 6px rgba(0, 0, 0, 0.5)"
       // boxShadow="5px 5px 0000000"
       alignItems={"end"}
@@ -149,7 +133,7 @@ const StoriesBarCardNonMobile = ({ currUser, story }) => {
           fontFamily="sans-serif"
           noOfLines={2}
         >
-          {story ? username : "Add story"}
+          {story ? story?.username : "Add story"}
         </Text>
       </Flex>
       <Box
@@ -196,7 +180,6 @@ const StoriesBarCardNonMobile = ({ currUser, story }) => {
           {story ? (
             <Link
               as={RouteLink}
-              // className="user_avatar_link"
               to="/username"
               display="block"
               bg="gray.50"
@@ -205,11 +188,10 @@ const StoriesBarCardNonMobile = ({ currUser, story }) => {
               cursor="pointer"
             >
               <Avatar
-                src={user.dp}
+                src={story?.user?.dp}
                 size="sm"
                 w="14"
                 h="14"
-                // rounded="full"
                 // borderWidth="4px"
                 // borderColor="white"
                 alt="story"
@@ -234,7 +216,6 @@ const StoriesBarCardNonMobile = ({ currUser, story }) => {
                 isRound={true}
                 boxSize="14"
                 fontSize="xl"
-                // rounded="full"
                 color={"blue.400"}
                 bg={"gray.100"}
                 _hover={{
@@ -251,11 +232,6 @@ const StoriesBarCardNonMobile = ({ currUser, story }) => {
           )}
         </Box>
       </Box>
-      {/* <Box position="absolute" bottom="10%" left="0" right="0" textAlign="center">
-<Text color="white" fontWeight="semibold" noOfLines={3}>
-  {user.fullname}          
-</Text>
-</Box> */}
     </Flex>
   );
 };
@@ -291,13 +267,12 @@ const StoriesBarCardMobile = ({ currUser, story }) => {
           >
             {story ? (
               <Image
-                src={`https://picsum.photos/1280/720?random=${
-                  Math.random() * 100
-                }`}
+                src={story?.image}
                 // fallbackSrc="path/to/placeholder.jpg"
                 alt="Story"
                 boxSize="45px"
                 objectFit="cover"
+                loading="lazy"
                 rounded="lg"
                 boxShadow={"md"}
                 _hover={{

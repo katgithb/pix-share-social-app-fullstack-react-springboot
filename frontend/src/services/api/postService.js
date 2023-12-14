@@ -17,15 +17,25 @@ export const createPostRequest = async (data) => {
 };
 
 export const findPostsByUserIdRequest = async (data) => {
-  return await axiosInstance.get(`/all/${data.userId}`);
+  const headers = { Authorization: `Bearer ${data.token}` };
+
+  return await axiosInstance.get(`/all/${data.userId}`, { headers });
 };
 
 export const findPostByIdRequest = async (data) => {
-  return await axiosInstance.get(`/id/${data.postId}`);
+  const headers = { Authorization: `Bearer ${data.token}` };
+
+  return await axiosInstance.get(`/id/${data.postId}`, { headers });
 };
 
 export const findAllPostsByUserIdsRequest = async (data) => {
-  return await axiosInstance.get(`/following/${data.userIds}`);
+  const headers = { Authorization: `Bearer ${data.token}` };
+  const params = data.pageFetchParams;
+
+  return await axiosInstance.get(`/following/${data.userIds}`, {
+    headers,
+    params,
+  });
 };
 
 export const likePostRequest = async (data) => {

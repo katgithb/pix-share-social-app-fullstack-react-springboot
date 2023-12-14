@@ -72,7 +72,7 @@ const userProfileSlice = createSlice({
       state.isUserImageRemoved = true;
       state.isRemovingUserImage = false;
     },
-    deleteUserProfile: (state) => {
+    deleteUserProfile: () => {
       return {
         ...initialState,
         isUserDeleted: true,

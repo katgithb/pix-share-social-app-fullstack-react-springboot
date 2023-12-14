@@ -1,6 +1,5 @@
 import { CloseIcon } from "@chakra-ui/icons";
 import {
-  Avatar,
   Badge,
   Box,
   Card,
@@ -10,74 +9,58 @@ import {
   Divider,
   Flex,
   HStack,
-  IconButton,
   Icon,
-  Image,
+  IconButton,
   Input,
   Link,
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AiOutlineExpand, AiOutlineSend } from "react-icons/ai";
 import { BiSolidBookmark } from "react-icons/bi";
+import { BsCardText } from "react-icons/bs";
 import { FaHeart, FaRegComment, FaRegFaceSmile } from "react-icons/fa6";
 import { GoLocation } from "react-icons/go";
 import { PiPaperPlaneTiltBold } from "react-icons/pi";
 import { RxTimer } from "react-icons/rx";
 import { Link as RouteLink } from "react-router-dom";
-import PostCommentCard from "../../../../comment/PostCommentCard";
+import useTruncateText from "../../../../../hooks/useTruncateText";
+import { getRelativePostTime } from "../../../../../utils/postUtils";
+import { getHumanReadableNumberFormat } from "../../../../../utils/commonUtils";
+import PostCommentCard from "../../../../comment/PostCommentCard/PostCommentCard";
+import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
+import ImageWithLoader from "../../../../shared/ImageWithLoader";
 
-const PostExpandedView = ({
-  currUser,
-  user,
-  post,
-  setIsImageExpanded,
-  onClose,
-}) => {
+const PostExpandedView = ({ currUser, post, setIsImageExpanded, onClose }) => {
   const [showImageOverlay, setShowImageOverlay] = useState(true);
+  const [relativePostTime, setRelativePostTime] = useState(
+    getRelativePostTime(post?.createdAt)
+  );
+  const truncatedCaptionText = useTruncateText(post?.caption, 100);
 
-  const useTruncateAndAddReadMore = (text, maxChars = 100) => {
-    const [isTextOverflowing, setIsTextOverflowing] = useState(false);
-    if (text.length <= maxChars) {
-      return <Text>{text}</Text>;
-    } else {
-      const truncatedText = isTextOverflowing
-        ? text
-        : `${text.substring(0, maxChars)}...`;
-      const readMoreLink = (
-        <Text
-          as="span"
-          alignSelf="start"
-          color={"gray.500"}
-          _dark={{ color: "gray.400" }}
-          fontWeight="semibold"
-          cursor="pointer"
-          _hover={{
-            textDecorationLine: "underline",
-          }}
-          onClick={() => setIsTextOverflowing(!isTextOverflowing)}
-        >
-          {isTextOverflowing ? "less" : "more"}
-        </Text>
-      );
-      return (
-        <>
-          <Text noOfLines={!isTextOverflowing ? 2 : {}}>{truncatedText}</Text>
-
-          {readMoreLink}
-        </>
-      );
-    }
-  };
+  const likedByUsersLength = post?.likedByUsers?.length || 0;
+  const likesCount = getHumanReadableNumberFormat(likedByUsersLength);
+  const commentsLength = post?.comments?.length || 0;
+  const commentsCount = getHumanReadableNumberFormat(commentsLength);
 
   const togglePostImageOverlay = () => {
     setShowImageOverlay(!showImageOverlay);
   };
 
-  const captionText = useTruncateAndAddReadMore(post?.caption, 100);
-  // console.log(user, post);
-  console.log(post?.comments.length);
+  const handleExpandPostImage = () => {
+    setIsImageExpanded(true);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRelativePostTime(getRelativePostTime(post?.createdAt));
+    }, 60000); // Update every minute
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [post?.createdAt]);
 
   return (
     <Flex
@@ -89,31 +72,33 @@ const PostExpandedView = ({
     >
       <Flex
         flex={3}
+        border="1px"
+        borderColor="gray.300"
         position="relative"
         align="center"
         justify="end"
         overflow="hidden"
-        ml={{ base: "-2", md: "-4" }}
-        mr={{ base: "-2", md: "-2" }}
-        mt={{ base: "-1", md: "-2" }}
-        mb={{ base: "1", md: "-2" }}
-        p={2}
+        rounded="lg"
+        ml={{ base: "0", md: "-2" }}
+        mb={{ base: "1", md: "0" }}
+        p={{ base: "0", md: "2" }}
       >
         <Flex
-          position="relative"
+          flex={1}
+          rounded="lg"
+          minH="340px"
+          maxH={{ base: "720px", md: "full" }}
           justify="center"
-          h="full"
           onClick={togglePostImageOverlay}
         >
-          <Image
+          <ImageWithLoader
             src={post?.image}
-            minH={"380px"}
-            maxH="full"
-            loading="lazy"
+            alt="Post Image"
             objectFit="cover"
-            alt=""
+            maxW="full"
+            maxH="inherit"
             rounded="lg"
-            boxShadow="md"
+            boxShadow={post?.image ? "md" : {}}
           />
         </Flex>
 
@@ -122,10 +107,10 @@ const PostExpandedView = ({
           flexWrap={"wrap"}
           rounded="lg"
           justifySelf="start"
-          left={2}
+          left={0}
           h="full"
-          px={3}
-          py={5}
+          px={2}
+          py={3}
           overflow="hidden"
           transition="opacity 0.3s ease-in-out"
           opacity={showImageOverlay ? 1 : 0}
@@ -157,9 +142,10 @@ const PostExpandedView = ({
           position="absolute"
           flexWrap={"wrap"}
           rounded="lg"
+          right={0}
           h="full"
-          px={3}
-          py={5}
+          px={2}
+          py={3}
           overflow="hidden"
           transition="opacity 0.3s ease-in-out"
           opacity={showImageOverlay ? 1 : 0}
@@ -196,7 +182,7 @@ const PostExpandedView = ({
               _hover={{
                 bg: useColorModeValue("gray.200", "gray.600"),
               }}
-              onClick={() => setIsImageExpanded(true)}
+              onClick={handleExpandPostImage}
             />
           </Flex>
         </Flex>
@@ -226,33 +212,42 @@ const PostExpandedView = ({
           overflowY="auto"
         >
           <CardHeader px={2} py={2} boxShadow="md">
-            <Flex
-              mb={1}
-              align="center"
-              justify="space-between"
-              overflow="hidden"
-            >
+            {post?.caption?.length > 0 && (
               <Flex
-                maxH={{ base: "15vh", md: "20vh" }}
-                overflowY="auto"
-                align="start"
-                // overflow="hidden"
+                mb={1}
+                align="center"
+                justify="space-between"
+                overflow="hidden"
               >
-                <Box fontSize="sm" noOfLines={2}>
-                  <HStack gap={2} align="center" justify="space-between">
-                    <Avatar
-                      p="0.5"
-                      name={user?.fullname}
-                      src={user?.dp}
-                      boxSize={9}
-                      loading="lazy"
-                      alignSelf="start"
-                    />
-                    {captionText}
-                  </HStack>
-                </Box>
+                <Flex
+                  maxH={{ base: "15vh", md: "20vh" }}
+                  overflowY="auto"
+                  align="start"
+                  flex={1}
+                  p={1}
+                  border="1px"
+                  borderColor="gray.300"
+                  rounded="md"
+                >
+                  <Box fontSize="sm" noOfLines={2}>
+                    <HStack gap={2} align="center" justify="space-between">
+                      <IconButton
+                        icon={<BsCardText />}
+                        pointerEvents="none"
+                        rounded="full"
+                        colorScheme="blue"
+                        size="sm"
+                        fontSize="lg"
+                        variant="ghost"
+                        alignSelf="start"
+                        ml={-1}
+                      />
+                      {truncatedCaptionText}
+                    </HStack>
+                  </Box>
+                </Flex>
               </Flex>
-            </Flex>
+            )}
 
             <Flex
               flexDirection="column"
@@ -283,33 +278,36 @@ const PostExpandedView = ({
                   rounded="full"
                   boxShadow={"md"}
                 >
-                  16 hours ago
+                  {relativePostTime}
                 </Badge>
               </HStack>
 
-              <HStack gap={0} align="center" justify="space-between">
-                <IconButton
-                  icon={<GoLocation />}
-                  pointerEvents="none"
-                  rounded="full"
-                  colorScheme="blue"
-                  size="sm"
-                  fontSize="lg"
-                  variant="ghost"
-                />
-                <Text
-                  fontSize={"xs"}
-                  fontWeight="semibold"
-                  fontFamily="sans-serif"
-                  color={useColorModeValue("gray.500", "gray.400")}
-                  letterSpacing="wide"
-                  ml={1}
-                  px={0.5}
-                  wordBreak={"break-word"}
-                >
-                  London, City of London, United Kingdom
-                </Text>
-              </HStack>
+              {post?.location && (
+                <HStack gap={0} align="center" justify="space-between">
+                  <IconButton
+                    icon={<GoLocation />}
+                    pointerEvents="none"
+                    rounded="full"
+                    colorScheme="blue"
+                    size="sm"
+                    fontSize="lg"
+                    variant="ghost"
+                  />
+                  <Text
+                    fontSize={"xs"}
+                    fontWeight="semibold"
+                    fontFamily="sans-serif"
+                    color={"gray.500"}
+                    letterSpacing="wide"
+                    ml={1}
+                    px={0.5}
+                    wordBreak={"break-word"}
+                    _dark={{ color: "gray.400" }}
+                  >
+                    {post?.location}
+                  </Text>
+                </HStack>
+              )}
             </Flex>
 
             <Flex
@@ -339,39 +337,43 @@ const PostExpandedView = ({
                     rounded="full"
                     boxShadow={"md"}
                   >
-                    110.65k
+                    {likedByUsersLength > 0 ? likesCount : "Like"}
                   </Badge>
                 </Flex>
 
-                <Flex align="center">
-                  <IconButton
-                    icon={<FaRegComment />}
-                    rounded="full"
-                    colorScheme="gray"
-                    fontSize={"24"}
-                    variant="ghost"
-                    aria-label="Comment"
-                  />
-                  <Badge
-                    variant={"subtle"}
-                    px={2}
-                    colorScheme="blue"
-                    fontSize={"sm"}
-                    fontWeight="semibold"
-                    fontFamily="sans-serif"
-                    textTransform="capitalize"
-                    rounded="full"
-                    boxShadow={"md"}
-                  >
-                    433.84k
-                  </Badge>
-                </Flex>
+                {commentsLength > 0 && (
+                  <Flex align="center">
+                    <IconButton
+                      icon={<FaRegComment />}
+                      pointerEvents="none"
+                      rounded="full"
+                      colorScheme="gray"
+                      fontSize={"24"}
+                      variant="ghost"
+                      aria-label="Comment"
+                    />
+                    <Badge
+                      variant={"subtle"}
+                      px={2}
+                      colorScheme="blue"
+                      fontSize={"sm"}
+                      fontWeight="semibold"
+                      fontFamily="sans-serif"
+                      textTransform="capitalize"
+                      rounded="full"
+                      boxShadow={"md"}
+                    >
+                      {commentsCount}
+                    </Badge>
+                  </Flex>
+                )}
               </Flex>
 
               <Flex align="center" rounded="full">
                 <Box>
                   <IconButton
                     icon={<PiPaperPlaneTiltBold />}
+                    pointerEvents="none"
                     rounded="full"
                     colorScheme="gray"
                     fontSize={"24"}
@@ -391,20 +393,25 @@ const PostExpandedView = ({
             alignItems="center"
             overflowY="auto"
             px={2}
-            py={0}
+            py={1}
           >
             <Flex
               flex={1}
               flexDirection="column"
-              align={post?.comments.length > 0 ? {} : "center"}
+              align={commentsLength > 0 ? {} : "center"}
               fontSize="sm"
               overflow="hidden"
-              h={post?.comments.length > 0 ? {} : "full"}
+              h={commentsLength > 0 ? {} : "full"}
               noOfLines={2}
             >
-              {post?.comments.length ? (
+              {commentsLength > 0 ? (
                 post?.comments.map((comment, index) => (
-                  <PostCommentCard key={index} user={user} comment={comment} />
+                  <PostCommentCard
+                    key={index}
+                    currUser={currUser}
+                    comment={comment}
+                    showRelativeTime={true}
+                  />
                 ))
               ) : (
                 <Flex flex={1} align="center" justify="center" h="full">
@@ -426,11 +433,11 @@ const PostExpandedView = ({
             <Flex flexDirection="column" w="full" justify="center">
               <Flex align="center" w="full" overflow="hidden">
                 <Flex align="center">
-                  <Avatar
-                    name={currUser?.fullname}
-                    src={currUser?.dp}
+                  <AvatarWithLoader
+                    loaderSize={9}
+                    name={currUser?.name}
+                    src={currUser?.userImage ? currUser?.userImage : {}}
                     boxSize={9}
-                    loading="lazy"
                   />
                 </Flex>
                 <Flex
