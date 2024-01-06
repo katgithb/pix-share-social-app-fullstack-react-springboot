@@ -50,6 +50,12 @@ export const unlikePostRequest = async (data) => {
   return await axiosInstance.put(`/unlike/${data.postId}`, { headers });
 };
 
+export const isPostLikedByCurrentUserRequest = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+
+  return await axiosInstance.get(`/${data.postId}/isLiked`, { headers });
+};
+
 export const savePostRequest = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 
@@ -60,6 +66,12 @@ export const unsavePostRequest = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 
   return await axiosInstance.put(`/unsave_post/${data.postId}`, { headers });
+};
+
+export const isPostSavedByCurrentUserRequest = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+
+  return await axiosInstance.get(`/${data.postId}/isSaved`, { headers });
 };
 
 export const deletePostRequest = async (data) => {

@@ -20,5 +20,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p JOIN p.likedByUsers u WHERE u.id = :userId")
     List<Post> findLikedPostsByUserId(@Param("userId") Long userId);
 
+    @Query("SELECT COUNT(p) > 0 FROM Post p JOIN p.likedByUsers u WHERE p.id = :postId AND u.id = :userId")
+    Boolean isPostLikedByUser(@Param("postId") Long postId, @Param("userId") Long userId);
+
+    @Query("SELECT COUNT(p) > 0 FROM Post p JOIN p.savedByUsers u WHERE p.id = :postId AND u.id = :userId")
+    Boolean isPostSavedByUser(@Param("postId") Long postId, @Param("userId") Long userId);
+
     void deleteByUserId(Long userId);
 }

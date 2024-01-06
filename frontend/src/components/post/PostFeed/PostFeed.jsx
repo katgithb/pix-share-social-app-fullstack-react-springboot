@@ -1,6 +1,12 @@
 import { Flex } from "@chakra-ui/react";
 import { Map, OrderedMap, Set } from "immutable";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSelector } from "react-redux";
 import { Virtuoso } from "react-virtuoso";
 import {
@@ -12,8 +18,16 @@ import EndOfPostFeed from "./EndOfPostFeed";
 import PostFeedCard from "./PostFeedCard/PostFeedCard";
 import PostFeedCardSkeleton from "./PostFeedCard/PostFeedCardSkeleton";
 
-const PostFeed = ({ currUser, posts, handlePageChange }) => {
-  const [currentPage, setCurrentPage] = useState(POSTS_DEFAULT_PAGE);
+const PostFeed = ({
+  currUser,
+  posts,
+  handlePageChange,
+  checkPostLikedByCurrUser,
+  checkPostSavedByCurrUser,
+  removeCachedPostLikedPage,
+  removeCachedPostSavedPage,
+}) => {
+  const [latestLoadedPage, setLatestLoadedPage] = useState(POSTS_DEFAULT_PAGE);
   const [loadedPostsPage, setLoadedPostsPage] = useState(posts);
   const [pageIndexMap, setPageIndexMap] = useState(Map());
   const [postIdToPageMap, setPostIdToPageMap] = useState(Map());
@@ -31,12 +45,12 @@ const PostFeed = ({ currUser, posts, handlePageChange }) => {
   const loadMorePosts = () => {
     if (loadedPostsPage.last) return;
 
-    handlePageChange(currentPage + 1);
+    handlePageChange(latestLoadedPage + 1);
 
-    // Increment the currentPage state variable
-    currentPage < loadedPostsPage.totalPages
-      ? setCurrentPage((prevPage) => prevPage + 1)
-      : setCurrentPage(loadedPostsPage.page + 1);
+    // Increment the latestLoadedPage state variable
+    latestLoadedPage < loadedPostsPage.totalPages
+      ? setLatestLoadedPage((prevPage) => prevPage + 1)
+      : setLatestLoadedPage(loadedPostsPage.page + 1);
   };
 
   const handleRefreshFeed = () => {
@@ -50,81 +64,74 @@ const PostFeed = ({ currUser, posts, handlePageChange }) => {
     window.location.reload();
   };
 
-  useEffect(() => {
-    if (posts) {
-      setLoadedPostsPage(posts);
+  const populateInitialPostsPage = useCallback((initialPostsPage) => {
+    if (initialPostsPage?.content) {
+      const initialPosts = initialPostsPage?.content;
+      const postIds = initialPosts.map((post) => post.id);
+      console.log("Initial Posts:", initialPosts);
 
-      if (posts?.content && posts?.page < posts?.totalPages) {
-        const newPosts = posts?.content;
-        console.log("New Posts:", newPosts);
+      const newPageIndexMap = Map().set(initialPostsPage?.page, postIds);
+      setPageIndexMap(newPageIndexMap);
 
-        const postIds = newPosts.map((post) => post.id);
-        const newPageIndexMap = Map().set(posts.page, postIds);
+      const newPostIdToPageMap = Map(
+        initialPosts.map((post) => [post.id, initialPostsPage?.page])
+      );
+      setPostIdToPageMap(newPostIdToPageMap);
 
-        setPageIndexMap((prevMap) => {
-          return posts?.page === POSTS_DEFAULT_PAGE - 1
-            ? newPageIndexMap
-            : prevMap.merge(newPageIndexMap);
-        });
-
-        const newPostIdToPageMap = Map(
-          newPosts.map((post) => [post.id, posts.page])
-        );
-        setPostIdToPageMap((prevMap) =>
-          posts?.page === POSTS_DEFAULT_PAGE - 1
-            ? newPostIdToPageMap
-            : prevMap.merge(newPostIdToPageMap)
-        );
-
-        const newLoadedPostsMap = OrderedMap(
-          newPosts.map((post) => [post.id, post])
-        );
-
-        setLoadedPostsMap((prevPosts) =>
-          posts?.page === POSTS_DEFAULT_PAGE - 1
-            ? newLoadedPostsMap
-            : prevPosts.merge(newLoadedPostsMap)
-        );
-      }
+      const newLoadedPostsMap = OrderedMap(
+        initialPosts.map((post) => [post.id, post])
+      );
+      setLoadedPostsMap(newLoadedPostsMap);
     }
-  }, [posts]);
+  }, []);
 
-  useEffect(() => {
-    if (isPostCreated) {
-      // Refetch first page
-      handlePageChange(POSTS_DEFAULT_PAGE);
+  const addNewPostsPageData = useCallback((newPostsPage) => {
+    if (
+      newPostsPage?.content &&
+      newPostsPage?.page < newPostsPage?.totalPages
+    ) {
+      const newPosts = newPostsPage?.content;
+      const postIds = newPosts.map((post) => post.id);
+      console.log("New Posts:", newPosts);
 
-      setCurrentPage(POSTS_DEFAULT_PAGE);
+      const newPageIndexMap = Map().set(newPostsPage?.page, postIds);
+      setPageIndexMap((prevMap) => prevMap.merge(newPageIndexMap));
+
+      const newPostIdToPageMap = Map(
+        newPosts.map((post) => [post.id, newPostsPage?.page])
+      );
+      setPostIdToPageMap((prevMap) => prevMap.merge(newPostIdToPageMap));
+
+      const newLoadedPostsMap = OrderedMap(
+        newPosts.map((post) => [post.id, post])
+      );
+      setLoadedPostsMap((prevPosts) => prevPosts.merge(newLoadedPostsMap));
     }
-  }, [handlePageChange, isPostCreated]);
+  }, []);
 
-  useEffect(() => {
-    if (isPostDeleted && deletedPostId) {
-      const deletedPostPageNum = postIdToPageMap.get(deletedPostId);
-
+  const clearDeletedPostData = useCallback(
+    (deletedPostId, deletedPostPageNum) => {
       setPageIndexMap((prevMap) =>
-        prevMap.filter((postIds, pageNum) => pageNum !== deletedPostPageNum)
+        prevMap.filter((_, pageNum) => pageNum !== deletedPostPageNum)
       );
 
       setPostIdToPageMap((prevMap) =>
-        prevMap.filter((pageNum, postId) => postId !== deletedPostId)
+        prevMap.filter((_, postId) => postId !== deletedPostId)
       );
 
       setLoadedPostsMap((prevPostsMap) =>
-        prevPostsMap.filter((post, postId) => postId !== deletedPostId)
+        prevPostsMap.filter((_, postId) => postId !== deletedPostId)
       );
+    },
+    []
+  );
 
-      const pagesToRemove =
-        deletedPostPageNum === POSTS_DEFAULT_PAGE - 1
-          ? Map()
-          : pageIndexMap.filter(
-              (postIds, pageNum) => pageNum > deletedPostPageNum
-            );
-
+  const clearPagesOnPostDelete = useCallback(
+    (pagesToRemove = []) => {
       let postIdsToRemove = Set();
       const postIdsToRemoveBatches = [];
 
-      pagesToRemove.forEach((postIds, pageNum) => {
+      pagesToRemove.forEach((_, pageNum) => {
         const pagePostIds = pageIndexMap.get(pageNum);
         const postIdsToRemoveBatch = Set(pagePostIds);
 
@@ -136,52 +143,116 @@ const PostFeed = ({ currUser, posts, handlePageChange }) => {
       console.log("pagesToRemove: ", pagesToRemove);
 
       setPageIndexMap((prevMap) =>
-        prevMap.filter((postIds, pageNum) => !pagesToRemove.has(pageNum))
+        prevMap.filter((_, pageNum) => !pagesToRemove.has(pageNum))
       );
 
       setPostIdToPageMap((prevMap) =>
-        prevMap.filter((pageNum, postId) => !postIdsToRemove.has(postId))
+        prevMap.filter((_, postId) => !postIdsToRemove.has(postId))
       );
 
       setLoadedPostsMap((prevPostsMap) =>
         postIdsToRemoveBatches.reduce(
-          (map, batch) => map.filter((post, postId) => !batch.has(postId)),
+          (map, batch) => map.filter((_, postId) => !batch.has(postId)),
           prevPostsMap
         )
       );
+    },
+    [pageIndexMap]
+  );
+
+  const refetchPostPage = useCallback(
+    (pageNumber) => {
+      handlePageChange(pageNumber);
+
+      setLatestLoadedPage(pageNumber);
+    },
+    [handlePageChange]
+  );
+
+  const clearCachedPage = useCallback(
+    (pageNumber) => {
+      removeCachedPostLikedPage(pageNumber);
+      removeCachedPostSavedPage(pageNumber);
+    },
+    [removeCachedPostLikedPage, removeCachedPostSavedPage]
+  );
+
+  useEffect(() => {
+    if (posts) {
+      const loadedPostsPage = posts;
+      setLoadedPostsPage(posts);
+
+      if (loadedPostsPage?.page === POSTS_DEFAULT_PAGE - 1) {
+        populateInitialPostsPage(loadedPostsPage);
+      } else {
+        addNewPostsPageData(loadedPostsPage);
+      }
+    }
+  }, [addNewPostsPageData, populateInitialPostsPage, posts]);
+
+  useEffect(() => {
+    if (isPostCreated) {
+      // Refetch first page
+      refetchPostPage(POSTS_DEFAULT_PAGE);
+
+      clearCachedPage(POSTS_DEFAULT_PAGE - 1);
+    }
+  }, [clearCachedPage, isPostCreated, refetchPostPage]);
+
+  useEffect(() => {
+    if (isPostDeleted && deletedPostId) {
+      const deletedPostPageNum = postIdToPageMap.get(deletedPostId);
+
+      clearDeletedPostData(deletedPostId, deletedPostPageNum);
+
+      const pagesToRemove =
+        deletedPostPageNum === POSTS_DEFAULT_PAGE - 1
+          ? Map()
+          : pageIndexMap.filter((_, pageNum) => pageNum > deletedPostPageNum);
+
+      clearPagesOnPostDelete(pagesToRemove);
 
       // Only refetch deleted page
-      handlePageChange(deletedPostPageNum + 1);
+      refetchPostPage(deletedPostPageNum + 1);
 
-      setCurrentPage(deletedPostPageNum + 1);
+      clearCachedPage(deletedPostPageNum);
     }
   }, [
-    isPostDeleted,
+    clearCachedPage,
+    clearDeletedPostData,
+    clearPagesOnPostDelete,
     deletedPostId,
-    postIdToPageMap,
-    handlePageChange,
+    isPostDeleted,
     pageIndexMap,
+    postIdToPageMap,
+    refetchPostPage,
   ]);
 
   console.log(
-    "currentPage and totalPages and lastPage and loadedPostsPage and loadedPosts: ",
-    currentPage,
+    "latestLoadedPage and totalPages and lastPage and loadedPostsPage and loadedPosts: ",
+    latestLoadedPage,
     loadedPostsPage.totalPages,
     loadedPostsPage.last,
     loadedPostsPage,
+    loadedPostsMap,
     pageIndexMap,
-    postIdToPageMap,
-    loadedPostsMap
+    postIdToPageMap
   );
 
-  const PostFeedCardItem = ({ post }) => {
+  const PostFeedCardItem = ({ post, postIdPage }) => {
     const MemoizedPostFeedCard = useMemo(
       () => (
         <Flex key={post?.id} justifyContent="center">
-          <PostFeedCard currUser={currUser} post={post} />
+          <PostFeedCard
+            currUser={currUser}
+            post={post}
+            postIdPage={postIdPage}
+            checkPostLikedByCurrUser={checkPostLikedByCurrUser}
+            checkPostSavedByCurrUser={checkPostSavedByCurrUser}
+          />
         </Flex>
       ),
-      [post]
+      [post, postIdPage]
     );
 
     return MemoizedPostFeedCard;
@@ -189,8 +260,9 @@ const PostFeed = ({ currUser, posts, handlePageChange }) => {
 
   const rowContent = (index) => {
     const post = loadedPostsMap.valueSeq().get(index);
+    const postIdPage = postIdToPageMap.get(post?.id);
 
-    return <PostFeedCardItem post={post} />;
+    return <PostFeedCardItem post={post} postIdPage={postIdPage} />;
   };
 
   const ScrollSeekPlaceholder = ({ height, width, index }) => (

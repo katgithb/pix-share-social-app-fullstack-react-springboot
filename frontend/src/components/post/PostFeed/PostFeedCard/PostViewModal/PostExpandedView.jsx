@@ -18,16 +18,21 @@ import {
 } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
 import { AiOutlineExpand, AiOutlineSend } from "react-icons/ai";
-import { BiSolidBookmark } from "react-icons/bi";
 import { BsCardText } from "react-icons/bs";
-import { FaHeart, FaRegComment, FaRegFaceSmile } from "react-icons/fa6";
+import {
+  FaHeart,
+  FaRegComment,
+  FaRegFaceSmile,
+  FaRegHeart,
+} from "react-icons/fa6";
 import { GoLocation } from "react-icons/go";
 import { PiPaperPlaneTiltBold } from "react-icons/pi";
+import { RiBookmarkFill, RiBookmarkLine } from "react-icons/ri";
 import { RxTimer } from "react-icons/rx";
 import { Link as RouteLink } from "react-router-dom";
 import useTruncateText from "../../../../../hooks/useTruncateText";
-import { getRelativePostTime } from "../../../../../utils/postUtils";
 import { getHumanReadableNumberFormat } from "../../../../../utils/commonUtils";
+import { getRelativePostTime } from "../../../../../utils/postUtils";
 import PostCommentCard from "../../../../comment/PostCommentCard/PostCommentCard";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
 import ImageWithLoader from "../../../../shared/ImageWithLoader";
@@ -157,7 +162,9 @@ const PostExpandedView = ({ currUser, post, setIsImageExpanded, onClose }) => {
             justify="space-between"
           >
             <IconButton
-              icon={<BiSolidBookmark />}
+              icon={
+                post?.isSavedByUser ? <RiBookmarkFill /> : <RiBookmarkLine />
+              }
               bg={useColorModeValue("gray.100", "gray.500")}
               rounded="full"
               colorScheme="cyan"
@@ -319,9 +326,9 @@ const PostExpandedView = ({ currUser, post, setIsImageExpanded, onClose }) => {
               <Flex align="center" flexWrap="wrap">
                 <Flex align="center" mr={{ base: "2", md: "2" }}>
                   <IconButton
-                    icon={<FaHeart />}
+                    icon={post?.isLikedByUser ? <FaHeart /> : <FaRegHeart />}
                     rounded="full"
-                    colorScheme="red"
+                    colorScheme={post?.isLikedByUser ? "red" : "gray"}
                     fontSize={"24"}
                     variant="ghost"
                     aria-label="Like"

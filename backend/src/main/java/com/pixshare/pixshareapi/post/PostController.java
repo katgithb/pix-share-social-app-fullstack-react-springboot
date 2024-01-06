@@ -98,6 +98,17 @@ public class PostController {
         return new ResponseEntity<>(post, HttpStatus.OK);
     }
 
+    @GetMapping("/{postId}/isLiked")
+    public ResponseEntity<Boolean> isPostLikedByCurrentUser(
+            @PathVariable Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        boolean isLiked = postService.isPostLikedByUser(postId, identity.getId());
+
+        return new ResponseEntity<>(isLiked, HttpStatus.OK);
+    }
+
     @PutMapping("/save_post/{postId}")
     public void savePost(
             @PathVariable("postId") Long postId,
@@ -114,6 +125,17 @@ public class PostController {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
         postService.unsavePost(postId, identity.getId());
+    }
+
+    @GetMapping("/{postId}/isSaved")
+    public ResponseEntity<Boolean> isPostSavedByCurrentUser(
+            @PathVariable Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        boolean isSaved = postService.isPostSavedByUser(postId, identity.getId());
+
+        return new ResponseEntity<>(isSaved, HttpStatus.OK);
     }
 
 }

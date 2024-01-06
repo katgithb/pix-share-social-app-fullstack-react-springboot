@@ -1,3 +1,5 @@
+import { Map } from "immutable";
+import { POSTS_DEFAULT_PAGE } from "./constants/pagination/postPagination";
 import { getElapsedTimeInSeconds, getRelativeTime } from "./timeUtils";
 
 export const getRelativePostTime = (postTimestamp) => {
@@ -17,4 +19,41 @@ export const getRelativePostTime = (postTimestamp) => {
 
 export const isCurrUserPost = (post, currUser) => {
   return post?.user?.id === currUser?.id;
+};
+
+export const trimPostAttributeCache = (
+  cacheMap,
+  page,
+  minPage,
+  maxPage,
+  maxCacheSize
+) => {
+  if (cacheMap.size > maxCacheSize) {
+    const pagesToRemove =
+      page >= maxPage
+        ? new Set([minPage, minPage + 1])
+        : new Set([maxPage - 1, maxPage]);
+
+    return cacheMap.filter((_, pageNum) => !pagesToRemove.has(pageNum));
+  }
+
+  return cacheMap;
+};
+
+export const updatePostAttributeCache = (cacheMap, page, key, value) => {
+  const pageMap = cacheMap.get(page) || Map();
+
+  const updatedPageMap = pageMap.set(key, value);
+
+  return cacheMap.set(page, updatedPageMap);
+};
+
+export const removePageFromPostAttributeCache = (cacheMap, page) => {
+  if (page === POSTS_DEFAULT_PAGE - 1) {
+    return Map();
+  }
+
+  const pagesToRemove = cacheMap.filter((_, pageNum) => pageNum >= page);
+
+  return cacheMap.filter((_, pageNum) => !pagesToRemove.has(pageNum));
 };

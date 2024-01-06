@@ -31,4 +31,7 @@ public interface PostService {
 
     PostDTO unlikePost(Long postId, Long userId) throws ResourceNotFoundException;
 
+    Boolean isPostLikedByUser(Long postId, Long userId) throws ResourceNotFoundException;
+
+    Boolean isPostSavedByUser(Long postId, Long userId) throws ResourceNotFoundException;
 }

@@ -16,16 +16,22 @@ import {
   useColorModeValue,
   useDisclosure,
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineSend } from "react-icons/ai";
-import { BiExpandAlt, BiSolidBookmark } from "react-icons/bi";
+import { BiExpandAlt } from "react-icons/bi";
 import { BsThreeDotsVertical } from "react-icons/bs";
-import { FaHeart, FaRegComment, FaRegFaceSmile } from "react-icons/fa6";
+import {
+  FaHeart,
+  FaRegComment,
+  FaRegFaceSmile,
+  FaRegHeart,
+} from "react-icons/fa6";
 import { PiPaperPlaneTiltBold } from "react-icons/pi";
+import { RiBookmarkFill, RiBookmarkLine } from "react-icons/ri";
 import { Link as RouteLink } from "react-router-dom";
 import useTruncateText from "../../../../hooks/useTruncateText";
-import { getRelativePostTime } from "../../../../utils/postUtils";
 import { getHumanReadableNumberFormat } from "../../../../utils/commonUtils";
+import { getRelativePostTime } from "../../../../utils/postUtils";
 import PostCommentCard from "../../../comment/PostCommentCard/PostCommentCard";
 import AvatarGroupWithLoader from "../../../shared/AvatarGroupWithLoader";
 import AvatarWithLoader from "../../../shared/AvatarWithLoader";
@@ -33,9 +39,16 @@ import ImageWithLoader from "../../../shared/ImageWithLoader";
 import PostActionsMenu from "./PostActionsMenu";
 import PostViewModal from "./PostViewModal/PostViewModal";
 
-const PostFeedCard = ({ currUser, post }) => {
+const PostFeedCard = ({
+  currUser,
+  post,
+  postIdPage,
+  checkPostLikedByCurrUser,
+  checkPostSavedByCurrUser,
+}) => {
   const MAX_COMMENTS = 2;
   const MAX_LIKED_USER_AVATARS = 3;
+  const REQUEST_DELAY_IN_MS = 400;
   const {
     isOpen: isOpenPostViewModal,
     onOpen: onOpenPostViewModal,
@@ -46,10 +59,18 @@ const PostFeedCard = ({ currUser, post }) => {
     onOpen: onOpenPostActionsMenu,
     onClose: onClosePostActionsMenu,
   } = useDisclosure();
+
   const [relativePostTime, setRelativePostTime] = useState(
     getRelativePostTime(post?.createdAt)
   );
   const truncatedCaptionText = useTruncateText(post?.caption, 140);
+
+  const [isLikedByUser, setIsLikedByUser] = useState(false);
+  const [isLikedLoading, setIsLikedLoading] = useState(true);
+  const [isSavedByUser, setIsSavedByUser] = useState(false);
+  const [isSavedLoading, setIsSavedLoading] = useState(false);
+  const isLikedBtnLoaded = useRef(false);
+  const isSavedBtnLoaded = useRef(false);
 
   const likedByUsersLength = post?.likedByUsers?.length || 0;
   const additionalLikesCount =
@@ -82,6 +103,52 @@ const PostFeedCard = ({ currUser, post }) => {
       image: user?.userImage,
     }));
 
+  const checkPostLiked = useCallback(async () => {
+    try {
+      const isLiked = await checkPostLikedByCurrUser(post?.id, postIdPage);
+
+      setIsLikedByUser(isLiked);
+      setIsLikedLoading(false);
+    } catch (error) {
+      console.log(error);
+      setIsLikedLoading(false);
+    }
+  }, [checkPostLikedByCurrUser, post?.id, postIdPage]);
+
+  const checkPostSaved = useCallback(async () => {
+    try {
+      const isSaved = await checkPostSavedByCurrUser(post?.id, postIdPage);
+
+      setIsSavedByUser(isSaved);
+      setIsSavedLoading(false);
+    } catch (error) {
+      console.log(error);
+      setIsSavedLoading(false);
+    }
+  }, [checkPostSavedByCurrUser, post?.id, postIdPage]);
+
+  useEffect(() => {
+    let timer;
+    if (isSavedBtnLoaded.current) {
+      timer = setTimeout(checkPostSaved, REQUEST_DELAY_IN_MS);
+    } else {
+      isSavedBtnLoaded.current = true;
+    }
+
+    return () => clearTimeout(timer);
+  }, [checkPostSaved]);
+
+  useEffect(() => {
+    let timer;
+    if (isLikedBtnLoaded.current) {
+      timer = setTimeout(checkPostLiked, REQUEST_DELAY_IN_MS);
+    } else {
+      isLikedBtnLoaded.current = true;
+    }
+
+    return () => clearTimeout(timer);
+  }, [checkPostLiked]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setRelativePostTime(getRelativePostTime(post?.createdAt));
@@ -96,6 +163,7 @@ const PostFeedCard = ({ currUser, post }) => {
     <Card
       mb={5}
       variant={useColorModeValue("outline", "elevated")}
+      w="full"
       maxW="xl"
       rounded="lg"
       boxShadow={"md"}
@@ -103,7 +171,11 @@ const PostFeedCard = ({ currUser, post }) => {
     >
       <PostViewModal
         currUser={currUser}
-        post={post}
+        post={{
+          ...post,
+          isLikedByUser: isLikedByUser,
+          isSavedByUser: isSavedByUser,
+        }}
         isOpen={isOpenPostViewModal}
         onClose={onClosePostViewModal}
       />
@@ -141,12 +213,14 @@ const PostFeedCard = ({ currUser, post }) => {
             </Flex>
           </Flex>
 
-          <PostActionsMenu
-            currUser={currUser}
-            post={post}
-            onClose={onClosePostActionsMenu}
-            menuIcon={<BsThreeDotsVertical />}
-          />
+          <Flex py={1}>
+            <PostActionsMenu
+              currUser={currUser}
+              post={post}
+              onClose={onClosePostActionsMenu}
+              menuIcon={<BsThreeDotsVertical />}
+            />
+          </Flex>
         </Flex>
       </CardHeader>
       <CardBody pt={0} px={3}>
@@ -163,7 +237,7 @@ const PostFeedCard = ({ currUser, post }) => {
           <Flex
             flex={1}
             rounded="lg"
-            minH="240px"
+            minH="280px"
             maxH="340px"
             justify="center"
           >
@@ -191,7 +265,8 @@ const PostFeedCard = ({ currUser, post }) => {
               justify="space-between"
             >
               <IconButton
-                icon={<BiSolidBookmark />}
+                icon={isSavedByUser ? <RiBookmarkFill /> : <RiBookmarkLine />}
+                isLoading={isSavedLoading}
                 bg={useColorModeValue("gray.100", "gray.500")}
                 rounded="full"
                 colorScheme="cyan"
@@ -206,6 +281,7 @@ const PostFeedCard = ({ currUser, post }) => {
 
               <IconButton
                 icon={<BiExpandAlt />}
+                isDisabled={isLikedLoading || isSavedLoading}
                 bg={useColorModeValue("gray.100", "gray.500")}
                 rounded="full"
                 colorScheme="twitter"
@@ -226,9 +302,10 @@ const PostFeedCard = ({ currUser, post }) => {
           <Flex align="center" flexWrap="wrap">
             <Flex align="center" mr={{ base: "0", md: "2" }}>
               <IconButton
-                icon={<FaHeart />}
+                icon={isLikedByUser ? <FaHeart /> : <FaRegHeart />}
+                isLoading={isLikedLoading}
                 rounded="full"
-                colorScheme="red"
+                colorScheme={isLikedByUser ? "red" : "gray"}
                 fontSize={"24"}
                 variant="ghost"
                 aria-label="Like"
@@ -509,12 +586,20 @@ const PostFeedCard = ({ currUser, post }) => {
               letterSpacing="wide"
               rounded="full"
               boxShadow={"md"}
-              cursor="pointer"
+              cursor={
+                isLikedLoading || isSavedLoading ? "not-allowed" : "pointer"
+              }
+              opacity={isLikedLoading || isSavedLoading ? 0.6 : 1}
               _hover={{
                 transition: "transform .3s ease",
-                transform: "scaleX(1.025) translateX(1.5%)",
+                transform:
+                  isLikedLoading || isSavedLoading
+                    ? "scaleX(1)"
+                    : "scaleX(1.025) translateX(1.5%)",
               }}
-              onClick={onOpenPostViewModal}
+              onClick={
+                isLikedLoading || isSavedLoading ? {} : onOpenPostViewModal
+              }
             >
               View all {commentsLength} comments
             </Badge>

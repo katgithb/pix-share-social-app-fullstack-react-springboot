@@ -212,6 +212,26 @@ public class PostServiceImpl implements PostService {
         return postDTOMapper.apply(postRepository.save(post));
     }
 
+    @Override
+    public Boolean isPostLikedByUser(Long postId, Long userId) throws ResourceNotFoundException {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
+
+        return postRepository.isPostLikedByUser(post.getId(), user.getId());
+    }
+
+    @Override
+    public Boolean isPostSavedByUser(Long postId, Long userId) throws ResourceNotFoundException {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
+
+        return postRepository.isPostSavedByUser(post.getId(), user.getId());
+    }
+
     private void removePostImageResource(String postImageUploadId) {
         if (postImageUploadId != null && !postImageUploadId.isBlank()) {
             // Delete post image resource from cloudinary
