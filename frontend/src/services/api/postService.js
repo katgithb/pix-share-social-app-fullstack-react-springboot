@@ -41,13 +41,13 @@ export const findAllPostsByUserIdsRequest = async (data) => {
 export const likePostRequest = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 
-  return await axiosInstance.put(`/like/${data.postId}`, { headers });
+  return await axiosInstance.put(`/like/${data.postId}`, {}, { headers });
 };
 
 export const unlikePostRequest = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 
-  return await axiosInstance.put(`/unlike/${data.postId}`, { headers });
+  return await axiosInstance.put(`/unlike/${data.postId}`, {}, { headers });
 };
 
 export const isPostLikedByCurrentUserRequest = async (data) => {
@@ -59,13 +59,17 @@ export const isPostLikedByCurrentUserRequest = async (data) => {
 export const savePostRequest = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 
-  return await axiosInstance.put(`/save_post/${data.postId}`, { headers });
+  return await axiosInstance.put(`/save_post/${data.postId}`, {}, { headers });
 };
 
 export const unsavePostRequest = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 
-  return await axiosInstance.put(`/unsave_post/${data.postId}`, { headers });
+  return await axiosInstance.put(
+    `/unsave_post/${data.postId}`,
+    {},
+    { headers }
+  );
 };
 
 export const isPostSavedByCurrentUserRequest = async (data) => {

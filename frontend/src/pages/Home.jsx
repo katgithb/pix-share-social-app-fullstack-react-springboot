@@ -9,12 +9,12 @@ import Footer from "../components/shared/Footer";
 import StoriesBar from "../components/story/StoriesBar/StoriesBar";
 import SuggestionsList from "../components/suggestions/SuggestionsList/SuggestionsList";
 import { findAllPostsByUserIdsAction } from "../redux/actions/post/postLookupActions";
+import {
+  isPostLikedByUserAction,
+  isPostSavedByUserAction,
+} from "../redux/actions/post/postSocialActions";
 import { fetchPopularUsersAction } from "../redux/actions/user/userLookupActions";
 import { clearPostManagement } from "../redux/reducers/post/postManagementSlice";
-import {
-  isPostLikedByCurrentUserRequest,
-  isPostSavedByCurrentUserRequest,
-} from "../services/api/postService";
 import {
   POSTS_DEFAULT_PAGE,
   POSTS_PER_PAGE,
@@ -49,120 +49,122 @@ const Home = () => {
     username: "alex_johnson",
   };
 
+  const isPostLikedCached = (postId, postIdPage) => {
+    const postLikedMap = postLikedCacheMap.get(postIdPage) || Map();
+
+    return postLikedMap.has(postId);
+  };
+
   const fetchPostLiked = useCallback(
-    async (postId, postIdPage) => {
+    (postId) => {
       if (token && postId) {
         const data = {
           token,
           postId,
         };
 
-        const maxCacheSize = POST_LIKED_CACHE_MAX_PAGES;
-        const minPage = postLikedCacheMap.keySeq().min() || 0;
-        const maxPage = postLikedCacheMap.keySeq().max() || 0;
-
-        return new Promise((resolve, reject) => {
-          isPostLikedByCurrentUserRequest(data)
-            .then((response) => {
-              const isLiked = response.data;
-
-              const trimmedCache = trimPostAttributeCache(
-                postLikedCacheMap,
-                postIdPage,
-                minPage,
-                maxPage,
-                maxCacheSize
-              );
-              const updatedCache = updatePostAttributeCache(
-                trimmedCache,
-                postIdPage,
-                postId,
-                isLiked
-              );
-
-              setPostLikedCacheMap(updatedCache);
-              resolve(isLiked);
-            })
-            .catch((error) => {
-              console.log(error);
-              reject(error);
-            });
-        });
+        dispatch(isPostLikedByUserAction(data));
       }
     },
-    [postLikedCacheMap, token]
+    [dispatch, token]
   );
 
+  const addPostLikedToCacheMap = useCallback(
+    (postId, postIdPage, isLiked) => {
+      const maxCacheSize = POST_LIKED_CACHE_MAX_PAGES;
+      const minPage = postLikedCacheMap.keySeq().min() || 0;
+      const maxPage = postLikedCacheMap.keySeq().max() || 0;
+
+      const trimmedCache = trimPostAttributeCache(
+        postLikedCacheMap,
+        postIdPage,
+        minPage,
+        maxPage,
+        maxCacheSize
+      );
+      const updatedCache = updatePostAttributeCache(
+        trimmedCache,
+        postIdPage,
+        postId,
+        isLiked
+      );
+
+      setPostLikedCacheMap(updatedCache);
+    },
+    [postLikedCacheMap]
+  );
+
+  const isPostSavedCached = (postId, postIdPage) => {
+    const postSavedMap = postSavedCacheMap.get(postIdPage) || Map();
+
+    return postSavedMap.has(postId);
+  };
+
   const fetchPostSaved = useCallback(
-    async (postId, postIdPage) => {
+    (postId) => {
       if (token && postId) {
         const data = {
           token,
           postId,
         };
 
-        const maxCacheSize = POST_SAVED_CACHE_MAX_PAGES;
-        const minPage = postSavedCacheMap.keySeq().min() || 0;
-        const maxPage = postSavedCacheMap.keySeq().max() || 0;
-
-        return new Promise((resolve, reject) => {
-          isPostSavedByCurrentUserRequest(data)
-            .then((response) => {
-              const isSaved = response.data;
-
-              const trimmedCache = trimPostAttributeCache(
-                postSavedCacheMap,
-                postIdPage,
-                minPage,
-                maxPage,
-                maxCacheSize
-              );
-              const updatedCache = updatePostAttributeCache(
-                trimmedCache,
-                postIdPage,
-                postId,
-                isSaved
-              );
-
-              setPostSavedCacheMap(updatedCache);
-              resolve(isSaved);
-            })
-            .catch((error) => {
-              console.log(error);
-              reject(error);
-            });
-        });
+        dispatch(isPostSavedByUserAction(data));
       }
     },
-    [postSavedCacheMap, token]
+    [dispatch, token]
+  );
+
+  const addPostSavedToCacheMap = useCallback(
+    (postId, postIdPage, isSaved) => {
+      const maxCacheSize = POST_SAVED_CACHE_MAX_PAGES;
+      const minPage = postSavedCacheMap.keySeq().min() || 0;
+      const maxPage = postSavedCacheMap.keySeq().max() || 0;
+
+      const trimmedCache = trimPostAttributeCache(
+        postSavedCacheMap,
+        postIdPage,
+        minPage,
+        maxPage,
+        maxCacheSize
+      );
+      const updatedCache = updatePostAttributeCache(
+        trimmedCache,
+        postIdPage,
+        postId,
+        isSaved
+      );
+
+      setPostSavedCacheMap(updatedCache);
+    },
+    [postSavedCacheMap]
   );
 
   const checkPostLikedByCurrUser = useCallback(
-    async (postId, postIdPage) => {
+    (postId, postIdPage, skipCache = false) => {
       const postLikedMap = postLikedCacheMap.get(postIdPage) || Map();
       // console.log("postLikedCacheMap", postLikedCacheMap.toJS());
 
-      if (postLikedMap.has(postId)) {
+      if (postLikedMap.has(postId) && !skipCache) {
         return postLikedMap.get(postId);
       }
 
-      const postLikedPromise = fetchPostLiked(postId, postIdPage);
-      return postLikedPromise;
+      fetchPostLiked(postId);
+      return null;
     },
     [fetchPostLiked, postLikedCacheMap]
   );
 
   const checkPostSavedByCurrUser = useCallback(
-    async (postId, postIdPage) => {
+    (postId, postIdPage, skipCache = false) => {
       const postSavedMap = postSavedCacheMap.get(postIdPage) || Map();
       // console.log("postSavedCacheMap", postSavedCacheMap.toJS());
 
-      if (postSavedMap.has(postId)) {
+      if (postSavedMap.has(postId) && !skipCache) {
         return postSavedMap.get(postId);
       }
 
-      const postSavedPromise = fetchPostSaved(postId, postIdPage);
-      return postSavedPromise;
+      fetchPostSaved(postId);
+      return null;
     },
     [fetchPostSaved, postSavedCacheMap]
   );
@@ -253,8 +255,12 @@ const Home = () => {
           currUser={currUser}
           posts={postsPage}
           handlePageChange={handlePageChange}
+          isPostLikedCached={isPostLikedCached}
+          isPostSavedCached={isPostSavedCached}
           checkPostLikedByCurrUser={checkPostLikedByCurrUser}
           checkPostSavedByCurrUser={checkPostSavedByCurrUser}
+          addPostLikedToCacheMap={addPostLikedToCacheMap}
+          addPostSavedToCacheMap={addPostSavedToCacheMap}
           removeCachedPostLikedPage={removeCachedPostLikedPage}
           removeCachedPostSavedPage={removeCachedPostSavedPage}
         />

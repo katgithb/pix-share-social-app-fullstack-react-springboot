@@ -22,8 +22,12 @@ const PostFeed = ({
   currUser,
   posts,
   handlePageChange,
+  isPostLikedCached,
+  isPostSavedCached,
   checkPostLikedByCurrUser,
   checkPostSavedByCurrUser,
+  addPostLikedToCacheMap,
+  addPostSavedToCacheMap,
   removeCachedPostLikedPage,
   removeCachedPostSavedPage,
 }) => {
@@ -105,7 +109,9 @@ const PostFeed = ({
       const newLoadedPostsMap = OrderedMap(
         newPosts.map((post) => [post.id, post])
       );
-      setLoadedPostsMap((prevPosts) => prevPosts.merge(newLoadedPostsMap));
+      setLoadedPostsMap((prevPostsMap) =>
+        prevPostsMap.merge(newLoadedPostsMap)
+      );
     }
   }, []);
 
@@ -125,6 +131,11 @@ const PostFeed = ({
     },
     []
   );
+
+  const updateLoadedPostEntry = useCallback((postId, updatedPost) => {
+    const updatedPostMap = Map().set(postId, updatedPost);
+    setLoadedPostsMap((prevPostsMap) => prevPostsMap.merge(updatedPostMap));
+  }, []);
 
   const clearPagesOnPostDelete = useCallback(
     (pagesToRemove = []) => {
@@ -247,8 +258,13 @@ const PostFeed = ({
             currUser={currUser}
             post={post}
             postIdPage={postIdPage}
+            isPostLikedCached={isPostLikedCached}
+            isPostSavedCached={isPostSavedCached}
             checkPostLikedByCurrUser={checkPostLikedByCurrUser}
             checkPostSavedByCurrUser={checkPostSavedByCurrUser}
+            addPostLikedToCacheMap={addPostLikedToCacheMap}
+            addPostSavedToCacheMap={addPostSavedToCacheMap}
+            updateLoadedPostEntry={updateLoadedPostEntry}
           />
         </Flex>
       ),

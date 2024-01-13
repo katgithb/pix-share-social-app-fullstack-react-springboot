@@ -168,8 +168,9 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
+        Boolean isPostSaved = postRepository.isPostSavedByUser(post.getId(), user.getId());
 
-        if (!user.getSavedPosts().contains(post)) {
+        if (!isPostSaved) {
             user.addSavedPost(post);
             userRepository.save(user);
         }
@@ -181,8 +182,9 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
+        Boolean isPostSaved = postRepository.isPostSavedByUser(post.getId(), user.getId());
 
-        if (user.getSavedPosts().contains(post)) {
+        if (isPostSaved) {
             user.removeSavedPost(post);
             userRepository.save(user);
         }
@@ -194,10 +196,14 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
+        Boolean isPostLiked = postRepository.isPostLikedByUser(post.getId(), user.getId());
 
-        post.getLikedByUsers().add(user);
+        if (!isPostLiked) {
+            post.getLikedByUsers().add(user);
+            postRepository.save(post);
+        }
 
-        return postDTOMapper.apply(postRepository.save(post));
+        return postDTOMapper.apply(post);
     }
 
     @Override
@@ -206,10 +212,14 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
+        Boolean isPostLiked = postRepository.isPostLikedByUser(post.getId(), user.getId());
 
-        post.getLikedByUsers().remove(user);
+        if (isPostLiked) {
+            post.getLikedByUsers().remove(user);
+            postRepository.save(post);
+        }
 
-        return postDTOMapper.apply(postRepository.save(post));
+        return postDTOMapper.apply(post);
     }
 
     @Override

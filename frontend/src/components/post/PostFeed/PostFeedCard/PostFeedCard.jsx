@@ -28,8 +28,23 @@ import {
 } from "react-icons/fa6";
 import { PiPaperPlaneTiltBold } from "react-icons/pi";
 import { RiBookmarkFill, RiBookmarkLine } from "react-icons/ri";
+import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
 import useTruncateText from "../../../../hooks/useTruncateText";
+import {
+  likePostAction,
+  savePostAction,
+  unlikePostAction,
+  unsavePostAction,
+} from "../../../../redux/actions/post/postSocialActions";
+import {
+  clearIsPostLikedByUser,
+  clearIsPostSavedByUser,
+  clearLikedPost,
+  clearSavedPost,
+  clearUnlikedPost,
+  clearUnsavedPost,
+} from "../../../../redux/reducers/post/postSocialSlice";
 import { getHumanReadableNumberFormat } from "../../../../utils/commonUtils";
 import { getRelativePostTime } from "../../../../utils/postUtils";
 import PostCommentCard from "../../../comment/PostCommentCard/PostCommentCard";
@@ -43,12 +58,20 @@ const PostFeedCard = ({
   currUser,
   post,
   postIdPage,
+  isPostLikedCached,
+  isPostSavedCached,
   checkPostLikedByCurrUser,
   checkPostSavedByCurrUser,
+  addPostLikedToCacheMap,
+  addPostSavedToCacheMap,
+  updateLoadedPostEntry,
 }) => {
   const MAX_COMMENTS = 2;
   const MAX_LIKED_USER_AVATARS = 3;
   const REQUEST_DELAY_IN_MS = 400;
+  const dispatch = useDispatch();
+  const postSocial = useSelector((store) => store.post.postSocial);
+  const token = localStorage.getItem("token");
   const {
     isOpen: isOpenPostViewModal,
     onOpen: onOpenPostViewModal,
@@ -68,7 +91,7 @@ const PostFeedCard = ({
   const [isLikedByUser, setIsLikedByUser] = useState(false);
   const [isLikedLoading, setIsLikedLoading] = useState(true);
   const [isSavedByUser, setIsSavedByUser] = useState(false);
-  const [isSavedLoading, setIsSavedLoading] = useState(false);
+  const [isSavedLoading, setIsSavedLoading] = useState(true);
   const isLikedBtnLoaded = useRef(false);
   const isSavedBtnLoaded = useRef(false);
 
@@ -86,8 +109,8 @@ const PostFeedCard = ({
     likedByUsersLength > MAX_LIKED_USER_AVATARS
       ? `+${additionalLikesCount}`
       : additionalLikesCount;
-  const likesText = additionalLikesCount === 1 ? "like" : "likes";
-  const likedByOthersText = likedByOthersCount === 1 ? "other" : "others";
+  const likesText = additionalLikesCount === "1" ? "like" : "likes";
+  const likedByOthersText = likedByOthersCount === "1" ? "other" : "others";
 
   const commentsLength = post?.comments?.length || 0;
   const commentsCount = getHumanReadableNumberFormat(commentsLength);
@@ -95,7 +118,12 @@ const PostFeedCard = ({
 
   const likedByUsersAvatars = post?.likedByUsers
     .slice(-MAX_LIKED_USER_AVATARS)
+    .filter((user) => user.id !== currUser?.id)
+    .concat(isLikedByUser ? [currUser] : [])
     .reverse()
+    .reduce((acc, user, index) => {
+      return index < MAX_LIKED_USER_AVATARS ? [...acc, user] : acc;
+    }, [])
     .map((user) => ({
       id: user.id,
       username: user.username,
@@ -103,51 +131,205 @@ const PostFeedCard = ({
       image: user?.userImage,
     }));
 
-  const checkPostLiked = useCallback(async () => {
-    try {
-      const isLiked = await checkPostLikedByCurrUser(post?.id, postIdPage);
+  const checkPostLiked = useCallback(
+    (skipCache = false) => {
+      // console.log("checkPostLiked invoked");
+      const isLiked = checkPostLikedByCurrUser(post?.id, postIdPage, skipCache);
+
+      if (isLiked === null) {
+        return;
+      }
 
       setIsLikedByUser(isLiked);
       setIsLikedLoading(false);
-    } catch (error) {
-      console.log(error);
-      setIsLikedLoading(false);
-    }
-  }, [checkPostLikedByCurrUser, post?.id, postIdPage]);
+    },
+    [checkPostLikedByCurrUser, post?.id, postIdPage]
+  );
 
-  const checkPostSaved = useCallback(async () => {
-    try {
-      const isSaved = await checkPostSavedByCurrUser(post?.id, postIdPage);
+  const checkPostSaved = useCallback(
+    (skipCache = false) => {
+      // console.log("checkPostSaved invoked");
+      const isSaved = checkPostSavedByCurrUser(post?.id, postIdPage, skipCache);
+
+      if (isSaved === null) {
+        return;
+      }
 
       setIsSavedByUser(isSaved);
       setIsSavedLoading(false);
-    } catch (error) {
-      console.log(error);
-      setIsSavedLoading(false);
+    },
+    [checkPostSavedByCurrUser, post?.id, postIdPage]
+  );
+
+  const handlePostLike = () => {
+    setIsLikedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(likePostAction(data));
     }
-  }, [checkPostSavedByCurrUser, post?.id, postIdPage]);
+  };
+
+  const handlePostUnlike = () => {
+    setIsLikedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(unlikePostAction(data));
+    }
+  };
+
+  const handlePostSave = () => {
+    setIsSavedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(savePostAction(data));
+    }
+  };
+
+  const handlePostUnsave = () => {
+    setIsSavedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(unsavePostAction(data));
+    }
+  };
+
+  const updatePostLiked = useCallback(
+    (postId, updatedPost, isLiked) => {
+      const updatedPostId = updatedPost?.id;
+      if (updatedPostId === postId) {
+        checkPostLiked(true);
+
+        isLiked
+          ? dispatch(clearLikedPost(updatedPostId))
+          : dispatch(clearUnlikedPost(updatedPostId));
+        updateLoadedPostEntry(updatedPostId, updatedPost);
+      }
+    },
+    [checkPostLiked, dispatch, updateLoadedPostEntry]
+  );
+
+  const updatePostSaved = useCallback(
+    (postId, isSaved) => {
+      checkPostSaved(true);
+
+      isSaved
+        ? dispatch(clearSavedPost(postId))
+        : dispatch(clearUnsavedPost(postId));
+    },
+    [checkPostSaved, dispatch]
+  );
 
   useEffect(() => {
-    let timer;
+    const postId = post?.id;
+    if (postId && postId in postSocial.likedPosts) {
+      const likedPost = postSocial.likedPosts[postId];
+      updatePostLiked(postId, likedPost, true);
+    }
+  }, [post?.id, postSocial.likedPosts, updatePostLiked]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.unlikedPosts) {
+      const unlikedPost = postSocial.unlikedPosts[postId];
+      updatePostLiked(postId, unlikedPost, false);
+    }
+  }, [post?.id, postSocial.unlikedPosts, updatePostLiked]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.savedPosts) {
+      updatePostSaved(postId, true);
+    }
+  }, [post?.id, postSocial.savedPosts, updatePostSaved]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.unsavedPosts) {
+      updatePostSaved(postId, false);
+    }
+  }, [post?.id, postSocial.unsavedPosts, updatePostSaved]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.isLikedByUser) {
+      const isLiked = postSocial.isLikedByUser[postId];
+
+      dispatch(clearIsPostLikedByUser(postId));
+      addPostLikedToCacheMap(postId, postIdPage, isLiked);
+    }
+  }, [
+    addPostLikedToCacheMap,
+    dispatch,
+    post?.id,
+    postIdPage,
+    postSocial.isLikedByUser,
+  ]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.isSavedByUser) {
+      const isSaved = postSocial.isSavedByUser[postId];
+
+      dispatch(clearIsPostSavedByUser(postId));
+      addPostSavedToCacheMap(postId, postIdPage, isSaved);
+    }
+  }, [
+    addPostSavedToCacheMap,
+    dispatch,
+    post?.id,
+    postIdPage,
+    postSocial.isSavedByUser,
+  ]);
+
+  useEffect(() => {
+    let timer = null;
     if (isSavedBtnLoaded.current) {
-      timer = setTimeout(checkPostSaved, REQUEST_DELAY_IN_MS);
+      isPostSavedCached(post?.id, postIdPage)
+        ? checkPostSaved()
+        : (timer = setTimeout(() => {
+            checkPostSaved(true);
+          }, REQUEST_DELAY_IN_MS));
     } else {
       isSavedBtnLoaded.current = true;
     }
 
     return () => clearTimeout(timer);
-  }, [checkPostSaved]);
+  }, [checkPostSaved, isPostSavedCached, post?.id, postIdPage]);
 
   useEffect(() => {
-    let timer;
+    let timer = null;
     if (isLikedBtnLoaded.current) {
-      timer = setTimeout(checkPostLiked, REQUEST_DELAY_IN_MS);
+      isPostLikedCached(post?.id, postIdPage)
+        ? checkPostLiked()
+        : (timer = setTimeout(() => {
+            checkPostLiked(true);
+          }, REQUEST_DELAY_IN_MS));
     } else {
       isLikedBtnLoaded.current = true;
     }
 
     return () => clearTimeout(timer);
-  }, [checkPostLiked]);
+  }, [checkPostLiked, isPostLikedCached, post?.id, postIdPage]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -266,7 +448,11 @@ const PostFeedCard = ({
             >
               <IconButton
                 icon={isSavedByUser ? <RiBookmarkFill /> : <RiBookmarkLine />}
-                isLoading={isSavedLoading}
+                isLoading={
+                  post?.id in postSocial.isSavedLoading
+                    ? postSocial.isSavedLoading[post?.id]
+                    : isSavedLoading
+                }
                 bg={useColorModeValue("gray.100", "gray.500")}
                 rounded="full"
                 colorScheme="cyan"
@@ -277,6 +463,7 @@ const PostFeedCard = ({
                 _hover={{
                   bg: useColorModeValue("gray.200", "gray.600"),
                 }}
+                onClick={isSavedByUser ? handlePostUnsave : handlePostSave}
               />
 
               <IconButton
@@ -303,12 +490,17 @@ const PostFeedCard = ({
             <Flex align="center" mr={{ base: "0", md: "2" }}>
               <IconButton
                 icon={isLikedByUser ? <FaHeart /> : <FaRegHeart />}
-                isLoading={isLikedLoading}
+                isLoading={
+                  post?.id in postSocial.isLikedLoading
+                    ? postSocial.isLikedLoading[post?.id]
+                    : isLikedLoading
+                }
                 rounded="full"
                 colorScheme={isLikedByUser ? "red" : "gray"}
                 fontSize={"24"}
                 variant="ghost"
                 aria-label="Like"
+                onClick={isLikedByUser ? handlePostUnlike : handlePostLike}
               />
 
               {likedByUsersLength > 0 ? (
@@ -471,14 +663,21 @@ const PostFeedCard = ({
               <Text as="span" wordBreak="break-all" fontWeight="semibold">
                 {post?.likedByUsers
                   .slice(-MAX_LIKED_USER_AVATARS)
+                  .filter((user) => user.id !== currUser?.id)
+                  .concat(isLikedByUser ? [currUser] : [])
                   .reverse()
+                  .reduce((acc, user, index) => {
+                    return index < MAX_LIKED_USER_AVATARS
+                      ? [...acc, user]
+                      : acc;
+                  }, [])
                   .map((user) => (
                     <Link
                       as={RouteLink}
                       key={user.id}
                       to={`/profile/${user.username}`}
                     >
-                      {user.username}
+                      {user.id === currUser?.id ? "you" : user.username}
                     </Link>
                   ))
                   .reduce((prev, curr, index, array) => {
