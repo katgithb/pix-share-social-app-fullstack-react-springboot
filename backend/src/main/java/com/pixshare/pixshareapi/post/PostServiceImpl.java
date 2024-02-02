@@ -119,14 +119,6 @@ public class PostServiceImpl implements PostService {
         postRepository.deleteById(post.getId());
     }
 
-    @Override
-    public List<PostDTO> findPostsByUserId(Long userId) throws ResourceNotFoundException {
-        List<PostDTO> posts = postRepository.findByUserId(userId).stream()
-                .map(postDTOMapper)
-                .toList();
-
-        return posts;
-    }
 
     @Override
     public PostDTO findPostById(Long postId) throws ResourceNotFoundException {
@@ -138,7 +130,33 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PagedResponse<PostDTO> findAllPostsByUserIds(List<Long> userIds, PageRequestDTO pageRequest) throws ResourceNotFoundException {
+    public PagedResponse<PostDTO> findPostsByUserId(Long userId, PageRequestDTO pageRequest) {
+        // create Pageable instance
+        Pageable pageable = pageRequest.toPageable();
+        Page<Post> pagedPosts = postRepository.findPostsByUserId(userId, pageable);
+
+        // get posts content from Page
+        List<PostDTO> content = pagedPosts
+                .getContent()
+                .stream()
+                .map(postDTOMapper)
+                .peek(postDTO -> postDTO.setComments(
+                        commentService.findCommentsByPostId(postDTO.getId())
+                ))
+                .toList();
+
+
+        return new PagedResponse<>(
+                content,
+                pagedPosts.getNumber(),
+                pagedPosts.getSize(),
+                pagedPosts.getTotalElements(),
+                pagedPosts.getTotalPages(),
+                pagedPosts.isLast());
+    }
+
+    @Override
+    public PagedResponse<PostDTO> findAllPostsByUserIds(List<Long> userIds, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
         Page<Post> pagedPosts = postRepository.findAllPostsByUserIds(userIds, pageable);
@@ -161,6 +179,33 @@ public class PostServiceImpl implements PostService {
                 pagedPosts.getTotalPages(),
                 pagedPosts.isLast());
     }
+
+    @Override
+    public PagedResponse<PostDTO> findSavedPostsByUserId(Long userId, PageRequestDTO pageRequest) {
+        // create Pageable instance
+        Pageable pageable = pageRequest.toPageable();
+        Page<Post> pagedPosts = postRepository.findSavedPostsByUserId(userId, pageable);
+
+        // get posts content from Page
+        List<PostDTO> content = pagedPosts
+                .getContent()
+                .stream()
+                .map(postDTOMapper)
+                .peek(postDTO -> postDTO.setComments(
+                        commentService.findCommentsByPostId(postDTO.getId())
+                ))
+                .toList();
+
+
+        return new PagedResponse<>(
+                content,
+                pagedPosts.getNumber(),
+                pagedPosts.getSize(),
+                pagedPosts.getTotalElements(),
+                pagedPosts.getTotalPages(),
+                pagedPosts.isLast());
+    }
+
 
     @Override
     public void savePost(Long postId, Long userId) throws ResourceNotFoundException {

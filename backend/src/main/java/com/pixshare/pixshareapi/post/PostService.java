@@ -17,11 +17,13 @@ public interface PostService {
 
     void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException;
 
-    List<PostDTO> findPostsByUserId(Long userId) throws ResourceNotFoundException;
-
     PostDTO findPostById(Long postId) throws ResourceNotFoundException;
 
-    PagedResponse<PostDTO> findAllPostsByUserIds(List<Long> userIds, PageRequestDTO pageRequest) throws ResourceNotFoundException;
+    PagedResponse<PostDTO> findPostsByUserId(Long userId, PageRequestDTO pageRequest);
+
+    PagedResponse<PostDTO> findAllPostsByUserIds(List<Long> userIds, PageRequestDTO pageRequest);
+
+    PagedResponse<PostDTO> findSavedPostsByUserId(Long userId, PageRequestDTO pageRequest);
 
     void savePost(Long postId, Long userId) throws ResourceNotFoundException;
 

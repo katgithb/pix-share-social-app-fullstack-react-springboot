@@ -1,8 +1,8 @@
 package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.auth.AuthenticationService;
-import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.dto.UserTokenIdentity;
+import com.pixshare.pixshareapi.dto.*;
+import com.pixshare.pixshareapi.post.PostService;
 import com.pixshare.pixshareapi.story.StoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +17,15 @@ public class UserController {
 
     private final UserService userService;
 
+    private final PostService postService;
+
     private final AuthenticationService authenticationService;
 
     private final StoryService storyService;
 
-    public UserController(UserService userService, AuthenticationService authenticationService, StoryService storyService) {
+    public UserController(UserService userService, PostService postService, AuthenticationService authenticationService, StoryService storyService) {
         this.userService = userService;
+        this.postService = postService;
         this.authenticationService = authenticationService;
         this.storyService = storyService;
     }
@@ -59,16 +62,6 @@ public class UserController {
                 .toList();
 
         return new ResponseEntity<>(users, HttpStatus.OK);
-    }
-
-    @GetMapping("/account/profile")
-    public ResponseEntity<UserDTO> findUserProfile(
-            @RequestHeader("Authorization") String authHeader) {
-        UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
-        UserDTO user = userService.findUserById(identity.getId());
-
-        return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     // /search?q=query
@@ -123,6 +116,27 @@ public class UserController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @GetMapping("/account/profile")
+    public ResponseEntity<UserDTO> findUserProfile(
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        UserDTO user = userService.findUserById(identity.getId());
+
+        return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+    @GetMapping("/account/saved")
+    public ResponseEntity<PagedResponse<PostDTO>> findSavedPostsByUserId(
+            @RequestHeader("Authorization") String authHeader,
+            @ModelAttribute PageRequestDTO pageRequest) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<PostDTO> postResponse = postService.findSavedPostsByUserId(identity.getId(), pageRequest);
+
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
+    }
+
     @PostMapping("/account/password/verify")
     public ResponseEntity<Boolean> verifyPassword(
             @RequestBody UserPasswordRequest passwordRequest,
@@ -161,7 +175,6 @@ public class UserController {
                 .getUserIdentityFromToken(authHeader);
         userService.removeUserImage(identity.getId());
     }
-
 
     @PutMapping("/account/edit")
     public void updateUser(

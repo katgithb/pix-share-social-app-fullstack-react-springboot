@@ -37,17 +37,6 @@ public class PostController {
         postService.createPost(request, identity.getId());
     }
 
-    @GetMapping("/all/{userId}")
-    public ResponseEntity<List<PostDTO>> findPostsByUserId(@PathVariable("userId") Long userId) {
-        List<PostDTO> posts = postService.findPostsByUserId(userId).stream()
-                .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId())
-                ))
-                .toList();
-
-        return new ResponseEntity<>(posts, HttpStatus.OK);
-    }
-
     @GetMapping("/id/{postId}")
     public ResponseEntity<PostDTO> findPostById(@PathVariable("postId") Long postId) {
         PostDTO post = postService.findPostById(postId);
@@ -56,6 +45,15 @@ public class PostController {
         );
 
         return new ResponseEntity<>(post, HttpStatus.OK);
+    }
+
+    @GetMapping("/all/{userId}")
+    public ResponseEntity<PagedResponse<PostDTO>> findPostsByUserId(
+            @PathVariable("userId") Long userId,
+            @ModelAttribute PageRequestDTO pageRequest) {
+        PagedResponse<PostDTO> postResponse = postService.findPostsByUserId(userId, pageRequest);
+
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
     }
 
     @GetMapping("/following/{userIds}")
