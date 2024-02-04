@@ -3,41 +3,51 @@ import {
   Card,
   Grid,
   GridItem,
-  Spinner,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import _ from "lodash";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import ProfileHeader from "../components/profile/ProfileHeader/ProfileHeader";
-import ProfilePosts from "../components/profile/ProfilePosts/ProfilePosts";
-import { findUserByUserNameAction } from "../redux/actions/user/userLookupActions";
-import { isCurrUser } from "../utils/userUtils";
+import ProfileSectionTabs from "../components/profile/ProfileSectionTabs/ProfileSectionTabs";
+import useCurrUserProfileCheck from "../hooks/useCurrUserProfileCheck";
 
 const Profile = () => {
   const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
   const isSmallScreen = breakpoint === "base" || breakpoint === "sm";
 
-  const dispatch = useDispatch();
   const { username } = useParams();
-  const { userProfile, userLookup } = useSelector((store) => store.user);
   const token = localStorage.getItem("token");
+  const [postsPage, setPostsPage] = useState({});
+
+  const userProfile = useSelector((store) => store.user.userProfile);
+  const { findByUsername } = useSelector((store) => store.user.userLookup);
+  const { findPostsByUserId: selectPostsByUserId } = useSelector(
+    (store) => store.post.postLookup
+  );
+  const postsByUserId = useMemo(
+    () => selectPostsByUserId,
+    [selectPostsByUserId]
+  );
+
+  const { isGivenUserCurrUser } = useCurrUserProfileCheck(
+    token,
+    username,
+    userProfile.currUser?.id,
+    findByUsername?.id
+  );
+
+  const user = isGivenUserCurrUser ? userProfile.currUser : findByUsername;
 
   useEffect(() => {
-    if (token) {
-      const data = { token, username };
-      dispatch(findUserByUserNameAction(data));
+    const postsPage = postsByUserId;
+
+    if (postsPage && !_.isEmpty(postsPage)) {
+      console.log("Profile posts page: ", postsPage);
+      setPostsPage(postsPage);
     }
-  }, [dispatch, token, username]);
-
-  if (userLookup.isLoading) {
-    return <Spinner />; // Display a loading spinner or placeholder
-  }
-
-  const isGivenUserCurrUser = isCurrUser(
-    userProfile.currUser?.id,
-    userLookup.findByUsername?.id
-  );
+  }, [postsByUserId]);
 
   return (
     <>
@@ -45,11 +55,9 @@ const Profile = () => {
         <Box maxW="5xl" mx="auto">
           <Box>
             <ProfileHeader
-              user={
-                isGivenUserCurrUser
-                  ? userProfile.currUser
-                  : userLookup.findByUsername
-              }
+              user={user}
+              totalPosts={postsPage?.totalRecords || 0}
+              isGivenUserCurrUser={isGivenUserCurrUser}
             />
 
             <Card
@@ -59,7 +67,12 @@ const Profile = () => {
               rounded="lg"
               boxShadow={"md"}
             >
-              <ProfilePosts />
+              <ProfileSectionTabs
+                currUser={userProfile.currUser}
+                user={user}
+                posts={postsPage}
+                isGivenUserCurrUser={isGivenUserCurrUser}
+              />
             </Card>
           </Box>
         </Box>
@@ -67,15 +80,18 @@ const Profile = () => {
         <Grid templateColumns="repeat(4, 1fr)" gap={"2"}>
           <GridItem colSpan={"1"} flexBasis="250px">
             <ProfileHeader
-              user={
-                isGivenUserCurrUser
-                  ? userProfile.currUser
-                  : userLookup.findByUsername
-              }
+              user={user}
+              totalPosts={postsPage?.totalRecords || 0}
+              isGivenUserCurrUser={isGivenUserCurrUser}
             />
           </GridItem>
           <GridItem colSpan={"3"}>
-            <ProfilePosts />
+            <ProfileSectionTabs
+              currUser={userProfile.currUser}
+              user={user}
+              posts={postsPage}
+              isGivenUserCurrUser={isGivenUserCurrUser}
+            />
           </GridItem>
         </Grid>
       )}

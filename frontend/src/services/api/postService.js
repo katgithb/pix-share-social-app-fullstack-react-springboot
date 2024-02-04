@@ -18,8 +18,9 @@ export const createPostRequest = async (data) => {
 
 export const findPostsByUserIdRequest = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
+  const params = data.pageFetchParams;
 
-  return await axiosInstance.get(`/all/${data.userId}`, { headers });
+  return await axiosInstance.get(`/all/${data.userId}`, { headers, params });
 };
 
 export const findPostByIdRequest = async (data) => {

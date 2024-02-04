@@ -16,7 +16,8 @@ import {
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
-import React, { useEffect, useState } from "react";
+import _ from "lodash";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineExpand, AiOutlineSend } from "react-icons/ai";
 import { BsCardText } from "react-icons/bs";
 import {
@@ -29,20 +30,53 @@ import { GoLocation } from "react-icons/go";
 import { PiPaperPlaneTiltBold } from "react-icons/pi";
 import { RiBookmarkFill, RiBookmarkLine } from "react-icons/ri";
 import { RxTimer } from "react-icons/rx";
+import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
 import useTruncateText from "../../../../../hooks/useTruncateText";
+import {
+  isPostLikedByUserAction,
+  isPostSavedByUserAction,
+  likePostAction,
+  savePostAction,
+  unlikePostAction,
+  unsavePostAction,
+} from "../../../../../redux/actions/post/postSocialActions";
+import {
+  clearIsPostLikedByUser,
+  clearIsPostSavedByUser,
+  clearLikedPost,
+  clearSavedPost,
+  clearUnlikedPost,
+  clearUnsavedPost,
+} from "../../../../../redux/reducers/post/postSocialSlice";
 import { getHumanReadableNumberFormat } from "../../../../../utils/commonUtils";
 import { getRelativePostTime } from "../../../../../utils/postUtils";
 import PostCommentCard from "../../../../comment/PostCommentCard/PostCommentCard";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
 import ImageWithLoader from "../../../../shared/ImageWithLoader";
 
-const PostExpandedView = ({ currUser, post, setIsImageExpanded, onClose }) => {
+const PostExpandedView = ({
+  currUser,
+  post,
+  updateLoadedPostEntry,
+  setIsImageExpanded,
+  onClose,
+}) => {
+  const dispatch = useDispatch();
+  const postSocial = useSelector((store) => store.post.postSocial);
+  const token = localStorage.getItem("token");
   const [showImageOverlay, setShowImageOverlay] = useState(true);
   const [relativePostTime, setRelativePostTime] = useState(
     getRelativePostTime(post?.createdAt)
   );
   const truncatedCaptionText = useTruncateText(post?.caption, 100);
+
+  const [isLikedByUser, setIsLikedByUser] = useState(false);
+  const [isLikedLoading, setIsLikedLoading] = useState(true);
+  const [isSavedByUser, setIsSavedByUser] = useState(false);
+  const [isSavedLoading, setIsSavedLoading] = useState(true);
+  const isLikedBtnLoaded = useRef(false);
+  const isSavedBtnLoaded = useRef(false);
 
   const likedByUsersLength = post?.likedByUsers?.length || 0;
   const likesCount = getHumanReadableNumberFormat(likedByUsersLength);
@@ -56,6 +90,193 @@ const PostExpandedView = ({ currUser, post, setIsImageExpanded, onClose }) => {
   const handleExpandPostImage = () => {
     setIsImageExpanded(true);
   };
+
+  const fetchPostLiked = useCallback(
+    (postId) => {
+      if (token && postId) {
+        const data = {
+          token,
+          postId,
+        };
+
+        dispatch(isPostLikedByUserAction(data));
+      }
+    },
+    [dispatch, token]
+  );
+
+  const fetchPostSaved = useCallback(
+    (postId) => {
+      if (token && postId) {
+        const data = {
+          token,
+          postId,
+        };
+
+        dispatch(isPostSavedByUserAction(data));
+      }
+    },
+    [dispatch, token]
+  );
+
+  const handlePostLike = () => {
+    setIsLikedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(likePostAction(data));
+    }
+  };
+
+  const handlePostUnlike = () => {
+    setIsLikedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(unlikePostAction(data));
+    }
+  };
+
+  const handlePostSave = () => {
+    setIsSavedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(savePostAction(data));
+    }
+  };
+
+  const handlePostUnsave = () => {
+    setIsSavedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(unsavePostAction(data));
+    }
+  };
+
+  const updatePostLiked = useCallback(
+    (postId, updatedPost, isLiked) => {
+      const updatedPostId = updatedPost?.id;
+      if (updatedPostId === postId) {
+        setIsLikedByUser(isLiked);
+        setIsLikedLoading(false);
+
+        isLiked
+          ? dispatch(clearLikedPost(updatedPostId))
+          : dispatch(clearUnlikedPost(updatedPostId));
+
+        updateLoadedPostEntry(updatedPostId, updatedPost);
+      }
+    },
+    [dispatch, updateLoadedPostEntry]
+  );
+
+  const updatePostSaved = useCallback(
+    (postId, isSaved) => {
+      setIsSavedByUser(isSaved);
+      setIsSavedLoading(false);
+
+      isSaved
+        ? dispatch(clearSavedPost(postId))
+        : dispatch(clearUnsavedPost(postId));
+    },
+    [dispatch]
+  );
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.likedPosts) {
+      const likedPost = postSocial.likedPosts[postId];
+      updatePostLiked(postId, likedPost, true);
+    }
+  }, [post?.id, postSocial.likedPosts, updatePostLiked]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.unlikedPosts) {
+      const unlikedPost = postSocial.unlikedPosts[postId];
+      updatePostLiked(postId, unlikedPost, false);
+    }
+  }, [post?.id, postSocial.unlikedPosts, updatePostLiked]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.savedPosts) {
+      updatePostSaved(postId, true);
+    }
+  }, [post?.id, postSocial.savedPosts, updatePostSaved]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.unsavedPosts) {
+      updatePostSaved(postId, false);
+    }
+  }, [post?.id, postSocial.unsavedPosts, updatePostSaved]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.isLikedByUser) {
+      const isLiked = postSocial.isLikedByUser[postId];
+
+      setIsLikedByUser(isLiked);
+      setIsLikedLoading(false);
+      dispatch(clearIsPostLikedByUser(postId));
+    }
+  }, [dispatch, post?.id, postSocial.isLikedByUser]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.isSavedByUser) {
+      const isSaved = postSocial.isSavedByUser[postId];
+
+      setIsSavedByUser(isSaved);
+      setIsSavedLoading(false);
+      dispatch(clearIsPostSavedByUser(postId));
+    }
+  }, [dispatch, post?.id, postSocial.isSavedByUser]);
+
+  useEffect(() => {
+    if (_.isBoolean(post?.isSavedByUser)) {
+      setIsSavedByUser(post?.isSavedByUser);
+      setIsSavedLoading(false);
+      return;
+    }
+    if (isSavedBtnLoaded.current) {
+      fetchPostSaved(post?.id);
+    } else {
+      isSavedBtnLoaded.current = true;
+    }
+  }, [fetchPostSaved, post?.id, post?.isSavedByUser]);
+
+  useEffect(() => {
+    if (_.isBoolean(post?.isLikedByUser)) {
+      setIsLikedByUser(post?.isLikedByUser);
+      setIsLikedLoading(false);
+      return;
+    }
+    if (isLikedBtnLoaded.current) {
+      fetchPostLiked(post?.id);
+    } else {
+      isLikedBtnLoaded.current = true;
+    }
+  }, [fetchPostLiked, post?.id, post?.isLikedByUser]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -162,8 +383,11 @@ const PostExpandedView = ({ currUser, post, setIsImageExpanded, onClose }) => {
             justify="space-between"
           >
             <IconButton
-              icon={
-                post?.isSavedByUser ? <RiBookmarkFill /> : <RiBookmarkLine />
+              icon={isSavedByUser ? <RiBookmarkFill /> : <RiBookmarkLine />}
+              isLoading={
+                post?.id in postSocial.isSavedLoading
+                  ? postSocial.isSavedLoading[post?.id]
+                  : isSavedLoading
               }
               bg={useColorModeValue("gray.100", "gray.500")}
               rounded="full"
@@ -175,6 +399,7 @@ const PostExpandedView = ({ currUser, post, setIsImageExpanded, onClose }) => {
               _hover={{
                 bg: useColorModeValue("gray.200", "gray.600"),
               }}
+              onClick={isSavedByUser ? handlePostUnsave : handlePostSave}
             />
 
             <IconButton
@@ -326,12 +551,18 @@ const PostExpandedView = ({ currUser, post, setIsImageExpanded, onClose }) => {
               <Flex align="center" flexWrap="wrap">
                 <Flex align="center" mr={{ base: "2", md: "2" }}>
                   <IconButton
-                    icon={post?.isLikedByUser ? <FaHeart /> : <FaRegHeart />}
+                    icon={isLikedByUser ? <FaHeart /> : <FaRegHeart />}
+                    isLoading={
+                      post?.id in postSocial.isLikedLoading
+                        ? postSocial.isLikedLoading[post?.id]
+                        : isLikedLoading
+                    }
                     rounded="full"
-                    colorScheme={post?.isLikedByUser ? "red" : "gray"}
+                    colorScheme={isLikedByUser ? "red" : "gray"}
                     fontSize={"24"}
                     variant="ghost"
                     aria-label="Like"
+                    onClick={isLikedByUser ? handlePostUnlike : handlePostLike}
                   />
                   <Badge
                     variant={"subtle"}

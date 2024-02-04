@@ -133,7 +133,6 @@ const PostFeedCard = ({
 
   const checkPostLiked = useCallback(
     (skipCache = false) => {
-      // console.log("checkPostLiked invoked");
       const isLiked = checkPostLikedByCurrUser(post?.id, postIdPage, skipCache);
 
       if (isLiked === null) {
@@ -148,7 +147,6 @@ const PostFeedCard = ({
 
   const checkPostSaved = useCallback(
     (skipCache = false) => {
-      // console.log("checkPostSaved invoked");
       const isSaved = checkPostSavedByCurrUser(post?.id, postIdPage, skipCache);
 
       if (isSaved === null) {
@@ -353,11 +351,8 @@ const PostFeedCard = ({
     >
       <PostViewModal
         currUser={currUser}
-        post={{
-          ...post,
-          isLikedByUser: isLikedByUser,
-          isSavedByUser: isSavedByUser,
-        }}
+        post={{ ...post, isLikedByUser, isSavedByUser }}
+        updateLoadedPostEntry={updateLoadedPostEntry}
         isOpen={isOpenPostViewModal}
         onClose={onClosePostViewModal}
       />

@@ -1,5 +1,6 @@
 import {
   getPopularUsers,
+  getSavedPostsByUserId,
   getUserByUserName,
   getUsersByUserIds,
   searchUsersBySearchTerm,
@@ -7,6 +8,8 @@ import {
 import {
   fetchPopularUsers,
   fetchPopularUsersPending,
+  findSavedPostsByUserId,
+  findSavedPostsByUserIdPending,
   findUserByUserName,
   findUserByUserNamePending,
   findUsersByUserIds,
@@ -43,6 +46,23 @@ export const findUsersByUserIdsAction = (data) => async (dispatch) => {
       console.log("Users by User Ids: ", users);
 
       dispatch(findUsersByUserIds(users));
+    })
+    .catch((error) => {
+      console.log(error);
+      dispatch(userLookupFailure());
+    });
+};
+
+export const findSavedPostsByUserIdAction = (data) => async (dispatch) => {
+  dispatch(findSavedPostsByUserIdPending());
+
+  getSavedPostsByUserId(data)
+    .then((response) => {
+      const savedPosts = response.data;
+
+      console.log("Saved Posts by User Id: ", savedPosts);
+
+      dispatch(findSavedPostsByUserId(savedPosts));
     })
     .catch((error) => {
       console.log(error);

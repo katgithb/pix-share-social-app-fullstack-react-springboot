@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   findByUsername: null,
   findUsersByIds: [],
+  findSavedPostsByUserId: {},
   popularUsers: [],
   searchUsers: [],
   isLoading: false,
@@ -13,6 +14,9 @@ const loadingReducers = {
     state.isLoading = true;
   },
   findUsersByUserIdsPending: (state) => {
+    state.isLoading = true;
+  },
+  findSavedPostsByUserIdPending: (state) => {
     state.isLoading = true;
   },
   searchUsersPending: (state) => {
@@ -36,6 +40,10 @@ const userLookupSlice = createSlice({
       state.findUsersByIds = action.payload;
       state.isLoading = false;
     },
+    findSavedPostsByUserId: (state, action) => {
+      state.findSavedPostsByUserId = action.payload;
+      state.isLoading = false;
+    },
     searchUsers: (state, action) => {
       state.searchUsers = action.payload;
       state.isLoading = false;
@@ -54,10 +62,12 @@ const userLookupSlice = createSlice({
 export const {
   findUserByUserNamePending,
   findUsersByUserIdsPending,
+  findSavedPostsByUserIdPending,
   searchUsersPending,
   fetchPopularUsersPending,
   findUserByUserName,
   findUsersByUserIds,
+  findSavedPostsByUserId,
   searchUsers,
   fetchPopularUsers,
   userLookupFailure,

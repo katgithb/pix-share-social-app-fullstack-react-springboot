@@ -67,6 +67,13 @@ export const updateUnfollow = async (data) => {
   });
 };
 
+export const getSavedPostsByUserId = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+  const params = data.pageFetchParams;
+
+  return await axiosInstance.get("/account/saved", { headers, params });
+};
+
 export const verifyPassword = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 

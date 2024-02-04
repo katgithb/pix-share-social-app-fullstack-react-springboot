@@ -10,26 +10,8 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 import { Link as RouteLink } from "react-router-dom";
-import { getHumanReadableNumberFormat } from "../../../utils/commonUtils";
 
-const UserProfileStats = ({
-  userDetails,
-  maxCharsMobileUserDetails,
-  totalPosts = 0,
-  isGivenUserCurrUser = false,
-}) => {
-  const profileBioLength = userDetails?.bio?.length || 0;
-  const totalPostsCount = getHumanReadableNumberFormat(totalPosts);
-  const totalPostsText = totalPosts === 1 ? "post" : "posts";
-
-  const followersLength = userDetails?.follower?.length || 0;
-  const followersCount = getHumanReadableNumberFormat(followersLength);
-  const followersText = followersLength === 1 ? "follower" : "followers";
-
-  const followingLength = userDetails?.following?.length || 0;
-  const followingCount = getHumanReadableNumberFormat(followingLength);
-  const followingText = "following";
-
+const UserProfileStatsNotFound = ({ handleRefreshProfile }) => {
   return (
     <>
       <HStack
@@ -40,10 +22,7 @@ const UserProfileStats = ({
         p="2"
         mt={{
           base: "1",
-          md:
-            userDetails?.bio && profileBioLength > maxCharsMobileUserDetails
-              ? "4"
-              : "3",
+          md: "3",
         }}
       >
         <Box flex={{ base: "1", md: "0" }} textAlign="center">
@@ -55,9 +34,9 @@ const UserProfileStats = ({
             textTransform="uppercase"
             display="block"
           >
-            {totalPostsCount}
+            N/A
           </Text>{" "}
-          {totalPostsText}
+          posts
         </Box>
         <Box flex={{ base: "1", md: "0" }} textAlign="center">
           <Text
@@ -68,9 +47,9 @@ const UserProfileStats = ({
             textTransform="uppercase"
             display="block"
           >
-            {followersCount}
+            N/A
           </Text>{" "}
-          {followersText}
+          followers
         </Box>
         <Box flex={{ base: "1", md: "0" }} textAlign="center">
           <Text
@@ -81,9 +60,9 @@ const UserProfileStats = ({
             textTransform="uppercase"
             display="block"
           >
-            {followingCount}
+            N/A
           </Text>{" "}
-          {followingText}
+          following
         </Box>
       </HStack>
 
@@ -107,31 +86,25 @@ const UserProfileStats = ({
           </Link>
         </Flex>
         <Flex flex="1" justify="center">
-          <Link
-            as={RouteLink}
+          <Button
+            size="md"
             w="full"
-            to={isGivenUserCurrUser ? "/account/edit" : ""}
-            style={{ textDecoration: "none" }}
+            color={useColorModeValue("gray.50", "gray.100")}
+            bg={useColorModeValue("blue.500", "blue.400")}
+            rounded="2xl"
+            fontSize={"sm"}
+            _hover={{
+              bg: useColorModeValue("blue.600", "blue.500"),
+              color: useColorModeValue("gray.100", "gray.200"),
+            }}
+            onClick={handleRefreshProfile}
           >
-            <Button
-              size="md"
-              w="full"
-              color={useColorModeValue("gray.50", "gray.100")}
-              bg={useColorModeValue("blue.500", "blue.400")}
-              rounded="2xl"
-              fontSize={"sm"}
-              _hover={{
-                bg: useColorModeValue("blue.600", "blue.500"),
-                color: useColorModeValue("gray.100", "gray.200"),
-              }}
-            >
-              {isGivenUserCurrUser ? "Edit Profile" : "Follow"}
-            </Button>
-          </Link>
+            Refresh
+          </Button>
         </Flex>
       </Stack>
     </>
   );
 };
 
-export default UserProfileStats;
+export default UserProfileStatsNotFound;

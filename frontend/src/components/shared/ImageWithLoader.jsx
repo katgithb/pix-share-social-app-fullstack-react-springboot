@@ -1,7 +1,7 @@
 import { Flex, Image, Skeleton } from "@chakra-ui/react";
 import React, { useMemo, useState } from "react";
 
-const ImageWithLoader = ({ ...props }) => {
+const ImageWithLoader = ({ skeletonProps = {}, ...imageProps }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isImageError, setIsImageError] = useState(false);
 
@@ -11,8 +11,9 @@ const ImageWithLoader = ({ ...props }) => {
       flex: "1",
       maxH: "inherit",
       rounded: "lg",
+      ...skeletonProps,
     };
-  }, [isImageError, isImageLoaded]);
+  }, [isImageError, isImageLoaded, skeletonProps]);
 
   const handleImageLoad = () => {
     setIsImageLoaded(true);
@@ -33,7 +34,7 @@ const ImageWithLoader = ({ ...props }) => {
         maxH="full"
       >
         <Image
-          {...props}
+          {...imageProps}
           //   fallbackSrc="path/to/placeholder.jpg"
           loading="lazy"
           onLoad={handleImageLoad}

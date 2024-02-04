@@ -18,7 +18,13 @@ import PostActionsMenu from "../PostActionsMenu";
 import PostExpandedView from "./PostExpandedView";
 import PostImageExpandedView from "./PostImageExpandedView";
 
-const PostViewModal = ({ currUser, post, isOpen, onClose }) => {
+const PostViewModal = ({
+  currUser,
+  post,
+  updateLoadedPostEntry,
+  isOpen,
+  onClose,
+}) => {
   const [isImageExpanded, setIsImageExpanded] = useState(false);
 
   const handleModalClose = () => {
@@ -52,6 +58,7 @@ const PostViewModal = ({ currUser, post, isOpen, onClose }) => {
           <PostExpandedView
             currUser={currUser}
             post={post}
+            updateLoadedPostEntry={updateLoadedPostEntry}
             setIsImageExpanded={setIsImageExpanded}
             onClose={handleModalClose}
           />
