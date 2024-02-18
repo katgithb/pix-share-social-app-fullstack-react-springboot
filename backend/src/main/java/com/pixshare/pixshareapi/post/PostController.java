@@ -34,15 +34,17 @@ public class PostController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+
         postService.createPost(request, identity.getId());
     }
 
     @GetMapping("/id/{postId}")
-    public ResponseEntity<PostDTO> findPostById(@PathVariable("postId") Long postId) {
-        PostDTO post = postService.findPostById(postId);
-        post.setComments(
-                commentService.findCommentsByPostId(postId)
-        );
+    public ResponseEntity<PostDTO> findPostById(
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PostDTO post = postService.findPostById(postId, identity.getId());
 
         return new ResponseEntity<>(post, HttpStatus.OK);
     }
@@ -50,8 +52,11 @@ public class PostController {
     @GetMapping("/all/{userId}")
     public ResponseEntity<PagedResponse<PostDTO>> findPostsByUserId(
             @PathVariable("userId") Long userId,
-            @ModelAttribute PageRequestDTO pageRequest) {
-        PagedResponse<PostDTO> postResponse = postService.findPostsByUserId(userId, pageRequest);
+            @ModelAttribute PageRequestDTO pageRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<PostDTO> postResponse = postService.findPostsByUserId(identity.getId(), userId, pageRequest);
 
         return new ResponseEntity<>(postResponse, HttpStatus.OK);
     }
@@ -59,8 +64,11 @@ public class PostController {
     @GetMapping("/following/{userIds}")
     public ResponseEntity<PagedResponse<PostDTO>> findAllPostsByUserIds(
             @PathVariable("userIds") List<Long> userIds,
-            @ModelAttribute PageRequestDTO pageRequest) {
-        PagedResponse<PostDTO> postResponse = postService.findAllPostsByUserIds(userIds, pageRequest);
+            @ModelAttribute PageRequestDTO pageRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<PostDTO> postResponse = postService.findAllPostsByUserIds(identity.getId(), userIds, pageRequest);
 
         return new ResponseEntity<>(postResponse, HttpStatus.OK);
     }
@@ -71,6 +79,7 @@ public class PostController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+
         postService.deletePost(postId, identity.getId());
     }
 
@@ -113,6 +122,7 @@ public class PostController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+
         postService.savePost(postId, identity.getId());
     }
 
@@ -122,6 +132,7 @@ public class PostController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+        
         postService.unsavePost(postId, identity.getId());
     }
 

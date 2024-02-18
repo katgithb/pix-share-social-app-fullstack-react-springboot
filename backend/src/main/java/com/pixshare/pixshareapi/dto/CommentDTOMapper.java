@@ -26,7 +26,8 @@ public class CommentDTOMapper implements Function<Comment, CommentDTO> {
                 comment.getLikedByUsers().stream()
                         .map(userViewMapper)
                         .collect(Collectors.toCollection(
-                                LinkedHashSet::new))
+                                LinkedHashSet::new)),
+                false
         );
     }
 

@@ -3,6 +3,8 @@ package com.pixshare.pixshareapi.comment;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
@@ -25,15 +27,20 @@ public class Comment {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @NonNull
+    @NotBlank
     @Size(max = 250)
-    @Column(name = "content", columnDefinition = "TEXT")
+    @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(name = "created_at")
+    @NonNull
+    @PastOrPresent
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ToString.Exclude
@@ -43,8 +50,9 @@ public class Comment {
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<User> likedByUsers = new LinkedHashSet<>();
 
+    @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
+    @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
     public Comment(String content, LocalDateTime createdAt, User user, Post post) {

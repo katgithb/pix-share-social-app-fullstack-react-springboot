@@ -29,19 +29,28 @@ public class CommentController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+
         commentService.createComment(request, postId, identity.getId());
     }
 
     @GetMapping("/id/{commentId}")
-    public ResponseEntity<CommentDTO> findCommentById(@PathVariable("commentId") Long commentId) {
-        CommentDTO comment = commentService.findCommentById(commentId);
+    public ResponseEntity<CommentDTO> findCommentById(
+            @PathVariable("commentId") Long commentId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        CommentDTO comment = commentService.findCommentById(commentId, identity.getId());
 
         return new ResponseEntity<>(comment, HttpStatus.OK);
     }
 
     @GetMapping("/all/{postId}")
-    public ResponseEntity<List<CommentDTO>> findCommentsByPostId(@PathVariable("postId") Long postId) {
-        List<CommentDTO> comments = commentService.findCommentsByPostId(postId);
+    public ResponseEntity<List<CommentDTO>> findCommentsByPostId(
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        List<CommentDTO> comments = commentService.findCommentsByPostId(postId, identity.getId());
 
         return new ResponseEntity<>(comments, HttpStatus.OK);
     }
@@ -52,6 +61,7 @@ public class CommentController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+        
         commentService.deleteComment(commentId, identity.getId());
     }
 

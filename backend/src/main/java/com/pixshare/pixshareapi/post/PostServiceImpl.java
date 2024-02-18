@@ -104,7 +104,7 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
-        PostDTO post = findPostById(postId);
+        PostDTO post = findPostById(postId, userId);
         UserDTO user = userService.findUserById(userId);
         Long postUserId = post.getUser().getId();
 
@@ -121,16 +121,22 @@ public class PostServiceImpl implements PostService {
 
 
     @Override
-    public PostDTO findPostById(Long postId) throws ResourceNotFoundException {
+    public PostDTO findPostById(Long postId, Long userId) throws ResourceNotFoundException {
         PostDTO post = postRepository.findById(postId)
-                .map(postDTOMapper)
+                .map(postEntity -> {
+                    PostDTO postDTO = postDTOMapper.apply(postEntity);
+                    postDTO.setComments(
+                            commentService.findCommentsByPostId(postDTO.getId(), userId)
+                    );
+                    return postDTO;
+                })
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
 
         return post;
     }
 
     @Override
-    public PagedResponse<PostDTO> findPostsByUserId(Long userId, PageRequestDTO pageRequest) {
+    public PagedResponse<PostDTO> findPostsByUserId(Long authUserId, Long userId, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
         Page<Post> pagedPosts = postRepository.findPostsByUserId(userId, pageable);
@@ -141,7 +147,7 @@ public class PostServiceImpl implements PostService {
                 .stream()
                 .map(postDTOMapper)
                 .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId())
+                        commentService.findCommentsByPostId(postDTO.getId(), authUserId)
                 ))
                 .toList();
 
@@ -156,7 +162,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PagedResponse<PostDTO> findAllPostsByUserIds(List<Long> userIds, PageRequestDTO pageRequest) {
+    public PagedResponse<PostDTO> findAllPostsByUserIds(Long authUserId, List<Long> userIds, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
         Page<Post> pagedPosts = postRepository.findAllPostsByUserIds(userIds, pageable);
@@ -167,7 +173,7 @@ public class PostServiceImpl implements PostService {
                 .stream()
                 .map(postDTOMapper)
                 .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId())
+                        commentService.findCommentsByPostId(postDTO.getId(), authUserId)
                 ))
                 .toList();
 
@@ -184,26 +190,26 @@ public class PostServiceImpl implements PostService {
     public PagedResponse<PostDTO> findSavedPostsByUserId(Long userId, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
-        Page<Post> pagedPosts = postRepository.findSavedPostsByUserId(userId, pageable);
+        Page<Post> pagedSavedPosts = postRepository.findSavedPostsByUserId(userId, pageable);
 
-        // get posts content from Page
-        List<PostDTO> content = pagedPosts
+        // get saved posts content from Page
+        List<PostDTO> content = pagedSavedPosts
                 .getContent()
                 .stream()
                 .map(postDTOMapper)
                 .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId())
+                        commentService.findCommentsByPostId(postDTO.getId(), userId)
                 ))
                 .toList();
 
 
         return new PagedResponse<>(
                 content,
-                pagedPosts.getNumber(),
-                pagedPosts.getSize(),
-                pagedPosts.getTotalElements(),
-                pagedPosts.getTotalPages(),
-                pagedPosts.isLast());
+                pagedSavedPosts.getNumber(),
+                pagedSavedPosts.getSize(),
+                pagedSavedPosts.getTotalElements(),
+                pagedSavedPosts.getTotalPages(),
+                pagedSavedPosts.isLast());
     }
 
 
