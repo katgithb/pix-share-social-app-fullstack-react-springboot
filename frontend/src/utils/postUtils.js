@@ -17,8 +17,8 @@ export const getRelativePostTime = (postTimestamp) => {
   return getRelativeTime(postTimestamp) + " ago";
 };
 
-export const isCurrUserPost = (post, currUser) => {
-  return post?.user?.id === currUser?.id;
+export const isCurrUserPost = (currUserId, postUserId) => {
+  return currUserId && postUserId && currUserId === postUserId ? true : false;
 };
 
 export const trimPostAttributeCache = (

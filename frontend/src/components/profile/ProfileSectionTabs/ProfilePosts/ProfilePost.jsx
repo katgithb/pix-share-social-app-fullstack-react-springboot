@@ -6,11 +6,14 @@ import {
   useBreakpointValue,
   useDisclosure,
 } from "@chakra-ui/react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { BiExpandAlt } from "react-icons/bi";
 import { FaComment, FaHeart } from "react-icons/fa6";
 import { useDispatch, useSelector } from "react-redux";
 import { setActivePostIdAction } from "../../../../redux/actions/post/postInteractionActions";
+import { findPostByIdAction } from "../../../../redux/actions/post/postLookupActions";
+import { clearCommentManagement } from "../../../../redux/reducers/comment/commentManagementSlice";
+import { clearPostById } from "../../../../redux/reducers/post/postLookupSlice";
 import { getHumanReadableNumberFormat } from "../../../../utils/commonUtils";
 import PostViewModal from "../../../post/PostFeed/PostFeedCard/PostViewModal/PostViewModal";
 import ImageWithLoader from "../../../shared/ImageWithLoader";
@@ -18,13 +21,19 @@ import ImageWithLoader from "../../../shared/ImageWithLoader";
 const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
   const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
   const isSmallScreen = breakpoint === "base" || breakpoint === "sm";
-  const dispatch = useDispatch();
-  const postInteraction = useSelector((store) => store.post.postInteraction);
   const {
     isOpen: isOpenPostViewModal,
     onOpen: onOpenPostViewModal,
     onClose: onClosePostViewModal,
   } = useDisclosure();
+
+  const dispatch = useDispatch();
+  const postInteraction = useSelector((store) => store.post.postInteraction);
+  const { findPostById } = useSelector((store) => store.post.postLookup);
+  const commentManagement = useSelector(
+    (store) => store.comment.commentManagement
+  );
+  const token = localStorage.getItem("token");
 
   const [showOverlay, setShowOverlay] = useState(false);
   const isActivePost = postInteraction.activePostId === post?.id || showOverlay;
@@ -50,6 +59,39 @@ const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
   const handleOpenPostViewModal = () => {
     onOpenPostViewModal();
   };
+
+  useEffect(() => {
+    if (token && post?.id && commentManagement.isCommentCreated) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(clearCommentManagement());
+      dispatch(findPostByIdAction(data));
+    }
+  }, [commentManagement.isCommentCreated, dispatch, post?.id, token]);
+
+  useEffect(() => {
+    if (token && post?.id && commentManagement.isCommentDeleted) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(clearCommentManagement());
+      dispatch(findPostByIdAction(data));
+    }
+  }, [commentManagement.isCommentDeleted, dispatch, post?.id, token]);
+
+  useEffect(() => {
+    const postById = findPostById;
+
+    if (postById) {
+      dispatch(clearPostById());
+      updateLoadedPostEntry(postById?.id, postById);
+    }
+  }, [dispatch, findPostById, updateLoadedPostEntry]);
 
   return (
     <Flex

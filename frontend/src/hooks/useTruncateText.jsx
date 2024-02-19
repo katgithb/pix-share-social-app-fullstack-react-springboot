@@ -5,7 +5,11 @@ const useTruncateText = (text, maxChars = 100) => {
   const [isTextOverflowing, setIsTextOverflowing] = useState(false);
 
   if (text.length <= maxChars) {
-    return <Text whiteSpace="pre-line">{text}</Text>;
+    return (
+      <Text whiteSpace="pre-line" wordBreak={"break-word"}>
+        {text}
+      </Text>
+    );
   }
 
   const truncatedText = isTextOverflowing
@@ -31,7 +35,11 @@ const useTruncateText = (text, maxChars = 100) => {
 
   return (
     <>
-      <Text noOfLines={!isTextOverflowing ? 2 : {}} whiteSpace="pre-line">
+      <Text
+        noOfLines={!isTextOverflowing ? 2 : {}}
+        whiteSpace="pre-line"
+        wordBreak={"break-word"}
+      >
         {truncatedText}
       </Text>
 

@@ -18,7 +18,7 @@ const CustomTextInput = ({ label, ...props }) => {
       isRequired={props.isRequired ? props.isRequired : false}
       isInvalid={meta.error && meta.touched}
     >
-      <FormLabel htmlFor={props.id}>{label}</FormLabel>
+      {label && <FormLabel htmlFor={props.id}>{label}</FormLabel>}
       <Input rounded="md" {...field} {...props} />
       <FormErrorMessage>{meta.error}</FormErrorMessage>
     </FormControl>

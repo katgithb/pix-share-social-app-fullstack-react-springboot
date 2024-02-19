@@ -11,13 +11,20 @@ import {
   HStack,
   Icon,
   IconButton,
-  Input,
-  Link,
+  Skeleton,
+  SkeletonCircle,
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
+import { Form, Formik } from "formik";
 import _ from "lodash";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AiOutlineExpand, AiOutlineSend } from "react-icons/ai";
 import { BsCardText } from "react-icons/bs";
 import {
@@ -31,8 +38,11 @@ import { PiPaperPlaneTiltBold } from "react-icons/pi";
 import { RiBookmarkFill, RiBookmarkLine } from "react-icons/ri";
 import { RxTimer } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
-import { Link as RouteLink } from "react-router-dom";
+import { Virtuoso } from "react-virtuoso";
+import * as Yup from "yup";
 import useTruncateText from "../../../../../hooks/useTruncateText";
+import { createCommentAction } from "../../../../../redux/actions/comment/commentManagementActions";
+import { findPostByIdAction } from "../../../../../redux/actions/post/postLookupActions";
 import {
   isPostLikedByUserAction,
   isPostSavedByUserAction,
@@ -41,6 +51,10 @@ import {
   unlikePostAction,
   unsavePostAction,
 } from "../../../../../redux/actions/post/postSocialActions";
+import {
+  clearLikedComment,
+  clearUnlikedComment,
+} from "../../../../../redux/reducers/comment/commentSocialSlice";
 import {
   clearIsPostLikedByUser,
   clearIsPostSavedByUser,
@@ -53,6 +67,7 @@ import { getHumanReadableNumberFormat } from "../../../../../utils/commonUtils";
 import { getRelativePostTime } from "../../../../../utils/postUtils";
 import PostCommentCard from "../../../../comment/PostCommentCard/PostCommentCard";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
+import CustomCommentTextInput from "../../../../shared/customFormElements/CustomCommentTextInput";
 import ImageWithLoader from "../../../../shared/ImageWithLoader";
 
 const PostExpandedView = ({
@@ -62,14 +77,32 @@ const PostExpandedView = ({
   setIsImageExpanded,
   onClose,
 }) => {
+  const CAPTION_TRUNCATE_CHARS_LIMIT = 100;
+  const COMMENT_MAX_CHARS = 250;
+  const initialValues = {
+    comment: "",
+  };
+
+  const validationSchema = Yup.object().shape({
+    comment: Yup.string()
+      .max(COMMENT_MAX_CHARS, `Must be at most ${COMMENT_MAX_CHARS} characters`)
+      .matches(/\S/, "Must not be blank"),
+  });
+
   const dispatch = useDispatch();
   const postSocial = useSelector((store) => store.post.postSocial);
+  const commentManagement = useSelector(
+    (store) => store.comment.commentManagement
+  );
   const token = localStorage.getItem("token");
   const [showImageOverlay, setShowImageOverlay] = useState(true);
   const [relativePostTime, setRelativePostTime] = useState(
     getRelativePostTime(post?.createdAt)
   );
-  const truncatedCaptionText = useTruncateText(post?.caption, 100);
+  const truncatedCaptionText = useTruncateText(
+    post?.caption,
+    CAPTION_TRUNCATE_CHARS_LIMIT
+  );
 
   const [isLikedByUser, setIsLikedByUser] = useState(false);
   const [isLikedLoading, setIsLikedLoading] = useState(true);
@@ -77,6 +110,7 @@ const PostExpandedView = ({
   const [isSavedLoading, setIsSavedLoading] = useState(true);
   const isLikedBtnLoaded = useRef(false);
   const isSavedBtnLoaded = useRef(false);
+  const likeStatusUpdatedCommentsSet = useRef(new Set());
 
   const likedByUsersLength = post?.likedByUsers?.length || 0;
   const likesCount = getHumanReadableNumberFormat(likedByUsersLength);
@@ -90,6 +124,52 @@ const PostExpandedView = ({
   const handleExpandPostImage = () => {
     setIsImageExpanded(true);
   };
+
+  const handleModalClose = () => {
+    if (token && post?.id && likeStatusUpdatedCommentsSet.current.size > 0) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(findPostByIdAction(data));
+    }
+
+    for (let commentId of likeStatusUpdatedCommentsSet.current) {
+      if (commentId) {
+        dispatch(clearLikedComment(commentId));
+        dispatch(clearUnlikedComment(commentId));
+      }
+    }
+    likeStatusUpdatedCommentsSet.current.clear();
+    onClose();
+  };
+
+  const handleCommentFormSubmission = (values, { setSubmitting }) => {
+    setSubmitting(true);
+    console.log("Form Values: ", values);
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+        comment: { content: values.comment },
+      };
+
+      dispatch(createCommentAction(data));
+    }
+    setSubmitting(false);
+  };
+
+  const changeCommentLikeUpdatesSet = useCallback((commentId) => {
+    if (!likeStatusUpdatedCommentsSet.current.has(commentId)) {
+      likeStatusUpdatedCommentsSet.current.add(commentId);
+    }
+
+    console.log(
+      "Comment Like Updates in PostModal:",
+      likeStatusUpdatedCommentsSet.current
+    );
+  }, []);
 
   const fetchPostLiked = useCallback(
     (postId) => {
@@ -288,6 +368,53 @@ const PostExpandedView = ({
     };
   }, [post?.createdAt]);
 
+  const PostCommentCardItem = ({ comment }) => {
+    const MemoizedPostCommentCard = useMemo(
+      () => (
+        <PostCommentCard
+          key={comment?.id}
+          currUser={currUser}
+          comment={comment}
+          changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
+          showRelativeTime={true}
+        />
+      ),
+      [comment]
+    );
+
+    return MemoizedPostCommentCard;
+  };
+
+  const rowContent = (index) => {
+    const comment = post?.comments[index];
+
+    return <PostCommentCardItem comment={comment} />;
+  };
+
+  const ScrollSeekPlaceholder = ({ height, width, index }) => (
+    <Flex
+      key={index}
+      h={height}
+      flex="1"
+      align="start"
+      my={2}
+      gap={2}
+      overflow="hidden"
+      pointerEvents="none"
+    >
+      <Flex align="center">
+        <SkeletonCircle size="2em" />
+      </Flex>
+
+      <Flex flex="1" flexDirection="column" align="start" gap={2}>
+        <Flex minH={8} align="center" w="full">
+          <Skeleton height="14px" width="40%" rounded="lg" />
+        </Flex>
+        <Skeleton mb={1} height="4.313em" width="60%" rounded="lg" />
+      </Flex>
+    </Flex>
+  );
+
   return (
     <Flex
       h={{ base: {}, md: "85vh" }}
@@ -359,7 +486,7 @@ const PostExpandedView = ({
               _hover={{
                 bg: useColorModeValue("gray.200", "gray.600"),
               }}
-              onClick={onClose}
+              onClick={handleModalClose}
             />
           </Flex>
         </Flex>
@@ -626,39 +753,47 @@ const PostExpandedView = ({
 
           <Divider display={useColorModeValue("none", "inherit")} />
 
-          <CardBody
-            minH={{ base: "100px", md: "175px" }}
-            alignItems="center"
-            overflowY="auto"
-            px={2}
-            py={1}
-          >
-            <Flex
-              flex={1}
-              flexDirection="column"
-              align={commentsLength > 0 ? {} : "center"}
-              fontSize="sm"
-              overflow="hidden"
-              h={commentsLength > 0 ? {} : "full"}
-              noOfLines={2}
-            >
-              {commentsLength > 0 ? (
-                post?.comments.map((comment, index) => (
-                  <PostCommentCard
-                    key={index}
-                    currUser={currUser}
-                    comment={comment}
-                    showRelativeTime={true}
-                  />
-                ))
-              ) : (
-                <Flex flex={1} align="center" justify="center" h="full">
-                  <Text fontSize="sm" fontWeight="semibold" textAlign="center">
-                    No comments
-                  </Text>
-                </Flex>
-              )}
-            </Flex>
+          <CardBody px={0} py={0}>
+            {commentsLength > 0 ? (
+              <Flex
+                flex={1}
+                flexDirection="column"
+                py={1}
+                minH={{ base: "125px", md: "175px" }}
+                fontSize="sm"
+                overflowY="auto"
+                h="full"
+              >
+                <Virtuoso
+                  style={{
+                    flex: 1,
+                    scrollBehavior: "smooth",
+                  }}
+                  totalCount={commentsLength}
+                  itemContent={rowContent}
+                  overscan={150}
+                  components={{ ScrollSeekPlaceholder }}
+                  scrollSeekConfiguration={{
+                    enter: (velocity) => Math.abs(velocity) > 500,
+                    exit: (velocity) => Math.abs(velocity) < 62.5,
+                  }}
+                />
+              </Flex>
+            ) : (
+              <Flex
+                flex={1}
+                px={2}
+                py={1}
+                minH={{ base: "100px", md: "175px" }}
+                align="center"
+                justify="center"
+                h="full"
+              >
+                <Text fontSize="sm" fontWeight="semibold" textAlign="center">
+                  No comments yet. Be the first to comment!
+                </Text>
+              </Flex>
+            )}
           </CardBody>
 
           <Divider display={useColorModeValue("none", "inherit")} />
@@ -678,42 +813,68 @@ const PostExpandedView = ({
                     boxSize={9}
                   />
                 </Flex>
-                <Flex
-                  flex="1"
-                  align="center"
-                  ml={2}
-                  bg={"gray.100"}
-                  rounded="full"
-                  overflow="hidden"
+
+                <Formik
+                  initialValues={initialValues}
+                  validationSchema={validationSchema}
+                  onSubmit={handleCommentFormSubmission}
                 >
-                  <Link pl="2" as={RouteLink} href="">
-                    <Icon color={"gray.500"} as={FaRegFaceSmile} boxSize={6} />
-                  </Link>
-                  <Input
-                    type="text"
-                    placeholder="Add a comment..."
-                    bg={"gray.100"}
-                    border={0}
-                    color={"gray.500"}
-                    rounded="full"
-                    w="full"
-                    focusBorderColor="transparent"
-                    _placeholder={{
-                      color: "gray.500",
-                    }}
-                  />
-                  <Link pr="0" as={RouteLink}>
-                    <IconButton
-                      icon={<AiOutlineSend />}
+                  {({ isValid, isSubmitting }) => (
+                    <Flex
+                      as={Form}
+                      flex="1"
+                      align="center"
+                      ml={2}
+                      bg={"gray.100"}
                       rounded="full"
-                      color={useColorModeValue("blue.400", "blue.500")}
-                      fontSize={"24"}
-                      fontWeight="bold"
-                      variant="ghost"
-                      aria-label="Post Comment"
-                    />
-                  </Link>
-                </Flex>
+                      overflow="hidden"
+                    >
+                      <CustomCommentTextInput
+                        isRequired
+                        id={"comment"}
+                        name={"comment"}
+                        placeholder={"Add a comment..."}
+                        bg={"gray.100"}
+                        color={"gray.500"}
+                        rounded="full"
+                        w="full"
+                        outline="none"
+                        borderColor="transparent"
+                        focusBorderColor="transparent"
+                        maxChars={COMMENT_MAX_CHARS}
+                        _placeholder={{
+                          color: "gray.500",
+                        }}
+                        inputLeftElement={
+                          <Icon
+                            color={"gray.500"}
+                            as={FaRegFaceSmile}
+                            boxSize={6}
+                          />
+                        }
+                        inputRightElement={
+                          <IconButton
+                            type={"submit"}
+                            isDisabled={
+                              !isValid ||
+                              isSubmitting ||
+                              commentManagement.isDeletingComment
+                            }
+                            isLoading={commentManagement.isCreatingComment}
+                            icon={<AiOutlineSend />}
+                            rounded="full"
+                            color="blue.400"
+                            fontSize="2xl"
+                            fontWeight="bold"
+                            variant="ghost"
+                            aria-label="Post Comment"
+                            _dark={{ color: "blue.500" }}
+                          />
+                        }
+                      />
+                    </Flex>
+                  )}
+                </Formik>
               </Flex>
             </Flex>
           </CardFooter>

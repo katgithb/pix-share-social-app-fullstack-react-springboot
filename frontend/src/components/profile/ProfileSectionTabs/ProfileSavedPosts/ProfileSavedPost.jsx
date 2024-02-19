@@ -11,6 +11,9 @@ import { BiExpandAlt } from "react-icons/bi";
 import { FaComment, FaHeart } from "react-icons/fa6";
 import { useDispatch, useSelector } from "react-redux";
 import { setActivePostIdAction } from "../../../../redux/actions/post/postInteractionActions";
+import { findPostByIdAction } from "../../../../redux/actions/post/postLookupActions";
+import { clearCommentManagement } from "../../../../redux/reducers/comment/commentManagementSlice";
+import { clearPostById } from "../../../../redux/reducers/post/postLookupSlice";
 import { getHumanReadableNumberFormat } from "../../../../utils/commonUtils";
 import PostViewModal from "../../../post/PostFeed/PostFeedCard/PostViewModal/PostViewModal";
 import ImageWithLoader from "../../../shared/ImageWithLoader";
@@ -23,14 +26,20 @@ const ProfileSavedPost = ({
 }) => {
   const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
   const isSmallScreen = breakpoint === "base" || breakpoint === "sm";
-  const dispatch = useDispatch();
-  const postSocial = useSelector((store) => store.post.postSocial);
-  const postInteraction = useSelector((store) => store.post.postInteraction);
   const {
     isOpen: isOpenPostViewModal,
     onOpen: onOpenPostViewModal,
     onClose: onClosePostViewModal,
   } = useDisclosure();
+
+  const dispatch = useDispatch();
+  const postSocial = useSelector((store) => store.post.postSocial);
+  const postInteraction = useSelector((store) => store.post.postInteraction);
+  const { findPostById } = useSelector((store) => store.post.postLookup);
+  const commentManagement = useSelector(
+    (store) => store.comment.commentManagement
+  );
+  const token = localStorage.getItem("token");
 
   const [showOverlay, setShowOverlay] = useState(false);
   const isActivePost =
@@ -64,6 +73,39 @@ const ProfileSavedPost = ({
       clearUnsavedPostEntryAndRefetch(postId);
     }
   }, [clearUnsavedPostEntryAndRefetch, postSocial.unsavedPosts, savedPost?.id]);
+
+  useEffect(() => {
+    if (token && savedPost?.id && commentManagement.isCommentCreated) {
+      const data = {
+        token,
+        postId: savedPost?.id,
+      };
+
+      dispatch(clearCommentManagement());
+      dispatch(findPostByIdAction(data));
+    }
+  }, [commentManagement.isCommentCreated, dispatch, savedPost?.id, token]);
+
+  useEffect(() => {
+    if (token && savedPost?.id && commentManagement.isCommentDeleted) {
+      const data = {
+        token,
+        postId: savedPost?.id,
+      };
+
+      dispatch(clearCommentManagement());
+      dispatch(findPostByIdAction(data));
+    }
+  }, [commentManagement.isCommentDeleted, dispatch, savedPost?.id, token]);
+
+  useEffect(() => {
+    const postById = findPostById;
+
+    if (postById) {
+      dispatch(clearPostById());
+      updateLoadedSavedPostEntry(postById?.id, postById);
+    }
+  }, [dispatch, findPostById, updateLoadedSavedPostEntry]);
 
   return (
     <Flex

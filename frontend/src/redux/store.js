@@ -1,5 +1,7 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authReducer from "./reducers/auth/authSlice";
+import commentManagementReducer from "./reducers/comment/commentManagementSlice";
+import commentSocialReducer from "./reducers/comment/commentSocialSlice";
 import postInteractionReducer from "./reducers/post/postInteractionSlice";
 import postLookupReducer from "./reducers/post/postLookupSlice";
 import postManagementReducer from "./reducers/post/postManagementSlice";
@@ -22,6 +24,10 @@ const store = configureStore({
       postLookup: postLookupReducer,
       postSocial: postSocialReducer,
       postInteraction: postInteractionReducer,
+    }),
+    comment: combineReducers({
+      commentManagement: commentManagementReducer,
+      commentSocial: commentSocialReducer,
     }),
   },
 });

@@ -9,11 +9,17 @@ import {
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
-import React, { useEffect, useRef, useState } from "react";
-import { FaHeart } from "react-icons/fa6";
+import _ from "lodash";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { FaHeart, FaRegHeart } from "react-icons/fa6";
 import { IoRemoveCircleOutline, IoTimerOutline } from "react-icons/io5";
+import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
 import useTruncateText from "../../../hooks/useTruncateText";
+import {
+  likeCommentAction,
+  unlikeCommentAction,
+} from "../../../redux/actions/comment/commentSocialActions";
 import {
   getRelativeCommentTime,
   isCurrUserComment,
@@ -22,7 +28,13 @@ import { getHumanReadableNumberFormat } from "../../../utils/commonUtils";
 import AvatarWithLoader from "../../shared/AvatarWithLoader";
 import PostCommentDeleteDialog from "./PostCommentDeleteDialog";
 
-const PostCommentCard = ({ currUser, comment, showRelativeTime = false }) => {
+const PostCommentCard = ({
+  currUser,
+  comment,
+  changeCommentLikeUpdatesSet = () => {},
+  showRelativeTime = false,
+}) => {
+  const COMMENT_TRUNCATE_CHARS_LIMIT = 100;
   const {
     isOpen: isOpenPostCommentDeleteDialog,
     onOpen: onOpenPostCommentDeleteDialog,
@@ -32,10 +44,90 @@ const PostCommentCard = ({ currUser, comment, showRelativeTime = false }) => {
   const [relativeCommentTime, setRelativeCommentTime] = useState(
     getRelativeCommentTime(comment?.createdAt)
   );
-  const truncatedCommentText = useTruncateText(comment?.content, 100);
+  const truncatedCommentText = useTruncateText(
+    comment?.content,
+    COMMENT_TRUNCATE_CHARS_LIMIT
+  );
 
-  const likedByUsersLength = comment?.likedByUsers?.length || 0;
-  const likesCount = getHumanReadableNumberFormat(likedByUsersLength);
+  const dispatch = useDispatch();
+  const commentSocial = useSelector((store) => store.comment.commentSocial);
+  const { isCreatingComment, isDeletingComment } = useSelector(
+    (store) => store.comment.commentManagement
+  );
+  const token = localStorage.getItem("token");
+
+  const [isLikedByUser, setIsLikedByUser] = useState(
+    comment && !_.isEmpty(comment) ? comment?.isLikedByAuthUser : false
+  );
+
+  const [likedByUsersLength, setLikedByUsersLength] = useState(
+    comment?.likedByUsers?.length || 0
+  );
+  const [likesCount, setLikesCount] = useState(
+    getHumanReadableNumberFormat(likedByUsersLength)
+  );
+
+  const handleCommentLike = () => {
+    if (token && comment?.id) {
+      const data = {
+        token,
+        commentId: comment?.id,
+      };
+
+      dispatch(likeCommentAction(data));
+    }
+  };
+
+  const handleCommentUnlike = () => {
+    if (token && comment?.id) {
+      const data = {
+        token,
+        commentId: comment?.id,
+      };
+
+      dispatch(unlikeCommentAction(data));
+    }
+  };
+
+  const updateCommentLiked = useCallback(
+    (commentId, updatedComment, isLiked) => {
+      const updatedCommentId = updatedComment?.id;
+      const isCommentLikedByUser = updatedComment?.isLikedByAuthUser;
+
+      if (
+        updatedComment &&
+        !_.isEmpty(updatedComment) &&
+        isCommentLikedByUser === isLiked &&
+        updatedCommentId === commentId
+      ) {
+        const likedByUsersLength = updatedComment?.likedByUsers?.length || 0;
+
+        setIsLikedByUser(isLiked);
+        setLikedByUsersLength(likedByUsersLength);
+        setLikesCount(getHumanReadableNumberFormat(likedByUsersLength));
+        changeCommentLikeUpdatesSet(commentId);
+      }
+    },
+    [changeCommentLikeUpdatesSet]
+  );
+
+  useEffect(() => {
+    const commentId = comment?.id;
+    if (commentId && commentId in commentSocial.likedComments) {
+      const likedComment = commentSocial.likedComments[commentId];
+
+      updateCommentLiked(commentId, likedComment, true);
+    }
+  }, [comment?.id, commentSocial.likedComments, updateCommentLiked]);
+
+  useEffect(() => {
+    const commentId = comment?.id;
+    if (commentId && commentId in commentSocial.unlikedComments) {
+      const unlikedComment = commentSocial.unlikedComments[commentId];
+
+      updateCommentLiked(commentId, unlikedComment, false);
+    }
+  }, [comment?.id, commentSocial.unlikedComments, updateCommentLiked]);
 
   useEffect(() => {
     let interval;
@@ -51,12 +143,15 @@ const PostCommentCard = ({ currUser, comment, showRelativeTime = false }) => {
   }, [comment?.createdAt, showRelativeTime]);
 
   return (
-    <Box mt={2}>
-      <PostCommentDeleteDialog
-        isOpen={isOpenPostCommentDeleteDialog}
-        onClose={onClosePostCommentDeleteDialog}
-        cancelRef={postCommentDeleteDialogCancelRef}
-      />
+    <Box mt={2} px={2}>
+      {isCurrUserComment(currUser?.id, comment?.user?.id) && (
+        <PostCommentDeleteDialog
+          isOpen={isOpenPostCommentDeleteDialog}
+          onClose={onClosePostCommentDeleteDialog}
+          cancelRef={postCommentDeleteDialogCancelRef}
+          commentId={comment?.id}
+        />
+      )}
 
       <HStack align="center" justify="space-between" flexWrap="wrap">
         <Flex flex="1" align="start" gap={2}>
@@ -125,16 +220,21 @@ const PostCommentCard = ({ currUser, comment, showRelativeTime = false }) => {
                   {comment?.user?.name}
                 </Text>
 
-                {isCurrUserComment(comment, currUser) && (
+                {isCurrUserComment(currUser?.id, comment?.user?.id) && (
                   <IconButton
                     icon={<IoRemoveCircleOutline />}
+                    isDisabled={isCreatingComment || isDeletingComment}
                     mx={-2}
                     rounded="full"
                     colorScheme="red"
                     size="sm"
                     variant="link"
                     aria-label="Delete Comment"
-                    onClick={onOpenPostCommentDeleteDialog}
+                    onClick={
+                      isCreatingComment || isDeletingComment
+                        ? () => {}
+                        : onOpenPostCommentDeleteDialog
+                    }
                   />
                 )}
               </HStack>
@@ -154,14 +254,23 @@ const PostCommentCard = ({ currUser, comment, showRelativeTime = false }) => {
               >
                 <Flex gap={1} align="center">
                   <IconButton
-                    icon={<FaHeart />}
+                    icon={isLikedByUser ? <FaHeart /> : <FaRegHeart />}
+                    isLoading={
+                      comment?.id in commentSocial.isLikedLoading
+                        ? commentSocial.isLikedLoading[comment?.id]
+                        : false
+                    }
                     mx={-2}
                     rounded="full"
-                    colorScheme="red"
+                    colorScheme={isLikedByUser ? "red" : "gray"}
                     size="sm"
                     variant="link"
                     aria-label="Like"
+                    onClick={
+                      isLikedByUser ? handleCommentUnlike : handleCommentLike
+                    }
                   />
+
                   {likedByUsersLength > 0 ? (
                     <Text
                       fontSize="xs"

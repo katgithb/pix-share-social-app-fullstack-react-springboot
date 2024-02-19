@@ -10,12 +10,12 @@ import {
   HStack,
   Icon,
   IconButton,
-  Input,
   Link,
   Text,
   useColorModeValue,
   useDisclosure,
 } from "@chakra-ui/react";
+import { Form, Formik } from "formik";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineSend } from "react-icons/ai";
 import { BiExpandAlt } from "react-icons/bi";
@@ -30,13 +30,22 @@ import { PiPaperPlaneTiltBold } from "react-icons/pi";
 import { RiBookmarkFill, RiBookmarkLine } from "react-icons/ri";
 import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
+import * as Yup from "yup";
 import useTruncateText from "../../../../hooks/useTruncateText";
+import { createCommentAction } from "../../../../redux/actions/comment/commentManagementActions";
+import { findPostByIdAction } from "../../../../redux/actions/post/postLookupActions";
 import {
   likePostAction,
   savePostAction,
   unlikePostAction,
   unsavePostAction,
 } from "../../../../redux/actions/post/postSocialActions";
+import { clearCommentManagement } from "../../../../redux/reducers/comment/commentManagementSlice";
+import {
+  clearLikedComment,
+  clearUnlikedComment,
+} from "../../../../redux/reducers/comment/commentSocialSlice";
+import { clearPostById } from "../../../../redux/reducers/post/postLookupSlice";
 import {
   clearIsPostLikedByUser,
   clearIsPostSavedByUser,
@@ -50,6 +59,7 @@ import { getRelativePostTime } from "../../../../utils/postUtils";
 import PostCommentCard from "../../../comment/PostCommentCard/PostCommentCard";
 import AvatarGroupWithLoader from "../../../shared/AvatarGroupWithLoader";
 import AvatarWithLoader from "../../../shared/AvatarWithLoader";
+import CustomCommentTextInput from "../../../shared/customFormElements/CustomCommentTextInput";
 import ImageWithLoader from "../../../shared/ImageWithLoader";
 import PostActionsMenu from "./PostActionsMenu";
 import PostViewModal from "./PostViewModal/PostViewModal";
@@ -69,8 +79,24 @@ const PostFeedCard = ({
   const MAX_COMMENTS = 2;
   const MAX_LIKED_USER_AVATARS = 3;
   const REQUEST_DELAY_IN_MS = 400;
+  const CAPTION_TRUNCATE_CHARS_LIMIT = 140;
+  const COMMENT_MAX_CHARS = 250;
+  const initialValues = {
+    comment: "",
+  };
+
+  const validationSchema = Yup.object().shape({
+    comment: Yup.string()
+      .max(COMMENT_MAX_CHARS, `Must be at most ${COMMENT_MAX_CHARS} characters`)
+      .matches(/\S/, "Must not be blank"),
+  });
+
   const dispatch = useDispatch();
+  const { findPostById } = useSelector((store) => store.post.postLookup);
   const postSocial = useSelector((store) => store.post.postSocial);
+  const commentManagement = useSelector(
+    (store) => store.comment.commentManagement
+  );
   const token = localStorage.getItem("token");
   const {
     isOpen: isOpenPostViewModal,
@@ -86,7 +112,10 @@ const PostFeedCard = ({
   const [relativePostTime, setRelativePostTime] = useState(
     getRelativePostTime(post?.createdAt)
   );
-  const truncatedCaptionText = useTruncateText(post?.caption, 140);
+  const truncatedCaptionText = useTruncateText(
+    post?.caption,
+    CAPTION_TRUNCATE_CHARS_LIMIT
+  );
 
   const [isLikedByUser, setIsLikedByUser] = useState(false);
   const [isLikedLoading, setIsLikedLoading] = useState(true);
@@ -94,6 +123,7 @@ const PostFeedCard = ({
   const [isSavedLoading, setIsSavedLoading] = useState(true);
   const isLikedBtnLoaded = useRef(false);
   const isSavedBtnLoaded = useRef(false);
+  const likeStatusUpdatedCommentsSet = useRef(new Set());
 
   const likedByUsersLength = post?.likedByUsers?.length || 0;
   const additionalLikesCount =
@@ -130,6 +160,32 @@ const PostFeedCard = ({
       name: user.name,
       image: user?.userImage,
     }));
+
+  const handleCommentFormSubmission = (values, { setSubmitting }) => {
+    setSubmitting(true);
+    console.log("Form Values: ", values);
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+        comment: { content: values.comment },
+      };
+
+      dispatch(createCommentAction(data));
+    }
+    setSubmitting(false);
+  };
+
+  const changeCommentLikeUpdatesSet = useCallback((commentId) => {
+    if (!likeStatusUpdatedCommentsSet.current.has(commentId)) {
+      likeStatusUpdatedCommentsSet.current.add(commentId);
+    }
+
+    console.log(
+      "Comment Like Updates in PostFeedItem:",
+      likeStatusUpdatedCommentsSet.current
+    );
+  }, []);
 
   const checkPostLiked = useCallback(
     (skipCache = false) => {
@@ -330,6 +386,64 @@ const PostFeedCard = ({
   }, [checkPostLiked, isPostLikedCached, post?.id, postIdPage]);
 
   useEffect(() => {
+    if (token && post?.id && commentManagement.isCommentCreated) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(clearCommentManagement());
+      dispatch(findPostByIdAction(data));
+    }
+  }, [commentManagement.isCommentCreated, dispatch, post?.id, token]);
+
+  useEffect(() => {
+    if (token && post?.id && commentManagement.isCommentDeleted) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(clearCommentManagement());
+      dispatch(findPostByIdAction(data));
+    }
+  }, [commentManagement.isCommentDeleted, dispatch, post?.id, token]);
+
+  useEffect(() => {
+    const postById = findPostById;
+
+    if (postById) {
+      dispatch(clearPostById());
+      updateLoadedPostEntry(postById?.id, postById);
+    }
+  }, [dispatch, findPostById, updateLoadedPostEntry]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup function when PostFeedCard is unmounted
+      // Fetch the updated post data before unmounting
+      const likeStatusUpdatedComments = likeStatusUpdatedCommentsSet.current;
+
+      if (token && post?.id && likeStatusUpdatedComments.size > 0) {
+        const data = {
+          token,
+          postId: post?.id,
+        };
+
+        dispatch(findPostByIdAction(data));
+      }
+
+      for (let commentId of likeStatusUpdatedComments) {
+        if (commentId) {
+          dispatch(clearLikedComment(commentId));
+          dispatch(clearUnlikedComment(commentId));
+        }
+      }
+      likeStatusUpdatedCommentsSet.current.clear();
+    };
+  }, [dispatch, post?.id, token]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       setRelativePostTime(getRelativePostTime(post?.createdAt));
     }, 60000); // Update every minute
@@ -463,7 +577,12 @@ const PostFeedCard = ({
 
               <IconButton
                 icon={<BiExpandAlt />}
-                isDisabled={isLikedLoading || isSavedLoading}
+                isDisabled={
+                  isLikedLoading ||
+                  isSavedLoading ||
+                  commentManagement.isCreatingComment ||
+                  commentManagement.isDeletingComment
+                }
                 bg={useColorModeValue("gray.100", "gray.500")}
                 rounded="full"
                 colorScheme="twitter"
@@ -760,6 +879,7 @@ const PostFeedCard = ({
                     key={index}
                     currUser={currUser}
                     comment={comment}
+                    changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
                   />
                 ))
             ) : (
@@ -781,18 +901,38 @@ const PostFeedCard = ({
               rounded="full"
               boxShadow={"md"}
               cursor={
-                isLikedLoading || isSavedLoading ? "not-allowed" : "pointer"
+                isLikedLoading ||
+                isSavedLoading ||
+                commentManagement.isCreatingComment ||
+                commentManagement.isDeletingComment
+                  ? "not-allowed"
+                  : "pointer"
               }
-              opacity={isLikedLoading || isSavedLoading ? 0.6 : 1}
+              opacity={
+                isLikedLoading ||
+                isSavedLoading ||
+                commentManagement.isCreatingComment ||
+                commentManagement.isDeletingComment
+                  ? 0.6
+                  : 1
+              }
               _hover={{
                 transition: "transform .3s ease",
                 transform:
-                  isLikedLoading || isSavedLoading
+                  isLikedLoading ||
+                  isSavedLoading ||
+                  commentManagement.isCreatingComment ||
+                  commentManagement.isDeletingComment
                     ? "scaleX(1)"
                     : "scaleX(1.025) translateX(1.5%)",
               }}
               onClick={
-                isLikedLoading || isSavedLoading ? {} : onOpenPostViewModal
+                isLikedLoading ||
+                isSavedLoading ||
+                commentManagement.isCreatingComment ||
+                commentManagement.isDeletingComment
+                  ? () => {}
+                  : onOpenPostViewModal
               }
             >
               View all {commentsLength} comments
@@ -811,42 +951,63 @@ const PostFeedCard = ({
             />
           </Flex>
 
-          <Flex
-            flex="1"
-            align="center"
-            ml={2}
-            bg={"gray.100"}
-            rounded="full"
-            overflow="hidden"
+          <Formik
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={handleCommentFormSubmission}
           >
-            <Link pl="2" as={RouteLink} href="">
-              <Icon color={"gray.500"} as={FaRegFaceSmile} boxSize={6} />
-            </Link>
-            <Input
-              type="text"
-              placeholder="Add a comment..."
-              bg={"gray.100"}
-              border={0}
-              color={"gray.500"}
-              rounded="full"
-              w="full"
-              focusBorderColor="transparent"
-              _placeholder={{
-                color: "gray.500",
-              }}
-            />
-            <Link pr="0" as={RouteLink}>
-              <IconButton
-                icon={<AiOutlineSend />}
+            {({ isValid, isSubmitting }) => (
+              <Flex
+                as={Form}
+                flex="1"
+                align="center"
+                ml={2}
+                bg={"gray.100"}
                 rounded="full"
-                color={useColorModeValue("blue.400", "blue.500")}
-                fontSize={"24"}
-                fontWeight="bold"
-                variant="ghost"
-                aria-label="Post Comment"
-              />
-            </Link>
-          </Flex>
+                overflow="hidden"
+              >
+                <CustomCommentTextInput
+                  isRequired
+                  id={"comment"}
+                  name={"comment"}
+                  placeholder={"Add a comment..."}
+                  bg={"gray.100"}
+                  color={"gray.500"}
+                  rounded="full"
+                  w="full"
+                  outline="none"
+                  borderColor="transparent"
+                  focusBorderColor="transparent"
+                  maxChars={COMMENT_MAX_CHARS}
+                  _placeholder={{
+                    color: "gray.500",
+                  }}
+                  inputLeftElement={
+                    <Icon color={"gray.500"} as={FaRegFaceSmile} boxSize={6} />
+                  }
+                  inputRightElement={
+                    <IconButton
+                      type={"submit"}
+                      isDisabled={
+                        !isValid ||
+                        isSubmitting ||
+                        commentManagement.isDeletingComment
+                      }
+                      isLoading={commentManagement.isCreatingComment}
+                      icon={<AiOutlineSend />}
+                      rounded="full"
+                      color="blue.400"
+                      fontSize="2xl"
+                      fontWeight="bold"
+                      variant="ghost"
+                      aria-label="Post Comment"
+                      _dark={{ color: "blue.500" }}
+                    />
+                  }
+                />
+              </Flex>
+            )}
+          </Formik>
         </Flex>
       </CardFooter>
     </Card>

@@ -36,7 +36,7 @@ const PostActionsMenu = ({ currUser, post, onClose, menuIcon }) => {
       name: "Delete Post",
       path: "",
       isLinkEmpty: true,
-      hidden: !isCurrUserPost(post, currUser),
+      hidden: !isCurrUserPost(currUser?.id, post?.user?.id),
       color: useColorModeValue("red.600", "red.400"),
       handleMenuLinkClick: onOpenPostDeleteDialog,
     },

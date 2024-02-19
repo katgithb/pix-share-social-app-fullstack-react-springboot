@@ -2,8 +2,9 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   findPostsByUserId: {},
-  findById: null,
+  findPostById: null,
   findPostsByUserIds: {},
+  isPostByIdLoading: false,
   isLoading: false,
 };
 
@@ -11,8 +12,8 @@ const loadingReducers = {
   findPostsByUserIdPending: (state) => {
     state.isLoading = true;
   },
-  findByIdPending: (state) => {
-    state.isLoading = true;
+  findPostByIdPending: (state) => {
+    state.isPostByIdLoading = true;
   },
   findPostsByUserIdsPending: (state) => {
     state.isLoading = true;
@@ -28,13 +29,19 @@ const postLookupSlice = createSlice({
       state.findPostsByUserId = action.payload;
       state.isLoading = false;
     },
-    findById: (state, action) => {
-      state.findById = action.payload;
-      state.isLoading = false;
+    findPostById: (state, action) => {
+      state.findPostById = action.payload;
+      state.isPostByIdLoading = false;
     },
     findPostsByUserIds: (state, action) => {
       state.findPostsByUserIds = action.payload;
       state.isLoading = false;
+    },
+    clearPostById: (state) => {
+      state.findPostById = null;
+    },
+    findPostByIdFailure: (state) => {
+      state.isPostByIdLoading = false;
     },
     postLookupFailure: (state) => {
       state.isLoading = false;
@@ -45,11 +52,13 @@ const postLookupSlice = createSlice({
 
 export const {
   findPostsByUserIdPending,
-  findByIdPending,
+  findPostByIdPending,
   findPostsByUserIdsPending,
   findPostsByUserId,
-  findById,
+  findPostById,
   findPostsByUserIds,
+  clearPostById,
+  findPostByIdFailure,
   postLookupFailure,
   clearPostLookup,
 } = postLookupSlice.actions;

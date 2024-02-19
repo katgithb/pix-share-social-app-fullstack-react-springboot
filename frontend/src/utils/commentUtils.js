@@ -14,6 +14,8 @@ export const getRelativeCommentTime = (commentTimestamp) => {
   return getRelativeTime(commentTimestamp, commentDayjsLocale) + " ago";
 };
 
-export const isCurrUserComment = (comment, currUser) => {
-  return comment?.user?.id === currUser?.id;
+export const isCurrUserComment = (currUserId, commentUserId) => {
+  return currUserId && commentUserId && currUserId === commentUserId
+    ? true
+    : false;
 };

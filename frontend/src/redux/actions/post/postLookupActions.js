@@ -4,8 +4,9 @@ import {
   findPostsByUserIdRequest,
 } from "../../../services/api/postService";
 import {
-  findById,
-  findByIdPending,
+  findPostById,
+  findPostByIdFailure,
+  findPostByIdPending,
   findPostsByUserId,
   findPostsByUserIdPending,
   findPostsByUserIds,
@@ -31,7 +32,7 @@ export const findPostsByUserIdAction = (data) => async (dispatch) => {
 };
 
 export const findPostByIdAction = (data) => async (dispatch) => {
-  dispatch(findByIdPending());
+  dispatch(findPostByIdPending());
 
   findPostByIdRequest(data)
     .then((response) => {
@@ -39,11 +40,11 @@ export const findPostByIdAction = (data) => async (dispatch) => {
 
       console.log("Post by Id: ", post);
 
-      dispatch(findById(post));
+      dispatch(findPostById(post));
     })
     .catch((error) => {
       console.log(error);
-      dispatch(postLookupFailure());
+      dispatch(findPostByIdFailure());
     });
 };
 
