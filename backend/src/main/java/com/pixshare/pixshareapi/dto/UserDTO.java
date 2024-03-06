@@ -24,7 +24,8 @@ public class UserDTO {
     private String userImage;
     private Set<UserView> follower;
     private Set<UserView> following;
+    private Boolean isFollowedByAuthUser;
     private List<StoryDTO> stories;
-    private Set<PostDTO> savedPosts;
+    private Set<PostView> savedPosts;
     private List<String> roles;
 }

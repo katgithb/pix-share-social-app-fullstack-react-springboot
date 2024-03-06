@@ -1,5 +1,7 @@
 package com.pixshare.pixshareapi.user;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,18 +23,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.id IN :users")
     List<User> findAllUsersByUserIds(@Param("users") List<Long> userIds);
 
-    @Query("SELECT DISTINCT u FROM User u WHERE u.userHandleName LIKE %:query% OR u.email LIKE %:query%")
-    List<User> findByQuery(@Param("query") String query);
+    @Query("SELECT DISTINCT u FROM User u WHERE (u.userHandleName LIKE %:query% OR u.email LIKE %:query%) AND u.id <> :userId")
+    Page<User> findByQuery(@Param("userId") Long userId, @Param("query") String query, Pageable pageable);
 
     @Query("""
             SELECT u FROM User u
+            LEFT JOIN u.follower f ON f.id = :userId
             LEFT JOIN (SELECT u.id AS ufid, COUNT(*) AS cnt FROM User u INNER JOIN u.follower uf GROUP BY u.id) uf
             ON u.id = uf.ufid
             LEFT JOIN (SELECT s.user.id AS sid, COUNT(*) AS cnt FROM Story s GROUP BY s.user.id) s
             ON u.id = s.sid
-            WHERE u.id <> :userId
-            ORDER BY (COALESCE(uf.cnt, 0) + COALESCE(s.cnt, 0)) DESC, u.userHandleName
+            WHERE f.id IS NULL
+            AND u.id <> :userId
+            ORDER BY (COALESCE(uf.cnt, 0) + COALESCE(s.cnt, 0)) DESC, u.id DESC
             LIMIT 5
             """)
     List<User> findPopularUsers(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(u) > 0 FROM User u JOIN u.follower uf WHERE u.id = :followUserId AND uf.id = :userId")
+    Boolean isFollowedByUser(@Param("followUserId") Long followUserId, @Param("userId") Long userId);
 }

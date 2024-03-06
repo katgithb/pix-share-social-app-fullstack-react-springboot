@@ -105,7 +105,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
         PostDTO post = findPostById(postId, userId);
-        UserDTO user = userService.findUserById(userId);
+        UserDTO user = userService.findUserById(userId, userId);
         Long postUserId = post.getUser().getId();
 
         if (!postUserId.equals(user.getId())) {
@@ -123,8 +123,8 @@ public class PostServiceImpl implements PostService {
     @Override
     public PostDTO findPostById(Long postId, Long userId) throws ResourceNotFoundException {
         PostDTO post = postRepository.findById(postId)
-                .map(postEntity -> {
-                    PostDTO postDTO = postDTOMapper.apply(postEntity);
+                .map(postDTOMapper)
+                .map(postDTO -> {
                     postDTO.setComments(
                             commentService.findCommentsByPostId(postDTO.getId(), userId)
                     );
@@ -166,6 +166,31 @@ public class PostServiceImpl implements PostService {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
         Page<Post> pagedPosts = postRepository.findAllPostsByUserIds(userIds, pageable);
+
+        // get posts content from Page
+        List<PostDTO> content = pagedPosts
+                .getContent()
+                .stream()
+                .map(postDTOMapper)
+                .peek(postDTO -> postDTO.setComments(
+                        commentService.findCommentsByPostId(postDTO.getId(), authUserId)
+                ))
+                .toList();
+
+        return new PagedResponse<>(
+                content,
+                pagedPosts.getNumber(),
+                pagedPosts.getSize(),
+                pagedPosts.getTotalElements(),
+                pagedPosts.getTotalPages(),
+                pagedPosts.isLast());
+    }
+
+    @Override
+    public PagedResponse<PostDTO> findAllPosts(Long authUserId, PageRequestDTO pageRequest) {
+        // create Pageable instance
+        Pageable pageable = pageRequest.toPageable();
+        Page<Post> pagedPosts = postRepository.findAllPosts(pageable);
 
         // get posts content from Page
         List<PostDTO> content = pagedPosts
@@ -254,7 +279,10 @@ public class PostServiceImpl implements PostService {
             postRepository.save(post);
         }
 
-        return postDTOMapper.apply(post);
+        PostDTO postDTO = postDTOMapper.apply(post);
+        postDTO.setComments(commentService.findCommentsByPostId(post.getId(), userId));
+
+        return postDTO;
     }
 
     @Override
@@ -270,7 +298,10 @@ public class PostServiceImpl implements PostService {
             postRepository.save(post);
         }
 
-        return postDTOMapper.apply(post);
+        PostDTO postDTO = postDTOMapper.apply(post);
+        postDTO.setComments(commentService.findCommentsByPostId(post.getId(), userId));
+
+        return postDTO;
     }
 
     @Override

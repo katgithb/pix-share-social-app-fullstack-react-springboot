@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +34,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
 
         String firstName = FAKER.name().firstName();
         String lastName = FAKER.name().lastName();
-        username = firstName.toLowerCase() + "_" + lastName.toLowerCase() + "123";
+        username = firstName.toLowerCase() + lastName.toLowerCase() + "u123";
         name = firstName + " " + lastName;
         email = FAKER.internet().safeEmailAddress() + "-" + UUID.randomUUID();
         password = "password123#";
@@ -226,19 +228,21 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return an empty list when the query does not match any username or email")
     void findByQueryWhenQueryDoesNotMatchAnyUsernameOrEmail() {
         // Given
+        Long userId = 1L;
         String query = "nonexistent";
 
         // When
-        List<User> actualUsers = userRepository.findByQuery(query);
+        Page<User> actualUsersPage = userRepository.findByQuery(userId, query, PageRequest.of(0, 10));
 
         // Then
-        assertThat(actualUsers.size()).isEqualTo(0);
+        assertThat(actualUsersPage.getContent().size()).isEqualTo(0);
     }
 
     @Test
     @DisplayName("Should return a list of users when the query matches their username or email")
     void findByQueryWhenQueryMatchesUsernameOrEmail() {
         // Given
+        Long userId = 5L;
         String query = "john";
         User user1 = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE);
         User user2 = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE);
@@ -248,12 +252,12 @@ class UserRepositoryTest extends AbstractTestcontainers {
         userRepository.saveAll(users);
 
         // When
-        List<User> actualUsers = userRepository.findByQuery(query);
+        Page<User> actualUsersPage = userRepository.findByQuery(userId, query, PageRequest.of(0, 10));
 
         // Then
-        assertThat(actualUsers.size()).isEqualTo(2);
-        assertThat(actualUsers).contains(user1);
-        assertThat(actualUsers).contains(user3);
+        assertThat(actualUsersPage.getContent().size()).isEqualTo(2);
+        assertThat(actualUsersPage.getContent()).contains(user1);
+        assertThat(actualUsersPage.getContent()).contains(user3);
     }
 
     @Test
@@ -289,6 +293,39 @@ class UserRepositoryTest extends AbstractTestcontainers {
         // Then
         assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
         assertThat(actualPopularUsers).containsExactlyInAnyOrderElementsOf(expectedPopularUsers);
+    }
+
+    @Test
+    @DisplayName("Should return false when follow user is not followed by the given user")
+    void isFollowedByUserWhenNotFollowedByGivenUser() {
+        // Given
+        User followUser = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE);
+        User user = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE);
+        userRepository.save(followUser);
+        userRepository.save(user);
+
+        // When
+        boolean actual = userRepository.isFollowedByUser(followUser.getId(), user.getId());
+
+        // Then
+        assertThat(actual).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should return true when follow user is followed by the given user")
+    void isFollowedByUserWhenFollowedByGivenUser() {
+        // Given
+        User followUser = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE);
+        User user = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE);
+        followUser.addFollower(user);
+        userRepository.save(followUser);
+        userRepository.save(user);
+
+        // When
+        boolean actual = userRepository.isFollowedByUser(followUser.getId(), user.getId());
+
+        // Then
+        assertThat(actual).isTrue();
     }
 
 }

@@ -2,13 +2,11 @@ package com.pixshare.pixshareapi.story;
 
 import com.pixshare.pixshareapi.dto.StoryDTO;
 import com.pixshare.pixshareapi.dto.StoryDTOMapper;
-import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
-import com.pixshare.pixshareapi.user.UserService;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,18 +18,15 @@ import java.util.List;
 public class StoryServiceImpl implements StoryService {
 
     private final StoryRepository storyRepository;
-
-    private final UserService userService;
-
+    
     private final UploadService uploadService;
 
     private final UserRepository userRepository;
 
     private final StoryDTOMapper storyDTOMapper;
 
-    public StoryServiceImpl(StoryRepository storyRepository, UserService userService, UploadService uploadService, UserRepository userRepository, StoryDTOMapper storyDTOMapper) {
+    public StoryServiceImpl(StoryRepository storyRepository, UploadService uploadService, UserRepository userRepository, StoryDTOMapper storyDTOMapper) {
         this.storyRepository = storyRepository;
-        this.userService = userService;
         this.uploadService = uploadService;
         this.userRepository = userRepository;
         this.storyDTOMapper = storyDTOMapper;
@@ -57,7 +52,8 @@ public class StoryServiceImpl implements StoryService {
     @Transactional
     public void deleteStory(Long storyId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
         StoryDTO story = findStoryById(storyId);
-        UserDTO user = userService.findUserById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         if (!story.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedActionException("You can't delete other user's story");

@@ -73,6 +73,17 @@ public class PostController {
         return new ResponseEntity<>(postResponse, HttpStatus.OK);
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<PagedResponse<PostDTO>> findAllPosts(
+            @ModelAttribute PageRequestDTO pageRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<PostDTO> postResponse = postService.findAllPosts(identity.getId(), pageRequest);
+
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
+    }
+
     @DeleteMapping("/delete/{postId}")
     public void deletePost(
             @PathVariable("postId") Long postId,
@@ -132,7 +143,7 @@ public class PostController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        
+
         postService.unsavePost(postId, identity.getId());
     }
 

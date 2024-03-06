@@ -32,49 +32,48 @@ public class UserController {
 
     @GetMapping("/id/{userId}")
     public ResponseEntity<UserDTO> findUserById(
-            @PathVariable("userId") Long userId) {
-        UserDTO user = userService.findUserById(userId);
-        user.setStories(
-                storyService.findStoriesByUserId(userId)
-        );
+            @PathVariable("userId") Long userId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        UserDTO user = userService.findUserById(identity.getId(), userId);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @GetMapping("/username/{username}")
     public ResponseEntity<UserDTO> findUserByUsername(
-            @PathVariable("username") String username) {
-        UserDTO user = userService.findUserByUsername(username);
-        user.setStories(
-                storyService.findStoriesByUserId(user.getId())
-        );
+            @PathVariable("username") String username,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        UserDTO user = userService.findUserByUsername(identity.getId(), username);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @GetMapping("/m/{userIds}")
     public ResponseEntity<List<UserDTO>> findUserByIds(
-            @PathVariable("userIds") List<Long> userIds) {
-        List<UserDTO> users = userService.findUserByIds(userIds).stream()
-                .peek(userDTO -> userDTO.setStories(
-                        storyService.findStoriesByUserId(userDTO.getId())
-                ))
-                .toList();
+            @PathVariable("userIds") List<Long> userIds,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        List<UserDTO> users = userService.findUserByIds(identity.getId(), userIds);
 
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
     // /search?q=query
     @GetMapping("/search")
-    public ResponseEntity<List<UserDTO>> searchUser(
-            @RequestParam("q") String query) {
-        List<UserDTO> users = userService.searchUser(query).stream()
-                .peek(userDTO -> userDTO.setStories(
-                        storyService.findStoriesByUserId(userDTO.getId())
-                ))
-                .toList();
+    public ResponseEntity<PagedResponse<UserDTO>> searchUser(
+            @RequestParam("q") String query,
+            @ModelAttribute PageRequestDTO pageRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<UserDTO> userResponse = userService.searchUser(identity.getId(), query, pageRequest);
 
-        return new ResponseEntity<>(users, HttpStatus.OK);
+        return new ResponseEntity<>(userResponse, HttpStatus.OK);
     }
 
     @GetMapping("/popular")
@@ -82,12 +81,7 @@ public class UserController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        List<UserDTO> users = userService.findPopularUsers(identity.getId()).stream()
-                .peek(userDTO -> userDTO.setStories(
-                        storyService.findStoriesByUserId(userDTO.getId())
-                ))
-                .toList();
-        ;
+        List<UserDTO> users = userService.findPopularUsers(identity.getId());
 
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
@@ -121,7 +115,7 @@ public class UserController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        UserDTO user = userService.findUserById(identity.getId());
+        UserDTO user = userService.findUserById(identity.getId(), identity.getId());
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }

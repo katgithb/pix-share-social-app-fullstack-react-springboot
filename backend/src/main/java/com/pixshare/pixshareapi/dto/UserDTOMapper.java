@@ -13,11 +13,11 @@ import java.util.stream.Collectors;
 public class UserDTOMapper implements Function<User, UserDTO> {
 
     private final UserViewMapper userViewMapper;
-    private final PostDTOMapper postDTOMapper;
+    private final PostViewMapper postViewMapper;
 
-    public UserDTOMapper(UserViewMapper userViewMapper, PostDTOMapper postDTOMapper) {
+    public UserDTOMapper(UserViewMapper userViewMapper, PostViewMapper postViewMapper) {
         this.userViewMapper = userViewMapper;
-        this.postDTOMapper = postDTOMapper;
+        this.postViewMapper = postViewMapper;
     }
 
     @Override
@@ -41,9 +41,10 @@ public class UserDTOMapper implements Function<User, UserDTO> {
                         .map(userViewMapper)
                         .collect(Collectors.toCollection(
                                 LinkedHashSet::new)),
+                false,
                 new ArrayList<>(),
                 user.getSavedPosts().stream()
-                        .map(postDTOMapper)
+                        .map(postViewMapper)
                         .collect(Collectors.toCollection(
                                 LinkedHashSet::new)),
                 user.getAuthorities().stream()

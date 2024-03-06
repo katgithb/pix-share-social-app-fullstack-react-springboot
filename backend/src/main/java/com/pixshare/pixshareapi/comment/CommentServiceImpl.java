@@ -69,7 +69,7 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public void deleteComment(Long commentId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
         CommentDTO comment = findCommentById(commentId, userId);
-        UserDTO user = userService.findUserById(userId);
+        UserDTO user = userService.findUserById(userId, userId);
 
         if (!comment.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedActionException("You can't delete other user's comment");
@@ -83,8 +83,8 @@ public class CommentServiceImpl implements CommentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         CommentDTO comment = commentRepository.findById(commentId)
-                .map(commentEntity -> {
-                    CommentDTO commentDTO = commentDTOMapper.apply(commentEntity);
+                .map(commentDTOMapper)
+                .map(commentDTO -> {
                     commentDTO.setIsLikedByAuthUser(
                             commentRepository.isCommentLikedByUser(commentDTO.getId(), user.getId())
                     );
