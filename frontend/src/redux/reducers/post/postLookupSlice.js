@@ -4,6 +4,7 @@ const initialState = {
   findPostsByUserId: {},
   findPostById: null,
   findPostsByUserIds: {},
+  findAllPosts: {},
   isPostByIdLoading: false,
   isLoading: false,
 };
@@ -16,6 +17,9 @@ const loadingReducers = {
     state.isPostByIdLoading = true;
   },
   findPostsByUserIdsPending: (state) => {
+    state.isLoading = true;
+  },
+  findAllPostsPending: (state) => {
     state.isLoading = true;
   },
 };
@@ -37,6 +41,10 @@ const postLookupSlice = createSlice({
       state.findPostsByUserIds = action.payload;
       state.isLoading = false;
     },
+    findAllPosts: (state, action) => {
+      state.findAllPosts = action.payload;
+      state.isLoading = false;
+    },
     clearPostById: (state) => {
       state.findPostById = null;
     },
@@ -54,9 +62,11 @@ export const {
   findPostsByUserIdPending,
   findPostByIdPending,
   findPostsByUserIdsPending,
+  findAllPostsPending,
   findPostsByUserId,
   findPostById,
   findPostsByUserIds,
+  findAllPosts,
   clearPostById,
   findPostByIdFailure,
   postLookupFailure,

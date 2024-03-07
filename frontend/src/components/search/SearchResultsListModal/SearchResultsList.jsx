@@ -1,180 +1,242 @@
-import React, { useEffect, useRef, useState } from "react";
-import { VariableSizeList as WindowList } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
-import InfiniteLoader from "react-window-infinite-loader";
 import {
   Box,
+  Fade,
   Flex,
+  Skeleton,
+  SkeletonCircle,
   Text,
-  useBreakpointValue,
   useColorMode,
   useTheme,
 } from "@chakra-ui/react";
+import { OrderedMap } from "immutable";
+import _ from "lodash";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import { StageSpinner } from "react-spinners-kit";
+import { Virtuoso } from "react-virtuoso";
+import { getHumanReadableNumberFormat } from "../../../utils/commonUtils";
+import { SEARCH_USERS_DEFAULT_PAGE } from "../../../utils/constants/pagination/userPagination";
 import SearchResultsListCard from "./SearchResultsListCard";
-import { useResizeDetector } from "react-resize-detector";
 
-const SearchResultsList = ({ searchQuery, searchResults }) => {
-  const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
-  const isSmallScreen = breakpoint === "base" || breakpoint === "sm";
+const SearchResultsList = ({
+  searchQuery,
+  searchResults,
+  totalSearchResults = 0,
+  handlePageChange,
+  changeUserFollowUpdatesSet = () => {},
+}) => {
   const { colorMode } = useColorMode();
   const theme = useTheme();
 
-  const [loadedResults, setLoadedResults] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-  const listRef = useRef({});
-  const itemHeights = useRef({});
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const fetchNextPageDelayInMs = 4000;
-  const pageSize = 25;
-  const totalPage = Math.ceil(searchResults?.length / pageSize);
-  const prefetchThreshold = Math.floor(pageSize / 3);
+  const [latestLoadedPage, setLatestLoadedPage] = useState(
+    SEARCH_USERS_DEFAULT_PAGE
+  );
+  const [loadedSearchResultsPage, setLoadedSearchResultsPage] = useState({});
+  const [loadedSearchResultsMap, setLoadedSearchResultsMap] = useState(
+    OrderedMap()
+  );
 
-  const loadMoreResults = async () => {
-    if (!hasMore) return;
-    setLoading(true);
+  const { isSearchUsersLoading } = useSelector(
+    (store) => store.user.userLookup
+  );
+  const searchResultsCount = getHumanReadableNumberFormat(totalSearchResults);
+  const searchResultsText = totalSearchResults === 1 ? "result" : "results";
 
-    try {
-      const newResults = await new Promise((resolve) => {
-        setTimeout(() => {
-          const nextPageStartIndex = (page - 1) * pageSize;
-          const nextPageStopIndex = page * pageSize;
+  const loadMoreSearchResults = () => {
+    if (loadedSearchResultsPage.last) return;
 
-          const resultsToLoad =
-            // searchResults?.length <= pageSize
-            //   ? searchResults
-            //   :
-            searchResults?.slice(nextPageStartIndex, nextPageStopIndex);
+    handlePageChange(searchQuery, latestLoadedPage + 1);
 
-          resolve(resultsToLoad); // Resolve the Promise with the resultsToLoad
-        }, fetchNextPageDelayInMs); // Simulate a delay
-      });
+    // Increment the latestLoadedPage state variable
+    latestLoadedPage < loadedSearchResultsPage.totalPages
+      ? setLatestLoadedPage((prevPage) => prevPage + 1)
+      : setLatestLoadedPage(loadedSearchResultsPage.page + 1);
+  };
 
-      if (page >= totalPage) {
-        setHasMore(false); // Set hasMore to false if the page number exceeds the total number of pages
+  const populateInitialSearchResultsPage = useCallback(
+    (initialSearchResultsPage) => {
+      if (initialSearchResultsPage?.content) {
+        const initialSearchResults = initialSearchResultsPage?.content;
+        console.log("Initial SearchResults:", initialSearchResults);
+
+        const newLoadedSearchResultsMap = OrderedMap(
+          initialSearchResults.map((user) => [user.id, user])
+        );
+        setLoadedSearchResultsMap(newLoadedSearchResultsMap);
       }
+    },
+    []
+  );
 
-      setLoadedResults((prevResults) => [...prevResults, ...newResults]); // Update loadedResults after the Promise is resolved
-      setPage((prevPage) => prevPage + 1); // Increment the page state variable
-    } catch (error) {
-      console.error("Error loading results:", error);
-    } finally {
-      setLoading(false); // Set loading to false after the Promise has completed
+  const addNewSearchResultsPageData = useCallback((newSearchResultsPage) => {
+    if (
+      newSearchResultsPage?.content &&
+      newSearchResultsPage?.page < newSearchResultsPage?.totalPages
+    ) {
+      const newSearchResults = newSearchResultsPage?.content;
+      console.log("New SearchResults:", newSearchResults);
+
+      const newLoadedSearchResultsMap = OrderedMap(
+        newSearchResults.map((user) => [user.id, user])
+      );
+      setLoadedSearchResultsMap((prevSearchResultsMap) =>
+        prevSearchResultsMap.merge(newLoadedSearchResultsMap)
+      );
     }
+  }, []);
+
+  useEffect(() => {
+    if (searchResults) {
+      const loadedSearchResultsPage = searchResults;
+      setLoadedSearchResultsPage(searchResults);
+      console.log("loadedSearchResultsPage: ", loadedSearchResultsPage);
+
+      if (loadedSearchResultsPage?.page === SEARCH_USERS_DEFAULT_PAGE - 1) {
+        populateInitialSearchResultsPage(loadedSearchResultsPage);
+      } else {
+        addNewSearchResultsPageData(loadedSearchResultsPage);
+      }
+    }
+  }, [
+    addNewSearchResultsPageData,
+    loadedSearchResultsPage,
+    populateInitialSearchResultsPage,
+    searchResults,
+  ]);
+
+  useEffect(() => {
+    if (searchQuery) {
+      setLatestLoadedPage(SEARCH_USERS_DEFAULT_PAGE);
+      setLoadedSearchResultsPage({});
+      setLoadedSearchResultsMap(OrderedMap());
+    }
+  }, [searchQuery]);
+
+  const SearchResultsListCardItem = ({ searchResultUser }) => {
+    const MemoizedSearchResultsListCard = useMemo(
+      () => (
+        <SearchResultsListCard
+          user={searchResultUser}
+          changeUserFollowUpdatesSet={changeUserFollowUpdatesSet}
+        />
+      ),
+      [searchResultUser]
+    );
+
+    return MemoizedSearchResultsListCard;
+  };
+
+  const rowContent = (index) => {
+    const searchResultUser = loadedSearchResultsMap.valueSeq().get(index);
+
+    return <SearchResultsListCardItem searchResultUser={searchResultUser} />;
+  };
+
+  const ScrollSeekPlaceholder = ({ height, width, index }) => (
+    <Flex
+      key={index}
+      h={height}
+      flex="1"
+      align="start"
+      mt={0.5}
+      px={2}
+      py={1}
+      gap={2}
+      overflow="hidden"
+      pointerEvents="none"
+    >
+      <Flex align="center">
+        <SkeletonCircle size="2.5em" />
+      </Flex>
+
+      <Flex flex="1" flexDirection="column" align="start" gap={2}>
+        <Skeleton
+          height="14px"
+          width={{ base: "30%", md: "20%" }}
+          rounded="lg"
+        />
+        <Skeleton
+          mb={1}
+          height="1em"
+          width={{ base: "50%", md: "35%" }}
+          rounded="lg"
+        />
+      </Flex>
+    </Flex>
+  );
+
+  const Footer = () => {
+    if (isSearchUsersLoading) {
+      return (
+        <Flex
+          m={1}
+          pt={isSearchUsersLoading && totalSearchResults === 0 ? 2 : 0}
+          maxH="full"
+          justify="center"
+          align="center"
+        >
+          <StageSpinner
+            color={
+              colorMode === "dark"
+                ? theme.colors.gray[300]
+                : theme.colors.gray[400]
+            }
+            loading={isSearchUsersLoading}
+          />
+        </Flex>
+      );
+    }
+
+    if (!_.isEmpty(loadedSearchResultsPage) && totalSearchResults === 0) {
+      return (
+        <Fade in>
+          <Flex m={1} pt={5} maxH="full" align="center" justify="center">
+            <Text
+              fontWeight="bold"
+              textAlign="center"
+              color="gray.500"
+              _dark={{ color: "gray.400" }}
+              fontSize="sm"
+            >
+              No results found
+            </Text>
+          </Flex>
+        </Fade>
+      );
+    }
+
+    if (_.isEmpty(loadedSearchResultsPage)) {
+      return (
+        <Fade in>
+          <Flex m={1} pt={5} maxH="full" align="center" justify="center">
+            <Text
+              fontWeight="bold"
+              textAlign="center"
+              color="gray.500"
+              _dark={{ color: "gray.400" }}
+              fontSize="sm"
+            >
+              Failed to fetch results
+            </Text>
+          </Flex>
+        </Fade>
+      );
+    }
+
+    return null;
   };
 
   console.log(
-    "searchResults page and totalPages and hasMore: ",
-    page,
-    totalPage,
-    hasMore
+    "loadedSearchResultsMap: ",
+    searchQuery,
+    latestLoadedPage,
+    loadedSearchResultsPage,
+    loadedSearchResultsMap
   );
-
-  // If there are more items to be loaded then add an extra row to hold a loading indicator.
-  const itemCount = hasMore ? loadedResults.length + 1 : searchResults?.length;
-
-  const loadMoreItems = loading ? () => {} : loadMoreResults;
-
-  // Every row is loaded except for our loading indicator row.
-  const isItemLoaded = (index) => !hasMore || index < loadedResults.length;
-
-  const measureRowHeight = (index) => {
-    const itemHeightPaddingInPx = 12;
-    const itemDefaultHeight = isSmallScreen ? 90 : 42; // Default height if not measured yet
-    return (
-      itemHeights.current[index] + itemHeightPaddingInPx ||
-      itemDefaultHeight + itemHeightPaddingInPx
-    );
-  };
-
-  useEffect(() => {
-    setLoadedResults([]);
-    setHasMore(true);
-    setPage(1);
-  }, [searchQuery]);
-
-  const SearchResultsListCardWithResizeHandling = React.memo(
-    ({ index, searchResult }) => {
-      // console.log("index and searchResult:", index, searchResult);
-      const { user } = searchResult;
-
-      const { height, ref } = useResizeDetector({
-        refreshMode: "debounce",
-        refreshRate: 500,
-      });
-
-      useEffect(() => {
-        if (height) {
-          const itemHeight = height; // Use the height of the container
-          itemHeights.current[index] = itemHeight;
-          listRef.current.resetAfterIndex(index);
-        }
-      }, [height, index]);
-
-      return (
-        <div ref={ref}>
-          <SearchResultsListCard user={user} />
-        </div>
-      );
-    }
-  );
-
-  SearchResultsListCardWithResizeHandling.displayName =
-    "SearchResultsListCardWithResizeHandling";
-
-  const rowRenderer = React.memo(({ index, style }) => {
-    const searchResult = loadedResults[index];
-
-    const loadingSpinner = (
-      <Flex
-        m={1}
-        pt={loading && loadedResults.length === 0 ? 3 : 0}
-        maxH="full"
-        justifyContent="center"
-        alignItems="center"
-      >
-        <StageSpinner
-          color={
-            colorMode === "dark"
-              ? theme.colors.gray[300]
-              : theme.colors.gray[400]
-          }
-          loading={loading}
-        />
-      </Flex>
-    );
-
-    let content;
-    if (!isItemLoaded(index) || index >= loadedResults.length) {
-      content = loadingSpinner;
-    } else {
-      content = (
-        <SearchResultsListCardWithResizeHandling
-          index={index}
-          searchResult={searchResult}
-        />
-      );
-    }
-
-    return (
-      <div
-        key={searchResult?.userId}
-        style={{
-          ...style,
-          padding: "4px 8px",
-        }}
-      >
-        {content}
-      </div>
-    );
-  });
-
-  rowRenderer.displayName = "rowRenderer";
 
   return (
     <Box mx={-2}>
-      {loadedResults.length > 0 && (
+      {totalSearchResults > 0 && (
         <Flex px={2} mt={-4} mb={2}>
           <Text
             fontWeight="bold"
@@ -183,47 +245,33 @@ const SearchResultsList = ({ searchQuery, searchResults }) => {
             _dark={{ color: "gray.400" }}
             fontSize="sm"
           >
-            Found {searchResults?.length} results
+            Found {searchResultsCount} {searchResultsText}
           </Text>
         </Flex>
       )}
 
-      <Box mb={2} rounded="lg" scrollBehavior="smooth" overflowY="auto">
+      <Box mb={2} rounded="lg" alignItems="center">
         <Flex
           flexDirection="column"
-          h={
-            loading && loadedResults.length === 0
-              ? "100px"
-              : { base: "65vh", md: "62.5vh" }
-          }
+          h={totalSearchResults === 0 ? "20" : { base: "65vh", md: "62.5vh" }}
+          justify="center"
+          align="center"
         >
-          <InfiniteLoader
-            isItemLoaded={isItemLoaded}
-            itemCount={itemCount}
-            loadMoreItems={loadMoreItems}
-            threshold={prefetchThreshold}
-          >
-            {({ onItemsRendered, ref }) => (
-              <AutoSizer disableWidth>
-                {({ height }) => (
-                  <WindowList
-                    height={height}
-                    itemCount={itemCount}
-                    onItemsRendered={onItemsRendered}
-                    itemSize={measureRowHeight}
-                    // width={width}
-                    // ref={ref}
-                    ref={(el) => {
-                      listRef.current = el;
-                      ref(el);
-                    }}
-                  >
-                    {rowRenderer}
-                  </WindowList>
-                )}
-              </AutoSizer>
-            )}
-          </InfiniteLoader>
+          <Virtuoso
+            style={{
+              flex: 1,
+              width: "100%",
+              scrollBehavior: "smooth",
+            }}
+            totalCount={loadedSearchResultsMap.size}
+            endReached={loadMoreSearchResults}
+            itemContent={rowContent}
+            components={{ ScrollSeekPlaceholder, Footer }}
+            scrollSeekConfiguration={{
+              enter: (velocity) => Math.abs(velocity) > 500,
+              exit: (velocity) => Math.abs(velocity) < 62.5,
+            }}
+          />
         </Flex>
       </Box>
     </Box>

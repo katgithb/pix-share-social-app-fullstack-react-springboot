@@ -21,16 +21,16 @@ const ProfileHeader = ({ user, totalPosts, isGivenUserCurrUser = false }) => {
   const { colorMode } = useColorMode();
   const MAX_CHARS_MOBILE_USER_DETAILS = 30;
 
+  const { isLoading: isLoadingUserProfile } = useSelector(
+    (store) => store.user.userProfile
+  );
   const { isLoading: isLoadingUserLookup } = useSelector(
     (store) => store.user.userLookup
   );
 
-  if (isLoadingUserLookup) {
+  if (isLoadingUserProfile || isLoadingUserLookup) {
     return (
-      <Fade
-        in={isLoadingUserLookup}
-        transition={{ exit: { delay: 0.6 }, enter: { duration: 0.4 } }}
-      >
+      <Fade in transition={{ exit: { delay: 0.6 }, enter: { duration: 0.4 } }}>
         <ProfileHeaderSkeleton />
       </Fade>
     );
@@ -39,7 +39,7 @@ const ProfileHeader = ({ user, totalPosts, isGivenUserCurrUser = false }) => {
   if (!user) {
     return (
       <Fade
-        in={!isLoadingUserLookup}
+        in={!isLoadingUserProfile || !isLoadingUserLookup}
         transition={{ exit: { delay: 0.6 }, enter: { duration: 0.4 } }}
       >
         <UserProfileNotFound />
@@ -55,7 +55,7 @@ const ProfileHeader = ({ user, totalPosts, isGivenUserCurrUser = false }) => {
       boxShadow={"md"}
     >
       <Fade
-        in={!isLoadingUserLookup}
+        in={!isLoadingUserProfile || !isLoadingUserLookup}
         transition={{ exit: { delay: 0.6 }, enter: { duration: 0.4 } }}
       >
         <CardBody>

@@ -17,6 +17,7 @@ import {
   MenuList,
   Stack,
   Text,
+  Tooltip,
   useColorMode,
   useColorModeValue,
   useDisclosure,
@@ -25,18 +26,17 @@ import {
 import { useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import {
-  FaBookmark,
   FaGear,
-  FaRegCommentDots,
+  FaRegCircleUser,
   FaRegCompass,
-  FaRegHeart,
   FaRegSquarePlus,
   FaRightFromBracket,
   FaUser,
 } from "react-icons/fa6";
-import { FiMoon, FiSun } from "react-icons/fi";
+import { FiMoon, FiSettings, FiSun } from "react-icons/fi";
 import { GiHamburgerMenu } from "react-icons/gi";
-import { GrSearch } from "react-icons/gr";
+import { ImCompass2 } from "react-icons/im";
+import { IoSearch } from "react-icons/io5";
 import { PiHouseBold } from "react-icons/pi";
 import { TbLayoutNavbarCollapse, TbLayoutNavbarExpand } from "react-icons/tb";
 import { useDispatch, useSelector } from "react-redux";
@@ -48,26 +48,7 @@ import CreatePostModal from "../post/CreatePostModal/CreatePostModal";
 import SearchInputBar from "../search/SearchInputBar";
 import SearchResultsListModal from "../search/SearchResultsListModal/SearchResultsListModal";
 
-// const menuLinks = [
-//   {
-//     name: "Profile",
-//     path: `/profile/${userProfile.currUser?.username}`,
-//     icon: FaUser,
-//   },
-//   {
-//     name: "Saved",
-//     path: "/",
-//     icon: FaBookmark,
-//   },
-//   {
-//     name: "Settings",
-//     path: "/account/settings",
-//     icon: FaGear,
-//   },
-// ];
-
 const Navbar = () => {
-  // const { isOpen, onOpen, onClose } = useDisclosure();
   const { colorMode, toggleColorMode } = useColorMode();
   const dispatch = useDispatch();
   const {
@@ -87,7 +68,6 @@ const Navbar = () => {
   } = useDisclosure();
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(false);
   const [showNavBar, setShowNavBar] = useState(false);
-  // const token = localStorage.getItem("token");
   const userProfile = useSelector((store) => store.user.userProfile);
 
   const menuLinks = [
@@ -97,9 +77,9 @@ const Navbar = () => {
       icon: FaUser,
     },
     {
-      name: "Saved",
-      path: "/",
-      icon: FaBookmark,
+      name: "Discover",
+      path: "/discover",
+      icon: ImCompass2,
     },
     {
       name: "Settings",
@@ -117,10 +97,10 @@ const Navbar = () => {
       handleNavLinkClick: onCloseNavModal,
     },
     {
-      name: "Comments",
-      path: "#",
-      isLinkEmpty: true,
-      icon: <FaRegCommentDots />,
+      name: "Discover",
+      path: "/discover",
+      isLinkEmpty: false,
+      icon: <FaRegCompass />,
       handleNavLinkClick: onCloseNavModal,
     },
     {
@@ -131,17 +111,17 @@ const Navbar = () => {
       handleNavLinkClick: onOpenNewPostModal,
     },
     {
-      name: "Discover",
-      path: "#",
-      isLinkEmpty: true,
-      icon: <FaRegCompass />,
+      name: "Profile",
+      path: `/profile/${userProfile.currUser?.username}`,
+      isLinkEmpty: false,
+      icon: <FaRegCircleUser />,
       handleNavLinkClick: onCloseNavModal,
     },
     {
-      name: "Likes",
-      path: "#",
-      isLinkEmpty: true,
-      icon: <FaRegHeart />,
+      name: "Settings",
+      path: "/account/edit",
+      isLinkEmpty: false,
+      icon: <FiSettings />,
       handleNavLinkClick: onCloseNavModal,
     },
   ];
@@ -155,10 +135,17 @@ const Navbar = () => {
       handleNavLinkClick: onCloseNavModal,
     },
     {
+      name: "Discover",
+      path: "/discover",
+      isLinkEmpty: false,
+      icon: <FaRegCompass />,
+      handleNavLinkClick: onCloseNavModal,
+    },
+    {
       name: "Search",
       path: "#",
       isLinkEmpty: true,
-      icon: <GrSearch />,
+      icon: <IoSearch />,
       handleNavLinkClick: onOpenSearchResultsListModal,
     },
     {
@@ -169,17 +156,17 @@ const Navbar = () => {
       handleNavLinkClick: onOpenNewPostModal,
     },
     {
-      name: "Discover",
-      path: "#",
-      isLinkEmpty: true,
-      icon: <FaRegCompass />,
+      name: "Profile",
+      path: `/profile/${userProfile.currUser?.username}`,
+      isLinkEmpty: false,
+      icon: <FaRegCircleUser />,
       handleNavLinkClick: onCloseNavModal,
     },
     {
-      name: "Likes",
-      path: "#",
-      isLinkEmpty: true,
-      icon: <FaRegHeart />,
+      name: "Settings",
+      path: "/account/edit",
+      isLinkEmpty: false,
+      icon: <FiSettings />,
       handleNavLinkClick: onCloseNavModal,
     },
   ];
@@ -282,17 +269,22 @@ const Navbar = () => {
                     onClose={onCloseNavModal}
                   />
                 ))}
-                <IconButton
-                  onClick={toggleColorMode}
-                  variant={"ghost"}
-                  aria-label="Color Switcher"
-                  icon={colorMode === "light" ? <FiMoon /> : <FiSun />}
-                  _hover={{
-                    bg: useColorModeValue("gray.200", "gray.600"),
-                    color: useColorModeValue("blue.500", "blue.200"),
-                  }}
-                  fontSize="1.5rem"
-                />
+                <Tooltip
+                  label={colorMode === "light" ? "Dark Mode" : "Light Mode"}
+                  rounded="full"
+                >
+                  <IconButton
+                    onClick={toggleColorMode}
+                    variant={"ghost"}
+                    aria-label="Color Switcher"
+                    icon={colorMode === "light" ? <FiMoon /> : <FiSun />}
+                    _hover={{
+                      bg: useColorModeValue("gray.200", "gray.600"),
+                      color: useColorModeValue("blue.500", "blue.200"),
+                    }}
+                    fontSize="1.5rem"
+                  />
+                </Tooltip>
               </HStack>
 
               <Menu isLazy>
@@ -442,6 +434,7 @@ const Navbar = () => {
 };
 
 const NonMobileNavLink = ({
+  name,
   path,
   isLinkEmpty,
   icon,
@@ -472,29 +465,31 @@ const NonMobileNavLink = ({
       to={path}
       onClick={handleNavLinkClick}
     >
-      {isActiveLink ? (
-        <IconButton
-          variant={"ghost"}
-          icon={icon}
-          color={activeLink.color}
-          bg={activeLink.bg}
-          _hover={{
-            bg: hoverActiveLink.bg,
-            color: hoverActiveLink.color,
-          }}
-          fontSize={"1.5rem"}
-        />
-      ) : (
-        <IconButton
-          variant={"ghost"}
-          icon={icon}
-          _hover={{
-            bg: link.bg,
-            color: link.color,
-          }}
-          fontSize={"1.5rem"}
-        />
-      )}
+      <Tooltip label={name} rounded="full">
+        {isActiveLink ? (
+          <IconButton
+            variant={"ghost"}
+            icon={icon}
+            color={activeLink.color}
+            bg={activeLink.bg}
+            _hover={{
+              bg: hoverActiveLink.bg,
+              color: hoverActiveLink.color,
+            }}
+            fontSize={"1.5rem"}
+          />
+        ) : (
+          <IconButton
+            variant={"ghost"}
+            icon={icon}
+            _hover={{
+              bg: link.bg,
+              color: link.color,
+            }}
+            fontSize={"1.5rem"}
+          />
+        )}
+      </Tooltip>
     </Link>
   );
 };

@@ -39,6 +39,13 @@ export const findAllPostsByUserIdsRequest = async (data) => {
   });
 };
 
+export const findAllPostsRequest = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+  const params = data.pageFetchParams;
+
+  return await axiosInstance.get("/all", { headers, params });
+};
+
 export const likePostRequest = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 

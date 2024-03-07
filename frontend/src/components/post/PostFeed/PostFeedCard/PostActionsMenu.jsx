@@ -14,8 +14,20 @@ import React, { useRef } from "react";
 import { Link as RouteLink } from "react-router-dom";
 import { isCurrUserPost } from "../../../../utils/postUtils";
 import PostDeleteDialog from "./PostDeleteDialog";
+import PostViewModal from "./PostViewModal/PostViewModal";
 
-const PostActionsMenu = ({ currUser, post, onClose, menuIcon }) => {
+const PostActionsMenu = ({
+  currUser,
+  post,
+  updateLoadedPostEntry,
+  onClose,
+  menuIcon,
+}) => {
+  const {
+    isOpen: isOpenPostViewModal,
+    onOpen: onOpenPostViewModal,
+    onClose: onClosePostViewModal,
+  } = useDisclosure();
   const {
     isOpen: isOpenPostDeleteDialog,
     onOpen: onOpenPostDeleteDialog,
@@ -25,12 +37,12 @@ const PostActionsMenu = ({ currUser, post, onClose, menuIcon }) => {
 
   const menuLinks = [
     {
-      name: "Follow",
+      name: "View Details",
       path: "",
       isLinkEmpty: true,
       hidden: false,
       color: useColorModeValue("blue.500", "blue.300"),
-      handleMenuLinkClick: onClose,
+      handleMenuLinkClick: onOpenPostViewModal,
     },
     {
       name: "Delete Post",
@@ -67,6 +79,13 @@ const PostActionsMenu = ({ currUser, post, onClose, menuIcon }) => {
         </MenuList>
       </Menu>
 
+      <PostViewModal
+        currUser={currUser}
+        post={post}
+        updateLoadedPostEntry={updateLoadedPostEntry}
+        isOpen={isOpenPostViewModal}
+        onClose={onClosePostViewModal}
+      />
       <PostDeleteDialog
         isOpen={isOpenPostDeleteDialog}
         onClose={onClosePostDeleteDialog}

@@ -6,6 +6,7 @@ import {
   searchUsersBySearchTerm,
 } from "../../../services/api/userService";
 import {
+  clearSearchUsers,
   fetchPopularUsers,
   fetchPopularUsersPending,
   findSavedPostsByUserId,
@@ -15,6 +16,7 @@ import {
   findUsersByUserIds,
   findUsersByUserIdsPending,
   searchUsers,
+  searchUsersFailure,
   searchUsersPending,
   userLookupFailure,
 } from "../../reducers/user/userLookupSlice";
@@ -83,7 +85,8 @@ export const searchUsersAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
-      dispatch(userLookupFailure());
+      dispatch(searchUsersFailure());
+      dispatch(clearSearchUsers());
     });
 };
 

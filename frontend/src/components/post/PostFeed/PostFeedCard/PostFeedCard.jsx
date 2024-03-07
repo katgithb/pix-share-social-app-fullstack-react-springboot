@@ -180,11 +180,6 @@ const PostFeedCard = ({
     if (!likeStatusUpdatedCommentsSet.current.has(commentId)) {
       likeStatusUpdatedCommentsSet.current.add(commentId);
     }
-
-    console.log(
-      "Comment Like Updates in PostFeedItem:",
-      likeStatusUpdatedCommentsSet.current
-    );
   }, []);
 
   const checkPostLiked = useCallback(
@@ -507,7 +502,8 @@ const PostFeedCard = ({
           <Flex py={1}>
             <PostActionsMenu
               currUser={currUser}
-              post={post}
+              post={{ ...post, isLikedByUser, isSavedByUser }}
+              updateLoadedPostEntry={updateLoadedPostEntry}
               onClose={onClosePostActionsMenu}
               menuIcon={<BsThreeDotsVertical />}
             />

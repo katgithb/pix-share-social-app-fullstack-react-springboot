@@ -4,8 +4,9 @@ const initialState = {
   findByUsername: null,
   findUsersByIds: [],
   findSavedPostsByUserId: {},
+  searchUsers: {},
   popularUsers: [],
-  searchUsers: [],
+  isSearchUsersLoading: false,
   isLoading: false,
 };
 
@@ -20,7 +21,7 @@ const loadingReducers = {
     state.isLoading = true;
   },
   searchUsersPending: (state) => {
-    state.isLoading = true;
+    state.isSearchUsersLoading = true;
   },
   fetchPopularUsersPending: (state) => {
     state.isLoading = true;
@@ -46,11 +47,17 @@ const userLookupSlice = createSlice({
     },
     searchUsers: (state, action) => {
       state.searchUsers = action.payload;
-      state.isLoading = false;
+      state.isSearchUsersLoading = false;
     },
     fetchPopularUsers: (state, action) => {
       state.popularUsers = action.payload;
       state.isLoading = false;
+    },
+    clearSearchUsers: (state) => {
+      state.searchUsers = {};
+    },
+    searchUsersFailure: (state) => {
+      state.isSearchUsersLoading = false;
     },
     userLookupFailure: (state) => {
       state.isLoading = false;
@@ -70,6 +77,8 @@ export const {
   findSavedPostsByUserId,
   searchUsers,
   fetchPopularUsers,
+  clearSearchUsers,
+  searchUsersFailure,
   userLookupFailure,
   clearUserLookup,
 } = userLookupSlice.actions;

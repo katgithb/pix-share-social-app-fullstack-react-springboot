@@ -3,43 +3,52 @@ import {
   updateUnfollow,
 } from "../../../services/api/userService";
 import {
+  errorToastNotification,
+  successToastNotification,
+} from "../../../utils/toastNotification";
+import {
   followUser,
+  followUserFailure,
   followUserPending,
   unfollowUser,
+  unfollowUserFailure,
   unfollowUserPending,
-  userSocialFailure,
 } from "../../reducers/user/userSocialSlice";
 
 export const followUserAction = (data) => async (dispatch) => {
-  dispatch(followUserPending());
+  dispatch(followUserPending(data.userId));
 
   updateFollow(data)
     .then((response) => {
-      const user = response.data;
+      const message = response.data.message;
 
-      console.log("Follow user: ", user);
+      console.log("Followed user: ", data.userId);
 
-      dispatch(followUser(user));
+      dispatch(followUser(data.userId));
+      successToastNotification(message, null);
     })
     .catch((error) => {
       console.log(error);
-      dispatch(userSocialFailure());
+      dispatch(followUserFailure(data.userId));
+      errorToastNotification("Failed to follow", null);
     });
 };
 
 export const unfollowUserAction = (data) => async (dispatch) => {
-  dispatch(unfollowUserPending());
+  dispatch(unfollowUserPending(data.userId));
 
   updateUnfollow(data)
     .then((response) => {
-      const user = response.data;
+      const message = response.data.message;
 
-      console.log("Unfollow user: ", user);
+      console.log("Unfollowed user: ", data.userId);
 
-      dispatch(unfollowUser(user));
+      dispatch(unfollowUser(data.userId));
+      successToastNotification(message, null);
     })
     .catch((error) => {
       console.log(error);
-      dispatch(userSocialFailure());
+      dispatch(unfollowUserFailure(data.userId));
+      errorToastNotification("Failed to unfollow", null);
     });
 };

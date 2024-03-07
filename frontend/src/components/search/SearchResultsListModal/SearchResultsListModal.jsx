@@ -1,118 +1,135 @@
-import {
-  Box,
-  Card,
-  Divider,
-  Flex,
-  Text,
-  Icon,
-  useColorModeValue,
-  HStack,
-  InputGroup,
-  Input,
-  InputLeftElement,
-  ScaleFade,
-  ListItem,
-  List,
-  Fade,
-  Collapse,
-  Stack,
-  useBreakpointValue,
-  useTheme,
-  useColorMode,
-  Slide,
-  SlideFade,
-} from "@chakra-ui/react";
+import { Box, Divider, Fade, Flex, Text } from "@chakra-ui/react";
 import _ from "lodash";
-import React, { useEffect, useRef, useState } from "react";
-import { FaMagnifyingGlass } from "react-icons/fa6";
-import { useResizeDetector } from "react-resize-detector";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { searchUsersAction } from "../../../redux/actions/user/userLookupActions";
+import { fetchUserProfileAction } from "../../../redux/actions/user/userProfileActions";
+import { clearSearchUsers } from "../../../redux/reducers/user/userLookupSlice";
 import {
-  BarsSpinner,
-  ClapSpinner,
-  FlapperSpinner,
-  ImpulseSpinner,
-  MagicSpinner,
-  PulseSpinner,
-  RainbowSpinner,
-  SequenceSpinner,
-  SphereSpinner,
-  SpiralSpinner,
-  StageSpinner,
-  SwapSpinner,
-} from "react-spinners-kit";
-import AutoSizer from "react-virtualized-auto-sizer";
-import InfiniteLoader from "react-window-infinite-loader";
-import { VariableSizeList as WindowList } from "react-window";
+  clearFollowedUser,
+  clearUnfollowedUser,
+} from "../../../redux/reducers/user/userSocialSlice";
+import {
+  SEARCH_USERS_DEFAULT_PAGE,
+  SEARCH_USERS_PER_PAGE,
+  SEARCH_USERS_SORT_BY,
+  SEARCH_USERS_SORT_DIRECTION,
+} from "../../../utils/constants/pagination/userPagination";
 import CustomizableModal from "../../shared/CustomizableModal";
-import SearchResultsListCard from "./SearchResultsListCard";
 import SearchInputBar from "../SearchInputBar";
 import SearchResultsList from "./SearchResultsList";
 
 const SearchResultsListModal = ({ isOpen, onClose }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const userIds = [20, 72, 58, 29, 89, 17, 94, 69, 11, 23, 10, 90, 18, 81, 79];
-  const userIdList = Array.from(
-    { length: 100 },
-    () => userIds[Math.floor(Math.random() * userIds.length)]
+  const searchQuery = useRef("");
+  const [searchResultsPage, setSearchResultsPage] = useState({});
+  const followStatusUpdatedUsersSet = useRef(new Set());
+
+  const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+  const { searchUsers: selectSearchUsers } = useSelector(
+    (store) => store.user.userLookup
   );
-
-  const fullnames = [
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-    "John Doe",
-  ];
-  const fullnameList = Array.from(
-    { length: 100 },
-    () => fullnames[Math.floor(Math.random() * fullnames.length)]
+  const searchUsersByQuery = useMemo(
+    () => selectSearchUsers,
+    [selectSearchUsers]
   );
-
-  function generateUsernameFromName(fullname) {
-    const username = fullname.replace(/\s+/g, "_").toLowerCase();
-
-    return username;
-  }
 
   const handleSearchInputChange = (e) => {
     const searchKeyword = e.target.value;
-    setSearchQuery(searchKeyword);
+
+    searchQuery.current = searchKeyword;
     performSearch(searchKeyword);
   };
 
   const performSearch = _.debounce((searchKeyword) => {
     if (searchKeyword.length >= 3) {
-      const filteredResults = fullnameList.reduce((results, name, index) => {
-        if (name.toLowerCase().includes(searchKeyword.toLowerCase())) {
-          const userId = userIdList[index];
-          const gender = userId % 2 === 0 ? "men" : "women";
-          const searchResult = {
-            userId: userId,
-            user: {
-              dp: `https://randomuser.me/api/portraits/${gender}/${Math.round(
-                userId
-              )}.jpg`,
-              fullname: name,
-              username: generateUsernameFromName(name),
-            },
-          };
-          results.push(searchResult);
-        }
-        return results;
-      }, []);
-
-      setSearchResults(filteredResults);
-      console.log("filteredResults: ", filteredResults);
-    } else {
-      setSearchResults([]);
+      changeSearchResultsPage(searchKeyword, SEARCH_USERS_DEFAULT_PAGE);
     }
-  }, 400);
+
+    setSearchResultsPage({
+      content: [],
+      page: SEARCH_USERS_DEFAULT_PAGE - 1,
+      size: SEARCH_USERS_PER_PAGE,
+      totalRecords: 0,
+      totalPages: 0,
+      last: true,
+    });
+  }, 500);
+
+  const changeUserFollowUpdatesSet = useCallback((userId) => {
+    if (!followStatusUpdatedUsersSet.current.has(userId)) {
+      followStatusUpdatedUsersSet.current.add(userId);
+    }
+  }, []);
+
+  const clearUserFollowUpdatesAndRefetchUser = (
+    userFollowUpdatesSet = new Set()
+  ) => {
+    if (token && userFollowUpdatesSet.size > 0) {
+      const data = { token };
+
+      dispatch(fetchUserProfileAction(data));
+    }
+
+    for (let userId of userFollowUpdatesSet) {
+      if (userId) {
+        dispatch(clearFollowedUser(userId));
+        dispatch(clearUnfollowedUser(userId));
+      }
+    }
+  };
 
   const handleModalClose = () => {
-    setSearchQuery("");
-    setSearchResults([]);
+    searchQuery.current = "";
+    setSearchResultsPage({});
+    dispatch(clearSearchUsers());
+
+    clearUserFollowUpdatesAndRefetchUser(followStatusUpdatedUsersSet.current);
+    followStatusUpdatedUsersSet.current.clear();
     onClose();
   };
+
+  const changeSearchResultsPage = useCallback(
+    async (query, pageNumber) => {
+      if (token && query) {
+        const data = {
+          token,
+          query,
+          pageFetchParams: {
+            page:
+              pageNumber > 0 ? pageNumber - 1 : SEARCH_USERS_DEFAULT_PAGE - 1,
+            size: SEARCH_USERS_PER_PAGE,
+            sortBy: SEARCH_USERS_SORT_BY,
+            sortDir: SEARCH_USERS_SORT_DIRECTION,
+          },
+        };
+        dispatch(searchUsersAction(data));
+      }
+    },
+    [dispatch, token]
+  );
+
+  const handleSearchResultsPageChange = useCallback(
+    (query, pageNumber) => {
+      changeSearchResultsPage(query, pageNumber);
+    },
+    [changeSearchResultsPage]
+  );
+
+  useEffect(() => {
+    const searchResultsPage = searchUsersByQuery;
+
+    if (searchResultsPage) {
+      console.log("Search Users Results Page: ", searchResultsPage);
+      setSearchResultsPage(searchResultsPage);
+    }
+  }, [searchUsersByQuery]);
 
   return (
     <CustomizableModal
@@ -121,42 +138,33 @@ const SearchResultsListModal = ({ isOpen, onClose }) => {
       size={"3xl"}
       header={
         <HeaderContent
-          searchQuery={searchQuery}
+          searchQuery={searchQuery.current}
           handleSearchInputChange={handleSearchInputChange}
         />
       }
       showModalCloseButton={false}
       isCentered={false}
     >
-      {searchResults.length > 0 && searchQuery.length >= 3 ? (
+      {searchQuery.current.length >= 3 ? (
         <Fade in>
           <SearchResultsList
-            searchQuery={searchQuery}
-            searchResults={searchResults}
+            searchQuery={searchQuery.current}
+            searchResults={searchResultsPage}
+            totalSearchResults={searchResultsPage?.totalRecords || 0}
+            handlePageChange={handleSearchResultsPageChange}
+            changeUserFollowUpdatesSet={changeUserFollowUpdatesSet}
           />
         </Fade>
-      ) : searchQuery.length > 0 ? (
-        <Flex mt={-2} mb={2} align="center" justify="center" flex={1} h="full">
-          <Text
-            fontWeight="bold"
-            textAlign="start"
-            color="gray.500"
-            _dark={{ color: "gray.400" }}
-            fontSize="sm"
-          >
-            No results found
-          </Text>
-        </Flex>
       ) : (
         <Flex mt={-2} mb={2} align="center" justify="center" flex={1} h="full">
           <Text
             fontWeight="bold"
-            textAlign="start"
+            textAlign="center"
             color="gray.500"
             _dark={{ color: "gray.400" }}
             fontSize="sm"
           >
-            Type your search query...
+            Type your search query... (3+ characters)
           </Text>
         </Flex>
       )}
@@ -169,7 +177,6 @@ const HeaderContent = ({ searchQuery, handleSearchInputChange }) => {
     <Box>
       <SearchInputBar
         isNavSearchBar={false}
-        searchQuery={searchQuery}
         handleSearchInputChange={handleSearchInputChange}
       />
 

@@ -125,22 +125,33 @@ const PostExpandedView = ({
     setIsImageExpanded(true);
   };
 
-  const handleModalClose = () => {
-    if (token && post?.id && likeStatusUpdatedCommentsSet.current.size > 0) {
+  const clearCommentLikeUpdatesAndRefetchPost = (
+    postId,
+    commentLikeUpdatesSet = new Set()
+  ) => {
+    if (token && postId && commentLikeUpdatesSet.size > 0) {
       const data = {
         token,
-        postId: post?.id,
+        postId,
       };
 
       dispatch(findPostByIdAction(data));
     }
 
-    for (let commentId of likeStatusUpdatedCommentsSet.current) {
+    for (let commentId of commentLikeUpdatesSet) {
       if (commentId) {
         dispatch(clearLikedComment(commentId));
         dispatch(clearUnlikedComment(commentId));
       }
     }
+  };
+
+  const handleModalClose = () => {
+    clearCommentLikeUpdatesAndRefetchPost(
+      post?.id,
+      likeStatusUpdatedCommentsSet.current
+    );
+
     likeStatusUpdatedCommentsSet.current.clear();
     onClose();
   };
@@ -164,11 +175,6 @@ const PostExpandedView = ({
     if (!likeStatusUpdatedCommentsSet.current.has(commentId)) {
       likeStatusUpdatedCommentsSet.current.add(commentId);
     }
-
-    console.log(
-      "Comment Like Updates in PostModal:",
-      likeStatusUpdatedCommentsSet.current
-    );
   }, []);
 
   const fetchPostLiked = useCallback(

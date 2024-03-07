@@ -13,7 +13,7 @@ import PostFeed from "../components/post/PostFeed/PostFeed";
 import BasicProfileCard from "../components/profile/BasicProfileCard";
 import Footer from "../components/shared/Footer";
 import SuggestionsList from "../components/suggestions/SuggestionsList/SuggestionsList";
-import { findAllPostsByUserIdsAction } from "../redux/actions/post/postLookupActions";
+import { findAllPostsAction } from "../redux/actions/post/postLookupActions";
 import {
   isPostLikedByUserAction,
   isPostSavedByUserAction,
@@ -32,7 +32,7 @@ import {
   updatePostAttributeCache,
 } from "../utils/postUtils";
 
-const Home = () => {
+const Discover = () => {
   const POST_LIKED_CACHE_MAX_PAGES = 7;
   const POST_SAVED_CACHE_MAX_PAGES = 7;
   const dispatch = useDispatch();
@@ -42,7 +42,6 @@ const Home = () => {
   const postLookup = useMemo(() => selectPostLookup, [selectPostLookup]);
   const token = localStorage.getItem("token");
 
-  const [followingUserIds, setFollowingUserIds] = useState([]);
   const [postsPage, setPostsPage] = useState({});
   const [postLikedCacheMap, setPostLikedCacheMap] = useState(Map());
   const [postSavedCacheMap, setPostSavedCacheMap] = useState(Map());
@@ -192,19 +191,11 @@ const Home = () => {
     }
   }, [dispatch, token]);
 
-  useEffect(() => {
-    if (currUser) {
-      const followingIds = currUser?.following?.map((user) => user.id);
-      setFollowingUserIds([currUser?.id, ...followingIds]);
-    }
-  }, [currUser]);
-
   const changePage = useCallback(
     async (pageNumber) => {
-      if (token && followingUserIds.length > 0) {
+      if (token) {
         const data = {
           token,
-          userIds: followingUserIds,
           pageFetchParams: {
             page: pageNumber > 0 ? pageNumber - 1 : POSTS_DEFAULT_PAGE - 1,
             size: POSTS_PER_PAGE,
@@ -212,11 +203,11 @@ const Home = () => {
             sortDir: POSTS_SORT_DIRECTION,
           },
         };
-        dispatch(findAllPostsByUserIdsAction(data));
+        dispatch(findAllPostsAction(data));
         dispatch(clearPostManagement());
       }
     },
-    [dispatch, followingUserIds, token]
+    [dispatch, token]
   );
 
   const handlePageChange = useCallback(
@@ -235,12 +226,12 @@ const Home = () => {
   }, [fetchInitialPosts]);
 
   useEffect(() => {
-    const postsPage = postLookup.findPostsByUserIds;
+    const postsPage = postLookup.findAllPosts;
 
     if (postsPage && !_.isEmpty(postsPage)) {
       setPostsPage(postsPage);
     }
-  }, [postLookup.findPostsByUserIds]);
+  }, [postLookup.findAllPosts]);
 
   useEffect(() => {
     if (
@@ -262,13 +253,11 @@ const Home = () => {
         px={{ base: "4", md: "12", lg: "0" }}
         colSpan={{ base: "3", lg: "2" }}
       >
-        {/* <StoriesBar currUser={user} /> */}
-
         <PostFeed
           currUser={currUser}
           posts={postsPage}
           handlePageChange={handlePageChange}
-          isHomePageFeed
+          isHomePageFeed={false}
           isPostLikedCached={isPostLikedCached}
           isPostSavedCached={isPostSavedCached}
           checkPostLikedByCurrUser={checkPostLikedByCurrUser}
@@ -303,4 +292,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Discover;

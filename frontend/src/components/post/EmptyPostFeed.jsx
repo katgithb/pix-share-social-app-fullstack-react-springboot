@@ -6,37 +6,31 @@ import {
   Flex,
   Heading,
   Icon,
+  Link,
   Stack,
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
 import React from "react";
 import { CgFeed } from "react-icons/cg";
-import SearchResultsListModal from "../search/SearchResultsListModal/SearchResultsListModal";
+import { Link as RouteLink } from "react-router-dom";
 import SuggestionsList from "../suggestions/SuggestionsList/SuggestionsList";
 import CreatePostModal from "./CreatePostModal/CreatePostModal";
 
-const EmptyPostFeed = ({ suggestedUsers }) => {
+const EmptyPostFeed = ({ isHomePageFeed = false, suggestedUsers }) => {
   const {
     isOpen: isOpenNewPostModal,
     onOpen: onOpenNewPostModal,
     onClose: onCloseNewPostModal,
   } = useDisclosure();
-  const {
-    isOpen: isOpenSearchResultsListModal,
-    onOpen: onOpenSearchResultsListModal,
-    onClose: onCloseSearchResultsListModal,
-  } = useDisclosure();
+  const showSuggestedUsers =
+    isHomePageFeed && suggestedUsers && suggestedUsers?.length > 0;
 
   return (
     <Flex justify="center" overflow="hidden">
       <CreatePostModal
         isOpen={isOpenNewPostModal}
         onClose={onCloseNewPostModal}
-      />
-      <SearchResultsListModal
-        isOpen={isOpenSearchResultsListModal}
-        onClose={onCloseSearchResultsListModal}
       />
 
       <Card
@@ -73,7 +67,9 @@ const EmptyPostFeed = ({ suggestedUsers }) => {
             color="gray.800"
             _dark={{ color: "gray.50" }}
           >
-            Explore and Connect
+            {isHomePageFeed
+              ? "Explore and Connect"
+              : "Nothing to see here yet!"}
           </Heading>
           <Text
             p={2}
@@ -86,9 +82,11 @@ const EmptyPostFeed = ({ suggestedUsers }) => {
             free to share your thoughts in your first post - it's just a tap
             away.
             <br />
-            You can also discover new people or topics you're interested in and
+            {isHomePageFeed
+              ? `You can also discover new people or topics you're interested in and
             follow them to see their posts in your feed. And don't forget to
-            follow friends, family, contacts - whoever you want to keep up with!
+            follow friends, family, contacts - whoever you want to keep up with!`
+              : "Once some posts are shared, they will show up here."}
           </Text>
 
           <Stack
@@ -96,19 +94,26 @@ const EmptyPostFeed = ({ suggestedUsers }) => {
             align="center"
             justify="center"
           >
-            <Button
-              bg="blue.500"
-              _hover={{ bg: "blue.600" }}
-              color="white"
-              size="sm"
-              fontWeight="bold"
-              py={2}
-              px={4}
-              rounded="lg"
-              onClick={onOpenSearchResultsListModal}
-            >
-              Discover People
-            </Button>
+            {isHomePageFeed && (
+              <Link
+                as={RouteLink}
+                to={"/discover"}
+                style={{ textDecoration: "none" }}
+              >
+                <Button
+                  bg="blue.500"
+                  _hover={{ bg: "blue.600" }}
+                  color="white"
+                  size="sm"
+                  fontWeight="bold"
+                  py={2}
+                  px={4}
+                  rounded="lg"
+                >
+                  Discover People
+                </Button>
+              </Link>
+            )}
 
             <Button
               bg="blue.500"
@@ -126,7 +131,7 @@ const EmptyPostFeed = ({ suggestedUsers }) => {
           </Stack>
         </CardBody>
 
-        {suggestedUsers?.length > 0 && (
+        {showSuggestedUsers && (
           <CardFooter pt={0} px={3} overflow="hidden">
             <Flex flex={1} flexDir="column" px={2} w="full">
               <Text

@@ -22,6 +22,7 @@ const PostFeed = ({
   currUser,
   posts,
   handlePageChange,
+  isHomePageFeed,
   isPostLikedCached,
   isPostSavedCached,
   checkPostLikedByCurrUser,
@@ -300,7 +301,12 @@ const PostFeed = ({
     }
 
     if (loadedPostsPage.totalPages === 0) {
-      return <EmptyPostFeed suggestedUsers={popularUsers} />;
+      return (
+        <EmptyPostFeed
+          isHomePageFeed={isHomePageFeed}
+          suggestedUsers={popularUsers}
+        />
+      );
     }
 
     if (loadedPostsPage.totalPages > 0 && loadedPostsPage.last) {

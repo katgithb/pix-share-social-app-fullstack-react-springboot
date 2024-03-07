@@ -7,6 +7,7 @@ import {
   IconButton,
   Link,
   Text,
+  Tooltip,
   useDisclosure,
 } from "@chakra-ui/react";
 import _ from "lodash";
@@ -221,21 +222,23 @@ const PostCommentCard = ({
                 </Text>
 
                 {isCurrUserComment(currUser?.id, comment?.user?.id) && (
-                  <IconButton
-                    icon={<IoRemoveCircleOutline />}
-                    isDisabled={isCreatingComment || isDeletingComment}
-                    mx={-2}
-                    rounded="full"
-                    colorScheme="red"
-                    size="sm"
-                    variant="link"
-                    aria-label="Delete Comment"
-                    onClick={
-                      isCreatingComment || isDeletingComment
-                        ? () => {}
-                        : onOpenPostCommentDeleteDialog
-                    }
-                  />
+                  <Tooltip label="Delete Comment" rounded="full">
+                    <IconButton
+                      icon={<IoRemoveCircleOutline />}
+                      isDisabled={isCreatingComment || isDeletingComment}
+                      mx={-2}
+                      rounded="full"
+                      colorScheme="red"
+                      size="sm"
+                      variant="link"
+                      aria-label="Delete Comment"
+                      onClick={
+                        isCreatingComment || isDeletingComment
+                          ? () => {}
+                          : onOpenPostCommentDeleteDialog
+                      }
+                    />
+                  </Tooltip>
                 )}
               </HStack>
 

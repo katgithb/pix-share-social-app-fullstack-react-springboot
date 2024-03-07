@@ -34,13 +34,9 @@ export const getUsersByUserIds = async (data) => {
 
 export const searchUsersBySearchTerm = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
+  const params = { q: data.query, ...data.pageFetchParams };
 
-  return await axiosInstance.get("/search", {
-    headers,
-    params: {
-      q: data.query,
-    },
-  });
+  return await axiosInstance.get("/search", { headers, params });
 };
 
 export const getPopularUsers = async (data) => {
