@@ -1,73 +1,102 @@
-import { EditIcon } from "@chakra-ui/icons";
 import {
-  Box,
-  Button,
-  Flex,
-  Heading,
-  Image,
-  Link,
-  Icon,
-  Text,
-  VStack,
-  Avatar,
-  useColorModeValue,
-  HStack,
-  IconButton,
   Card,
   CardBody,
+  Fade,
+  Flex,
   useBreakpointValue,
-  Stack,
+  useColorMode,
+  VStack,
 } from "@chakra-ui/react";
 import React from "react";
-import { AiOutlineEdit } from "react-icons/ai";
-import { BiEdit } from "react-icons/bi";
-import { FaGear, FaHeart, FaUserPen } from "react-icons/fa6";
-import { Link as RouteLink } from "react-router-dom";
+import { useSelector } from "react-redux";
+import ProfileHeaderSkeleton from "./ProfileHeaderSkeleton";
 import UserProfileFullnameAndBio from "./UserProfileFullnameAndBio";
+import UserProfileNotFound from "./UserProfileNotFound/UserProfileNotFound";
 import UserProfilePhoto from "./UserProfilePhoto";
 import UserProfileStats from "./UserProfileStats";
 
-const ProfileHeader = ({ user }) => {
+const ProfileHeader = ({ user, totalPosts, isGivenUserCurrUser = false }) => {
   const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
   const isSmallScreen = breakpoint === "base" || breakpoint === "sm";
+  const { colorMode } = useColorMode();
   const MAX_CHARS_MOBILE_USER_DETAILS = 30;
 
-  // console.log(user);
+  const { isLoading: isLoadingUserProfile } = useSelector(
+    (store) => store.user.userProfile
+  );
+  const { isLoading: isLoadingUserLookup } = useSelector(
+    (store) => store.user.userLookup
+  );
+
+  if (isLoadingUserProfile || isLoadingUserLookup) {
+    return (
+      <Fade in transition={{ exit: { delay: 0.6 }, enter: { duration: 0.4 } }}>
+        <ProfileHeaderSkeleton />
+      </Fade>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Fade
+        in={!isLoadingUserProfile || !isLoadingUserLookup}
+        transition={{ exit: { delay: 0.6 }, enter: { duration: 0.4 } }}
+      >
+        <UserProfileNotFound />
+      </Fade>
+    );
+  }
 
   return (
     <Card
       mb={8}
-      variant={useColorModeValue("outline", "elevated")}
+      variant={colorMode === "dark" ? "elevated" : "outline"}
       rounded="lg"
       boxShadow={"md"}
     >
-      <CardBody>
-        <Flex overflow="hidden">
-          <Flex
-            flex="1"
-            flexDirection="column"
-            align="center"
-            justify="center"
-            gap={2}
-          >
-            {isSmallScreen ? (
-              <MobileUserDetails user={user} />
-            ) : user.bio && user.bio?.length > MAX_CHARS_MOBILE_USER_DETAILS ? (
-              <NonMobileUserDetails
-                user={user}
-                maxCharsMobileUserDetails={MAX_CHARS_MOBILE_USER_DETAILS}
-              />
-            ) : (
-              <MobileUserDetails user={user} />
-            )}
+      <Fade
+        in={!isLoadingUserProfile || !isLoadingUserLookup}
+        transition={{ exit: { delay: 0.6 }, enter: { duration: 0.4 } }}
+      >
+        <CardBody>
+          <Flex overflow="hidden">
+            <Flex
+              flex="1"
+              flexDirection="column"
+              align="center"
+              justify="center"
+              gap={2}
+            >
+              {isSmallScreen ? (
+                <MobileUserDetails
+                  user={user}
+                  totalPosts={totalPosts}
+                  isGivenUserCurrUser={isGivenUserCurrUser}
+                />
+              ) : user?.bio &&
+                user?.bio?.length > MAX_CHARS_MOBILE_USER_DETAILS ? (
+                <NonMobileUserDetails
+                  user={user}
+                  maxCharsMobileUserDetails={MAX_CHARS_MOBILE_USER_DETAILS}
+                  totalPosts={totalPosts}
+                  isGivenUserCurrUser={isGivenUserCurrUser}
+                />
+              ) : (
+                <MobileUserDetails
+                  user={user}
+                  totalPosts={totalPosts}
+                  isGivenUserCurrUser={isGivenUserCurrUser}
+                />
+              )}
+            </Flex>
           </Flex>
-        </Flex>
-      </CardBody>
+        </CardBody>
+      </Fade>
     </Card>
   );
 };
 
-const MobileUserDetails = ({ user }) => {
+const MobileUserDetails = ({ user, totalPosts, isGivenUserCurrUser }) => {
   return (
     <>
       <VStack mt={1} spacing={2}>
@@ -76,12 +105,21 @@ const MobileUserDetails = ({ user }) => {
         <UserProfileFullnameAndBio userDetails={user} />
       </VStack>
 
-      <UserProfileStats userDetails={user} />
+      <UserProfileStats
+        userDetails={user}
+        totalPosts={totalPosts}
+        isGivenUserCurrUser={isGivenUserCurrUser}
+      />
     </>
   );
 };
 
-const NonMobileUserDetails = ({ user, maxCharsMobileUserDetails = 25 }) => {
+const NonMobileUserDetails = ({
+  user,
+  maxCharsMobileUserDetails = 25,
+  totalPosts,
+  isGivenUserCurrUser,
+}) => {
   return (
     <>
       <VStack mt={1} spacing={2} w="full">
@@ -90,6 +128,8 @@ const NonMobileUserDetails = ({ user, maxCharsMobileUserDetails = 25 }) => {
         <UserProfileStats
           userDetails={user}
           maxCharsMobileUserDetails={maxCharsMobileUserDetails}
+          totalPosts={totalPosts}
+          isGivenUserCurrUser={isGivenUserCurrUser}
         />
       </VStack>
 

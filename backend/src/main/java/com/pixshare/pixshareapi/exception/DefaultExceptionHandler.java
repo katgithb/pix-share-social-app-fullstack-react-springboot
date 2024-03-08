@@ -1,6 +1,7 @@
 package com.pixshare.pixshareapi.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -27,6 +28,17 @@ public class DefaultExceptionHandler {
     @ExceptionHandler(RequestValidationException.class)
     public ResponseEntity<ApiError> handleRequestValidationException(RequestValidationException e,
                                                                      HttpServletRequest request) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                e.getMessage(),
+                status.value(),
+                LocalDateTime.now());
+        return new ResponseEntity<>(apiError, status);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiError> handleConstraintViolationException(ConstraintViolationException e,
+                                                                       HttpServletRequest request) {
         HttpStatus status = HttpStatus.BAD_REQUEST;
         ApiError apiError = new ApiError(request.getRequestURI(),
                 e.getMessage(),

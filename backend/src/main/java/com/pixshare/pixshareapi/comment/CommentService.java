@@ -14,9 +14,9 @@ public interface CommentService {
 
     void deleteComment(Long commentId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException;
 
-    CommentDTO findCommentById(Long commentId) throws ResourceNotFoundException;
+    CommentDTO findCommentById(Long commentId, Long userId) throws ResourceNotFoundException;
 
-    List<CommentDTO> findCommentsByPostId(Long postId) throws ResourceNotFoundException;
+    List<CommentDTO> findCommentsByPostId(Long postId, Long userId) throws ResourceNotFoundException;
 
     CommentDTO likeComment(Long commentId, Long userId) throws ResourceNotFoundException;
 

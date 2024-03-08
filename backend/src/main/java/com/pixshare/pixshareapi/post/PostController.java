@@ -2,6 +2,8 @@ package com.pixshare.pixshareapi.post;
 
 import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.comment.CommentService;
+import com.pixshare.pixshareapi.dto.PageRequestDTO;
+import com.pixshare.pixshareapi.dto.PagedResponse;
 import com.pixshare.pixshareapi.dto.PostDTO;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import org.springframework.http.HttpStatus;
@@ -28,43 +30,58 @@ public class PostController {
 
     @PostMapping("/create")
     public void createPost(
-            @RequestBody PostRequest request,
+            @ModelAttribute PostRequest request,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+
         postService.createPost(request, identity.getId());
     }
 
-    @GetMapping("/all/{userId}")
-    public ResponseEntity<List<PostDTO>> findPostsByUserId(@PathVariable("userId") Long userId) {
-        List<PostDTO> posts = postService.findPostsByUserId(userId).stream()
-                .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId())
-                ))
-                .toList();
-
-        return new ResponseEntity<>(posts, HttpStatus.OK);
-    }
-
     @GetMapping("/id/{postId}")
-    public ResponseEntity<PostDTO> findPostById(@PathVariable("postId") Long postId) {
-        PostDTO post = postService.findPostById(postId);
-        post.setComments(
-                commentService.findCommentsByPostId(postId)
-        );
+    public ResponseEntity<PostDTO> findPostById(
+            @PathVariable("postId") Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PostDTO post = postService.findPostById(postId, identity.getId());
 
         return new ResponseEntity<>(post, HttpStatus.OK);
     }
 
-    @GetMapping("/following/{userIds}")
-    public ResponseEntity<List<PostDTO>> findAllPostsByUserIds(@PathVariable("userIds") List<Long> userIds) {
-        List<PostDTO> posts = postService.findAllPostsByUserIds(userIds).stream()
-                .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId())
-                ))
-                .toList();
+    @GetMapping("/all/{userId}")
+    public ResponseEntity<PagedResponse<PostDTO>> findPostsByUserId(
+            @PathVariable("userId") Long userId,
+            @ModelAttribute PageRequestDTO pageRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<PostDTO> postResponse = postService.findPostsByUserId(identity.getId(), userId, pageRequest);
 
-        return new ResponseEntity<>(posts, HttpStatus.OK);
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
+    }
+
+    @GetMapping("/following/{userIds}")
+    public ResponseEntity<PagedResponse<PostDTO>> findAllPostsByUserIds(
+            @PathVariable("userIds") List<Long> userIds,
+            @ModelAttribute PageRequestDTO pageRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<PostDTO> postResponse = postService.findAllPostsByUserIds(identity.getId(), userIds, pageRequest);
+
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<PagedResponse<PostDTO>> findAllPosts(
+            @ModelAttribute PageRequestDTO pageRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<PostDTO> postResponse = postService.findAllPosts(identity.getId(), pageRequest);
+
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
     }
 
     @DeleteMapping("/delete/{postId}")
@@ -73,6 +90,7 @@ public class PostController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+
         postService.deletePost(postId, identity.getId());
     }
 
@@ -98,12 +116,24 @@ public class PostController {
         return new ResponseEntity<>(post, HttpStatus.OK);
     }
 
+    @GetMapping("/{postId}/isLiked")
+    public ResponseEntity<Boolean> isPostLikedByCurrentUser(
+            @PathVariable Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        boolean isLiked = postService.isPostLikedByUser(postId, identity.getId());
+
+        return new ResponseEntity<>(isLiked, HttpStatus.OK);
+    }
+
     @PutMapping("/save_post/{postId}")
     public void savePost(
             @PathVariable("postId") Long postId,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+
         postService.savePost(postId, identity.getId());
     }
 
@@ -113,7 +143,19 @@ public class PostController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
+
         postService.unsavePost(postId, identity.getId());
+    }
+
+    @GetMapping("/{postId}/isSaved")
+    public ResponseEntity<Boolean> isPostSavedByCurrentUser(
+            @PathVariable Long postId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        boolean isSaved = postService.isPostSavedByUser(postId, identity.getId());
+
+        return new ResponseEntity<>(isSaved, HttpStatus.OK);
     }
 
 }

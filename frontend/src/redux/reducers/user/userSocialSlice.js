@@ -1,17 +1,19 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  followUser: null,
-  unfollowUser: null,
-  isLoading: false,
+  followedUsers: {},
+  unfollowedUsers: {},
+  isFollowedLoading: {},
 };
 
 const loadingReducers = {
-  followUserPending: (state) => {
-    state.isLoading = true;
+  followUserPending: (state, action) => {
+    const userId = action.payload;
+    state.isFollowedLoading[userId] = true;
   },
-  unfollowUserPending: (state) => {
-    state.isLoading = true;
+  unfollowUserPending: (state, action) => {
+    const userId = action.payload;
+    state.isFollowedLoading[userId] = true;
   },
 };
 
@@ -21,15 +23,34 @@ const userSocialSlice = createSlice({
   reducers: {
     ...loadingReducers,
     followUser: (state, action) => {
-      state.followUser = action.payload;
-      state.isLoading = false;
+      const userId = action.payload;
+      state.followedUsers[userId] = true;
+      delete state.unfollowedUsers[userId];
+      state.isFollowedLoading[userId] = false;
     },
     unfollowUser: (state, action) => {
-      state.unfollowUser = action.payload;
-      state.isLoading = false;
+      const userId = action.payload;
+      state.unfollowedUsers[userId] = true;
+      delete state.followedUsers[userId];
+      state.isFollowedLoading[userId] = false;
     },
-    userSocialFailure: (state) => {
-      state.isLoading = false;
+    clearFollowedUser: (state, action) => {
+      const userId = action.payload;
+      delete state.followedUsers[userId];
+      delete state.isFollowedLoading[userId];
+    },
+    clearUnfollowedUser: (state, action) => {
+      const userId = action.payload;
+      delete state.unfollowedUsers[userId];
+      delete state.isFollowedLoading[userId];
+    },
+    followUserFailure: (state, action) => {
+      const userId = action.payload;
+      state.isFollowedLoading[userId] = false;
+    },
+    unfollowUserFailure: (state, action) => {
+      const userId = action.payload;
+      state.isFollowedLoading[userId] = false;
     },
     clearUserSocial: () => initialState,
   },
@@ -40,7 +61,10 @@ export const {
   unfollowUserPending,
   followUser,
   unfollowUser,
-  userSocialFailure,
+  clearFollowedUser,
+  clearUnfollowedUser,
+  followUserFailure,
+  unfollowUserFailure,
   clearUserSocial,
 } = userSocialSlice.actions;
 export default userSocialSlice.reducer;

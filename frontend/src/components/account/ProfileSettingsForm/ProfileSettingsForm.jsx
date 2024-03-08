@@ -45,6 +45,7 @@ import UserAvatarDeleteDialog from "./UserAvatarDeleteDialog";
 import UserAvatarDropzone from "./UserAvatarDropzone";
 
 const ProfileSettingsForm = ({ currUser }) => {
+  const BIO_MAX_CHARS = 250;
   const initialValues = {
     name: currUser?.name || "",
     username: currUser?.username || "",
@@ -56,14 +57,28 @@ const ProfileSettingsForm = ({ currUser }) => {
     name: Yup.string()
       .min(3, "Must be at least 3 characters")
       .max(128, "Must be at most 128 characters")
+      .matches(
+        /^[a-zA-Z][a-zA-Z '.-]+$/,
+        'Name must start with a letter and may contain letters, spaces, hyphens, apostrophes, quotes, and periods. For eg, "John Doe".'
+      )
       .required("Name is required"),
     username: Yup.string()
       .min(5, "Must be at least 5 characters")
       .max(50, "Must be at most 50 characters")
+      .matches(
+        /^(?![^a-z\d])[a-z\d][a-z\d_.+-]*$/,
+        'Username must start with alphanumeric (a-z, 0-9) and may contain alphanumerics, as well as (- _ . +) characters. For eg, "john_doe".'
+      )
       .required("Username is required"),
-    website: Yup.string().matches(
-      /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.){1,}[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?$/,
-      "The website URL you provided is not valid. It should be in the format 'example.com' or 'www.example.com' or 'https://example.com'."
+    website: Yup.string()
+      .max(250, "Must be at most 250 characters")
+      .matches(
+        /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w.-]*)\/?$|^$/,
+        "The website URL you provided is not valid. It should be in the format 'example.com' or 'www.example.com' or 'https://example.com'."
+      ),
+    bio: Yup.string().max(
+      BIO_MAX_CHARS,
+      `Must be at most ${BIO_MAX_CHARS} characters`
     ),
   });
 
@@ -122,7 +137,7 @@ const ProfileSettingsForm = ({ currUser }) => {
     "image/*": [],
   };
   const dropzoneMaxFiles = 1;
-  const dropzoneMaxSizeInMB = 10.1;
+  const dropzoneMaxSizeInMB = 10;
 
   const onDrop = useCallback((acceptedFiles) => {
     setFiles(
@@ -527,6 +542,7 @@ const ProfileSettingsForm = ({ currUser }) => {
                 id={"bio"}
                 name={"bio"}
                 placeholder={"Write a brief description about yourself"}
+                maxChars={BIO_MAX_CHARS}
               />
             </VStack>
 

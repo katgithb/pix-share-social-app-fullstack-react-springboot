@@ -3,8 +3,10 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   findByUsername: null,
   findUsersByIds: [],
+  findSavedPostsByUserId: {},
+  searchUsers: {},
   popularUsers: [],
-  searchUsers: [],
+  isSearchUsersLoading: false,
   isLoading: false,
 };
 
@@ -15,8 +17,11 @@ const loadingReducers = {
   findUsersByUserIdsPending: (state) => {
     state.isLoading = true;
   },
-  searchUsersPending: (state) => {
+  findSavedPostsByUserIdPending: (state) => {
     state.isLoading = true;
+  },
+  searchUsersPending: (state) => {
+    state.isSearchUsersLoading = true;
   },
   fetchPopularUsersPending: (state) => {
     state.isLoading = true;
@@ -36,13 +41,23 @@ const userLookupSlice = createSlice({
       state.findUsersByIds = action.payload;
       state.isLoading = false;
     },
+    findSavedPostsByUserId: (state, action) => {
+      state.findSavedPostsByUserId = action.payload;
+      state.isLoading = false;
+    },
     searchUsers: (state, action) => {
       state.searchUsers = action.payload;
-      state.isLoading = false;
+      state.isSearchUsersLoading = false;
     },
     fetchPopularUsers: (state, action) => {
       state.popularUsers = action.payload;
       state.isLoading = false;
+    },
+    clearSearchUsers: (state) => {
+      state.searchUsers = {};
+    },
+    searchUsersFailure: (state) => {
+      state.isSearchUsersLoading = false;
     },
     userLookupFailure: (state) => {
       state.isLoading = false;
@@ -54,12 +69,16 @@ const userLookupSlice = createSlice({
 export const {
   findUserByUserNamePending,
   findUsersByUserIdsPending,
+  findSavedPostsByUserIdPending,
   searchUsersPending,
   fetchPopularUsersPending,
   findUserByUserName,
   findUsersByUserIds,
+  findSavedPostsByUserId,
   searchUsers,
   fetchPopularUsers,
+  clearSearchUsers,
+  searchUsersFailure,
   userLookupFailure,
   clearUserLookup,
 } = userLookupSlice.actions;

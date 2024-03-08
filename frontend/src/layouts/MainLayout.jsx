@@ -1,4 +1,4 @@
-import { Container, useColorModeValue } from "@chakra-ui/react";
+import { Container } from "@chakra-ui/react";
 import { Outlet } from "react-router-dom";
 import Navbar from "../components/shared/Navbar";
 

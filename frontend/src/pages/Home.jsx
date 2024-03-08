@@ -1,17 +1,190 @@
-import { Box, Flex, Grid, GridItem, Link, Text } from "@chakra-ui/react";
-import React, { useEffect } from "react";
+import { Flex, Grid, GridItem } from "@chakra-ui/react";
+import { Map } from "immutable";
+import _ from "lodash";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useDispatch, useSelector } from "react-redux";
+import PostFeed from "../components/post/PostFeed/PostFeed";
 import BasicProfileCard from "../components/profile/BasicProfileCard";
 import Footer from "../components/shared/Footer";
-import PostFeed from "../components/post/PostFeed/PostFeed";
-import StoriesBar from "../components/story/StoriesBar/StoriesBar";
 import SuggestionsList from "../components/suggestions/SuggestionsList/SuggestionsList";
-import { useDispatch, useSelector } from "react-redux";
+import { findAllPostsByUserIdsAction } from "../redux/actions/post/postLookupActions";
+import {
+  isPostLikedByUserAction,
+  isPostSavedByUserAction,
+} from "../redux/actions/post/postSocialActions";
 import { fetchPopularUsersAction } from "../redux/actions/user/userLookupActions";
+import { clearPostManagement } from "../redux/reducers/post/postManagementSlice";
+import {
+  POSTS_DEFAULT_PAGE,
+  POSTS_PER_PAGE,
+  POSTS_SORT_BY,
+  POSTS_SORT_DIRECTION,
+} from "../utils/constants/pagination/postPagination";
+import {
+  removePageFromPostAttributeCache,
+  trimPostAttributeCache,
+  updatePostAttributeCache,
+} from "../utils/postUtils";
 
 const Home = () => {
+  const POST_LIKED_CACHE_MAX_PAGES = 7;
+  const POST_SAVED_CACHE_MAX_PAGES = 7;
   const dispatch = useDispatch();
-  const { userProfile, userLookup } = useSelector((store) => store.user);
+  const { currUser } = useSelector((store) => store.user.userProfile);
+  const { popularUsers } = useSelector((store) => store.user.userLookup);
+  const selectPostLookup = useSelector((store) => store.post.postLookup);
+  const postLookup = useMemo(() => selectPostLookup, [selectPostLookup]);
   const token = localStorage.getItem("token");
+
+  const [followingUserIds, setFollowingUserIds] = useState([]);
+  const [postsPage, setPostsPage] = useState({});
+  const [postLikedCacheMap, setPostLikedCacheMap] = useState(Map());
+  const [postSavedCacheMap, setPostSavedCacheMap] = useState(Map());
+  const prevCurrUserRef = useRef(null);
+
+  const isPostLikedCached = (postId, postIdPage) => {
+    const postLikedMap = postLikedCacheMap.get(postIdPage) || Map();
+
+    return postLikedMap.has(postId);
+  };
+
+  const fetchPostLiked = useCallback(
+    (postId) => {
+      if (token && postId) {
+        const data = {
+          token,
+          postId,
+        };
+
+        dispatch(isPostLikedByUserAction(data));
+      }
+    },
+    [dispatch, token]
+  );
+
+  const addPostLikedToCacheMap = useCallback(
+    (postId, postIdPage, isLiked) => {
+      const maxCacheSize = POST_LIKED_CACHE_MAX_PAGES;
+      const minPage = postLikedCacheMap.keySeq().min() || 0;
+      const maxPage = postLikedCacheMap.keySeq().max() || 0;
+
+      const trimmedCache = trimPostAttributeCache(
+        postLikedCacheMap,
+        postIdPage,
+        minPage,
+        maxPage,
+        maxCacheSize
+      );
+      const updatedCache = updatePostAttributeCache(
+        trimmedCache,
+        postIdPage,
+        postId,
+        isLiked
+      );
+
+      setPostLikedCacheMap(updatedCache);
+    },
+    [postLikedCacheMap]
+  );
+
+  const isPostSavedCached = (postId, postIdPage) => {
+    const postSavedMap = postSavedCacheMap.get(postIdPage) || Map();
+
+    return postSavedMap.has(postId);
+  };
+
+  const fetchPostSaved = useCallback(
+    (postId) => {
+      if (token && postId) {
+        const data = {
+          token,
+          postId,
+        };
+
+        dispatch(isPostSavedByUserAction(data));
+      }
+    },
+    [dispatch, token]
+  );
+
+  const addPostSavedToCacheMap = useCallback(
+    (postId, postIdPage, isSaved) => {
+      const maxCacheSize = POST_SAVED_CACHE_MAX_PAGES;
+      const minPage = postSavedCacheMap.keySeq().min() || 0;
+      const maxPage = postSavedCacheMap.keySeq().max() || 0;
+
+      const trimmedCache = trimPostAttributeCache(
+        postSavedCacheMap,
+        postIdPage,
+        minPage,
+        maxPage,
+        maxCacheSize
+      );
+      const updatedCache = updatePostAttributeCache(
+        trimmedCache,
+        postIdPage,
+        postId,
+        isSaved
+      );
+
+      setPostSavedCacheMap(updatedCache);
+    },
+    [postSavedCacheMap]
+  );
+
+  const checkPostLikedByCurrUser = useCallback(
+    (postId, postIdPage, skipCache = false) => {
+      const postLikedMap = postLikedCacheMap.get(postIdPage) || Map();
+      // console.log("postLikedCacheMap", postLikedCacheMap.toJS());
+
+      if (postLikedMap.has(postId) && !skipCache) {
+        return postLikedMap.get(postId);
+      }
+
+      fetchPostLiked(postId);
+      return null;
+    },
+    [fetchPostLiked, postLikedCacheMap]
+  );
+
+  const checkPostSavedByCurrUser = useCallback(
+    (postId, postIdPage, skipCache = false) => {
+      const postSavedMap = postSavedCacheMap.get(postIdPage) || Map();
+      // console.log("postSavedCacheMap", postSavedCacheMap.toJS());
+
+      if (postSavedMap.has(postId) && !skipCache) {
+        return postSavedMap.get(postId);
+      }
+
+      fetchPostSaved(postId);
+      return null;
+    },
+    [fetchPostSaved, postSavedCacheMap]
+  );
+
+  const removeCachedPostLikedPage = (postIdPage) => {
+    const updatedCache = removePageFromPostAttributeCache(
+      postLikedCacheMap,
+      postIdPage
+    );
+
+    setPostLikedCacheMap(updatedCache);
+  };
+
+  const removeCachedPostSavedPage = (postIdPage) => {
+    const updatedCache = removePageFromPostAttributeCache(
+      postSavedCacheMap,
+      postIdPage
+    );
+
+    setPostSavedCacheMap(updatedCache);
+  };
 
   useEffect(() => {
     if (token) {
@@ -19,121 +192,69 @@ const Home = () => {
     }
   }, [dispatch, token]);
 
-  const userIdList = [
-    20, 72, 58, 29, 89, 17, 94, 69, 11, 23, 10, 90, 18, 81, 79,
-  ];
+  useEffect(() => {
+    if (currUser) {
+      const followingIds = currUser?.following?.map((user) => user.id);
+      setFollowingUserIds([currUser?.id, ...followingIds]);
+    }
+  }, [currUser]);
 
-  const postIdList = Array.from({ length: 40 }, () =>
-    Math.floor(Math.random() * 100)
+  const changePage = useCallback(
+    async (pageNumber) => {
+      if (token && followingUserIds.length > 0) {
+        const data = {
+          token,
+          userIds: followingUserIds,
+          pageFetchParams: {
+            page: pageNumber > 0 ? pageNumber - 1 : POSTS_DEFAULT_PAGE - 1,
+            size: POSTS_PER_PAGE,
+            sortBy: POSTS_SORT_BY,
+            sortDir: POSTS_SORT_DIRECTION,
+          },
+        };
+        dispatch(findAllPostsByUserIdsAction(data));
+        dispatch(clearPostManagement());
+      }
+    },
+    [dispatch, followingUserIds, token]
   );
 
-  const userId = userIdList[Math.floor(Math.random() * userIdList.length)];
-  const gender = userId % 2 === 0 ? "men" : "women";
-  const fullname = generateRandomName();
+  const handlePageChange = useCallback(
+    (pageNumber) => {
+      changePage(pageNumber);
+    },
+    [changePage]
+  );
 
-  const currUser = {
-    dp: `https://randomuser.me/api/portraits/${gender}/${Math.round(
-      userId
-    )}.jpg`,
-    fullname: fullname,
-    username: generateUsernameFromName(fullname),
-  };
+  const fetchInitialPosts = useCallback(() => {
+    changePage(POSTS_DEFAULT_PAGE);
+  }, [changePage]);
 
-  const posts = postIdList.map((postId) => {
-    const userId = userIdList[Math.floor(Math.random() * userIdList.length)];
-    const gender = userId % 2 === 0 ? "men" : "women";
-    const userDp = `https://randomuser.me/api/portraits/${gender}/${Math.round(
-      userId
-    )}.jpg`;
-    const fullname = generateRandomName();
-    const username = generateUsernameFromName(fullname);
+  useEffect(() => {
+    fetchInitialPosts();
+  }, [fetchInitialPosts]);
 
-    const post = {
-      id: postId,
-      user: {
-        dp: userDp,
-        fullname: fullname,
-        username: username,
-      },
-      image: `https://picsum.photos/id/${postId}/1280/720`,
-      caption: generateRandomCaption(),
-      comments: generateRandomComments(),
-    };
+  useEffect(() => {
+    const postsPage = postLookup.findPostsByUserIds;
 
-    return post;
-  });
-
-  const fullnameList = [
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-    "John Doe",
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-    "John Doe",
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-    "John Doe",
-    "Jane Smith",
-    "Alex Johnson Hades Kate Wilber Robert",
-    "Sarah Thompson",
-  ];
-
-  function generateRandomName() {
-    const names = [
-      "John Doe",
-      "Jane Smith",
-      "Alex Johnson Hades Kate Wilber Robert",
-      "Sarah Thompson",
-    ];
-    const randomIndex = Math.floor(Math.random() * names.length);
-    return names[randomIndex];
-  }
-
-  function generateUsernameFromName(fullname) {
-    const username = fullname.replace(/\s+/g, "_").toLowerCase();
-
-    return username;
-  }
-
-  function generateRandomCaption() {
-    const captions = [
-      "Laborum nemo error odio. Ratione explicabo et odio.",
-      "Vel aperiam doloribus mollitia et et. Fuga autem omnis voluptates nihil in fugit totam adipisci. Voluptatum voluptatem exercitationem rerum molestiae cum et hic. Molestias dolores ex et molestiae. Quaerat qui et voluptate adipisci autem.",
-      "Est asperiores dignissimos fuga. Voluptas id at voluptatum. Ea facere magni necessitatibus et praesentium aut.",
-      "Porro et nulla nulla quo rem rerum exercitationem. Facilis quia dolorem beatae sed eos exercitationem voluptas reprehenderit et. Cum voluptate repudiandae laborum ut tempore. Laborum maxime nihil ab veniam in. In distinctio laboriosam.",
-      "Et est in est rerum est. Vel labore veniam repellat fugit eum distinctio quia eaque consequatur. Est eos deserunt in.",
-      "Delectus sit cupiditate est. Quod maxime consequatur consequatur.",
-      "Ipsa ratione harum consectetur quas repudiandae quibusdam sint amet ducimus.",
-      "Enim rem odio eos est repudiandae eveniet distinctio voluptatum reprehenderit.",
-    ];
-    const randomIndex = Math.floor(Math.random() * captions.length);
-    return captions[randomIndex];
-  }
-
-  function generateRandomComments() {
-    const randomComments = [];
-    const comments = [
-      "Laborum nemo error odio. Ratione explicabo et odio.",
-      "Vel aperiam doloribus mollitia et et. Fuga autem omnis voluptates nihil in fugit totam adipisci. Voluptatum voluptatem exercitationem rerum molestiae cum et hic. Molestias dolores ex et molestiae. Quaerat qui et voluptate adipisci autem.",
-      "Est asperiores dignissimos fuga. Voluptas id at voluptatum. Ea facere magni necessitatibus et praesentium aut.",
-      "Porro et nulla nulla quo rem rerum exercitationem. Facilis quia dolorem beatae sed eos exercitationem voluptas reprehenderit et. Cum voluptate repudiandae laborum ut tempore. Laborum maxime nihil ab veniam in. In distinctio laboriosam.",
-      "Et est in est rerum est. Vel labore veniam repellat fugit eum distinctio quia eaque consequatur. Est eos deserunt in.",
-      "Delectus sit cupiditate est. Quod maxime consequatur consequatur.",
-      "Ipsa ratione harum consectetur quas repudiandae quibusdam sint amet ducimus.",
-      "Enim rem odio eos est repudiandae eveniet distinctio voluptatum reprehenderit.",
-    ];
-
-    const randomIndex = Math.floor(Math.random() * comments.length);
-    for (let i = 0; i < randomIndex; i++) {
-      const comment = comments[i];
-      randomComments.push(comment);
+    if (postsPage && !_.isEmpty(postsPage)) {
+      setPostsPage(postsPage);
     }
+  }, [postLookup.findPostsByUserIds]);
 
-    return randomComments;
-  }
+  useEffect(() => {
+    if (
+      currUser &&
+      token &&
+      prevCurrUserRef.current !== null &&
+      prevCurrUserRef.current !== currUser
+    ) {
+      const data = { token };
+
+      dispatch(fetchPopularUsersAction(data));
+    }
+    prevCurrUserRef.current = currUser;
+  }, [currUser, dispatch, token]);
 
   return (
     <Grid templateColumns="repeat(3, 1fr)" gap={6}>
@@ -141,9 +262,22 @@ const Home = () => {
         px={{ base: "4", md: "12", lg: "0" }}
         colSpan={{ base: "3", lg: "2" }}
       >
-        <StoriesBar currUser={currUser} />
+        {/* <StoriesBar currUser={user} /> */}
 
-        <PostFeed currUser={currUser} posts={posts} />
+        <PostFeed
+          currUser={currUser}
+          posts={postsPage}
+          handlePageChange={handlePageChange}
+          isHomePageFeed
+          isPostLikedCached={isPostLikedCached}
+          isPostSavedCached={isPostSavedCached}
+          checkPostLikedByCurrUser={checkPostLikedByCurrUser}
+          checkPostSavedByCurrUser={checkPostSavedByCurrUser}
+          addPostLikedToCacheMap={addPostLikedToCacheMap}
+          addPostSavedToCacheMap={addPostSavedToCacheMap}
+          removeCachedPostLikedPage={removeCachedPostLikedPage}
+          removeCachedPostSavedPage={removeCachedPostSavedPage}
+        />
       </GridItem>
 
       <GridItem
@@ -160,8 +294,8 @@ const Home = () => {
           flex={1}
           overflow="hidden"
         >
-          <BasicProfileCard user={userProfile.currUser} />
-          <SuggestionsList users={userLookup.popularUsers} />
+          <BasicProfileCard user={currUser} />
+          <SuggestionsList users={popularUsers} />
           <Footer />
         </Flex>
       </GridItem>

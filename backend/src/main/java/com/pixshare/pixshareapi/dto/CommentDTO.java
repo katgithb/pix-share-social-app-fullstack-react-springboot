@@ -16,4 +16,5 @@ public class CommentDTO {
     private LocalDateTime createdAt;
     private UserView user;
     private Set<UserView> likedByUsers;
+    private Boolean isLikedByAuthUser;
 }

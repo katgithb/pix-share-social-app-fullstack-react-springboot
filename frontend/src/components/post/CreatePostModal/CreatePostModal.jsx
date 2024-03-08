@@ -1,117 +1,54 @@
-import {
-  Avatar,
-  Box,
-  Button,
-  Divider,
-  Fade,
-  Flex,
-  Heading,
-  Icon,
-  Image,
-  Input,
-  Link,
-  ScaleFade,
-  Text,
-  Textarea,
-  useBreakpointValue,
-  useColorMode,
-  useColorModeValue,
-  useTheme,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Divider, Fade, Flex, ScaleFade, Text } from "@chakra-ui/react";
 import React, { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { FaRegFaceSmile } from "react-icons/fa6";
-import { TbPhotoPlus } from "react-icons/tb";
-import { Link as RouteLink } from "react-router-dom";
+import { useSelector } from "react-redux";
 import CustomizableModal from "../../shared/CustomizableModal";
-import { Cities, Countries, States } from "countries-states-cities-service";
-import { AsyncPaginate } from "react-select-async-paginate";
-import unidecode from "unidecode";
 import FileDropzone from "../../shared/FileDropzone";
 import PostDraft from "./PostDraft/PostDraft";
 
 const CreatePostModal = ({ isOpen, onClose }) => {
-  const userIdList = [
-    20, 72, 58, 29, 89, 17, 94, 69, 11, 23, 10, 90, 18, 81, 79,
-  ];
-  const id = Math.floor(Math.random() * userIdList.length);
-  const gender = id % 2 === 0 ? "men" : "women";
-  const userDetails = {
-    dp: `https://randomuser.me/api/portraits/${gender}/${Math.round(id)}.jpg`,
-    username: generateUsernameFromName(generateRandomName()),
-  };
-
   const [files, setFiles] = useState([]);
-  const [caption, setCaption] = useState("");
-  // const [location, setLocation] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
+  const [unacceptedFiles, setUnacceptedFiles] = useState([]);
+  const userProfile = useSelector((store) => store.user.userProfile);
+
   const dropzoneAcceptedFileTypes = {
     "image/*": [],
   };
   const dropzoneMaxFiles = 1;
   const dropzoneMaxSizeInMB = 10;
 
-  const onDrop = useCallback(
-    (acceptedFiles) => {
-      setFiles(
-        acceptedFiles.map((file) =>
-          Object.assign(file, { preview: URL.createObjectURL(file) })
-        )
-      );
+  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+    setFiles(
+      acceptedFiles.map((file) =>
+        Object.assign(file, { preview: URL.createObjectURL(file) })
+      )
+    );
 
-      console.log("Accepted files: ", files);
-    },
-    [files]
-  );
+    setUnacceptedFiles(rejectedFiles.map((rejectedFile) => rejectedFile));
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: dropzoneAcceptedFileTypes,
-    onDrop,
-    maxFiles: dropzoneMaxFiles,
-    maxSize: dropzoneMaxSizeInMB * 1024 * 1024, // maxSize in bytes
-  });
+    console.log("Accepted files: ", acceptedFiles);
+    console.log("Rejected files: ", rejectedFiles);
+  }, []);
 
-  function generateRandomName() {
-    const names = [
-      "John Doe",
-      "Jane Smith",
-      "Alex Johnson Hades Kate Wilber Robert",
-      "Sarah Thompson",
-    ];
-    const randomIndex = Math.floor(Math.random() * names.length);
-    return names[randomIndex];
-  }
-
-  function generateUsernameFromName(fullname) {
-    const username = fullname.replace(/\s+/g, "_").toLowerCase();
-
-    return username;
-  }
+  const { getRootProps, getInputProps, isDragActive, isDragReject } =
+    useDropzone({
+      accept: dropzoneAcceptedFileTypes,
+      onDrop,
+      maxFiles: dropzoneMaxFiles,
+      maxSize: dropzoneMaxSizeInMB * 1024 * 1024, // maxSize in bytes
+    });
 
   const handleModalClose = () => {
     setFiles([]);
-    setCaption("");
     setSelectedLocation("");
+    setUnacceptedFiles([]);
     onClose();
   };
 
   const isFileDropped = () => {
     return files.length !== 0;
   };
-
-  const handleCaptionInputChange = (e) => {
-    const inputValue = e.target.value;
-    if (inputValue.length <= 250) {
-      setCaption(inputValue);
-    }
-  };
-
-  // const handleLocationInputChange = (e) => {
-  //   setLocation(e.target.value);
-  // };
-
-  console.log("selected item: ", selectedLocation);
 
   return (
     <CustomizableModal
@@ -127,6 +64,8 @@ const CreatePostModal = ({ isOpen, onClose }) => {
             getRootProps={getRootProps}
             getInputProps={getInputProps}
             isDragActive={isDragActive}
+            isDragReject={isDragReject}
+            rejectedFiles={unacceptedFiles}
             maxFiles={dropzoneMaxFiles}
             maxSizeInMB={dropzoneMaxSizeInMB}
           />
@@ -134,12 +73,12 @@ const CreatePostModal = ({ isOpen, onClose }) => {
       ) : (
         <ScaleFade in initialScale={0.9}>
           <PostDraft
-            user={userDetails}
+            currUser={userProfile.currUser}
             files={files}
-            caption={caption}
+            setFiles={setFiles}
             location={selectedLocation}
             setLocation={setSelectedLocation}
-            handleCaptionChange={handleCaptionInputChange}
+            handleModalClose={handleModalClose}
           />
         </ScaleFade>
       )}
@@ -159,9 +98,5 @@ const HeaderContent = ({ title }) => {
     </Box>
   );
 };
-
-// const FooterContent = () => {
-//   return <div>This is the footer content</div>;
-// };
 
 export default CreatePostModal;

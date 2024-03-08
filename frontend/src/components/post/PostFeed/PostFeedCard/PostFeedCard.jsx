@@ -1,9 +1,6 @@
 import {
-  Avatar,
-  AvatarGroup,
   Badge,
   Box,
-  Button,
   Card,
   CardBody,
   CardFooter,
@@ -13,26 +10,94 @@ import {
   HStack,
   Icon,
   IconButton,
-  Image,
-  Input,
   Link,
   Text,
   useColorModeValue,
   useDisclosure,
-  VStack,
 } from "@chakra-ui/react";
-import { useEffect, useRef, useState } from "react";
+import { Form, Formik } from "formik";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineSend } from "react-icons/ai";
-import { BiCommentDetail, BiExpandAlt, BiSolidBookmark } from "react-icons/bi";
+import { BiExpandAlt } from "react-icons/bi";
 import { BsThreeDotsVertical } from "react-icons/bs";
-import { FaHeart, FaRegComment, FaRegFaceSmile } from "react-icons/fa6";
+import {
+  FaHeart,
+  FaRegComment,
+  FaRegFaceSmile,
+  FaRegHeart,
+} from "react-icons/fa6";
 import { PiPaperPlaneTiltBold } from "react-icons/pi";
+import { RiBookmarkFill, RiBookmarkLine } from "react-icons/ri";
+import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
+import * as Yup from "yup";
+import useTruncateText from "../../../../hooks/useTruncateText";
+import { createCommentAction } from "../../../../redux/actions/comment/commentManagementActions";
+import { findPostByIdAction } from "../../../../redux/actions/post/postLookupActions";
+import {
+  likePostAction,
+  savePostAction,
+  unlikePostAction,
+  unsavePostAction,
+} from "../../../../redux/actions/post/postSocialActions";
+import { clearCommentManagement } from "../../../../redux/reducers/comment/commentManagementSlice";
+import {
+  clearLikedComment,
+  clearUnlikedComment,
+} from "../../../../redux/reducers/comment/commentSocialSlice";
+import { clearPostById } from "../../../../redux/reducers/post/postLookupSlice";
+import {
+  clearIsPostLikedByUser,
+  clearIsPostSavedByUser,
+  clearLikedPost,
+  clearSavedPost,
+  clearUnlikedPost,
+  clearUnsavedPost,
+} from "../../../../redux/reducers/post/postSocialSlice";
+import { getHumanReadableNumberFormat } from "../../../../utils/commonUtils";
+import { getRelativePostTime } from "../../../../utils/postUtils";
+import PostCommentCard from "../../../comment/PostCommentCard/PostCommentCard";
+import AvatarGroupWithLoader from "../../../shared/AvatarGroupWithLoader";
+import AvatarWithLoader from "../../../shared/AvatarWithLoader";
+import CustomCommentTextInput from "../../../shared/customFormElements/CustomCommentTextInput";
+import ImageWithLoader from "../../../shared/ImageWithLoader";
 import PostActionsMenu from "./PostActionsMenu";
-import PostCommentCard from "../../../comment/PostCommentCard";
 import PostViewModal from "./PostViewModal/PostViewModal";
 
-const PostFeedCard = ({ currUser, user, post }) => {
+const PostFeedCard = ({
+  currUser,
+  post,
+  postIdPage,
+  isPostLikedCached,
+  isPostSavedCached,
+  checkPostLikedByCurrUser,
+  checkPostSavedByCurrUser,
+  addPostLikedToCacheMap,
+  addPostSavedToCacheMap,
+  updateLoadedPostEntry,
+}) => {
+  const MAX_COMMENTS = 2;
+  const MAX_LIKED_USER_AVATARS = 3;
+  const REQUEST_DELAY_IN_MS = 400;
+  const CAPTION_TRUNCATE_CHARS_LIMIT = 140;
+  const COMMENT_MAX_CHARS = 250;
+  const initialValues = {
+    comment: "",
+  };
+
+  const validationSchema = Yup.object().shape({
+    comment: Yup.string()
+      .max(COMMENT_MAX_CHARS, `Must be at most ${COMMENT_MAX_CHARS} characters`)
+      .matches(/\S/, "Must not be blank"),
+  });
+
+  const dispatch = useDispatch();
+  const { findPostById } = useSelector((store) => store.post.postLookup);
+  const postSocial = useSelector((store) => store.post.postSocial);
+  const commentManagement = useSelector(
+    (store) => store.comment.commentManagement
+  );
+  const token = localStorage.getItem("token");
   const {
     isOpen: isOpenPostViewModal,
     onOpen: onOpenPostViewModal,
@@ -43,152 +108,351 @@ const PostFeedCard = ({ currUser, user, post }) => {
     onOpen: onOpenPostActionsMenu,
     onClose: onClosePostActionsMenu,
   } = useDisclosure();
-  // const captionText = useTextOverflow(2);
-  const MAX_COMMENTS = 2;
-  const caption =
-    "\"Fantasy is a necessary ingredient in living, it's a way of looking at life through the wrong end of a telescope, and that enables you to laugh at life's realities\" - Dr. Seuss";
 
-  const useTruncatedText = (text, maxChars = 100) => {
-    const [isTextOverflowing, setIsTextOverflowing] = useState(false);
-    if (text <= maxChars) {
-      return text;
+  const [relativePostTime, setRelativePostTime] = useState(
+    getRelativePostTime(post?.createdAt)
+  );
+  const truncatedCaptionText = useTruncateText(
+    post?.caption,
+    CAPTION_TRUNCATE_CHARS_LIMIT
+  );
+
+  const [isLikedByUser, setIsLikedByUser] = useState(false);
+  const [isLikedLoading, setIsLikedLoading] = useState(true);
+  const [isSavedByUser, setIsSavedByUser] = useState(false);
+  const [isSavedLoading, setIsSavedLoading] = useState(true);
+  const isLikedBtnLoaded = useRef(false);
+  const isSavedBtnLoaded = useRef(false);
+  const likeStatusUpdatedCommentsSet = useRef(new Set());
+
+  const likedByUsersLength = post?.likedByUsers?.length || 0;
+  const additionalLikesCount =
+    likedByUsersLength > MAX_LIKED_USER_AVATARS
+      ? getHumanReadableNumberFormat(
+          likedByUsersLength - MAX_LIKED_USER_AVATARS
+        )
+      : getHumanReadableNumberFormat(likedByUsersLength);
+  const likedByOthersCount = getHumanReadableNumberFormat(
+    likedByUsersLength - MAX_LIKED_USER_AVATARS
+  );
+  const additionalLikesText =
+    likedByUsersLength > MAX_LIKED_USER_AVATARS
+      ? `+${additionalLikesCount}`
+      : additionalLikesCount;
+  const likesText = additionalLikesCount === "1" ? "like" : "likes";
+  const likedByOthersText = likedByOthersCount === "1" ? "other" : "others";
+
+  const commentsLength = post?.comments?.length || 0;
+  const commentsCount = getHumanReadableNumberFormat(commentsLength);
+  const commentsText = commentsLength === 1 ? "comment" : "comments";
+
+  const likedByUsersAvatars = post?.likedByUsers
+    .slice(-MAX_LIKED_USER_AVATARS)
+    .filter((user) => user.id !== currUser?.id)
+    .concat(isLikedByUser ? [currUser] : [])
+    .reverse()
+    .reduce((acc, user, index) => {
+      return index < MAX_LIKED_USER_AVATARS ? [...acc, user] : acc;
+    }, [])
+    .map((user) => ({
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      image: user?.userImage,
+    }));
+
+  const handleCommentFormSubmission = (values, { setSubmitting }) => {
+    setSubmitting(true);
+    console.log("Form Values: ", values);
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+        comment: { content: values.comment },
+      };
+
+      dispatch(createCommentAction(data));
     }
-
-    const truncatedText = isTextOverflowing
-      ? text
-      : `${text.slice(0, maxChars)}...`;
-
-    return { truncatedText, isTextOverflowing, setIsTextOverflowing };
+    setSubmitting(false);
   };
 
-  const useTruncateAndAddReadMore = (text, maxChars = 100) => {
-    const [isTextOverflowing, setIsTextOverflowing] = useState(false);
-    if (text.length <= maxChars) {
-      return <Text>{text}</Text>;
+  const changeCommentLikeUpdatesSet = useCallback((commentId) => {
+    if (!likeStatusUpdatedCommentsSet.current.has(commentId)) {
+      likeStatusUpdatedCommentsSet.current.add(commentId);
+    }
+  }, []);
+
+  const checkPostLiked = useCallback(
+    (skipCache = false) => {
+      const isLiked = checkPostLikedByCurrUser(post?.id, postIdPage, skipCache);
+
+      if (isLiked === null) {
+        return;
+      }
+
+      setIsLikedByUser(isLiked);
+      setIsLikedLoading(false);
+    },
+    [checkPostLikedByCurrUser, post?.id, postIdPage]
+  );
+
+  const checkPostSaved = useCallback(
+    (skipCache = false) => {
+      const isSaved = checkPostSavedByCurrUser(post?.id, postIdPage, skipCache);
+
+      if (isSaved === null) {
+        return;
+      }
+
+      setIsSavedByUser(isSaved);
+      setIsSavedLoading(false);
+    },
+    [checkPostSavedByCurrUser, post?.id, postIdPage]
+  );
+
+  const handlePostLike = () => {
+    setIsLikedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(likePostAction(data));
+    }
+  };
+
+  const handlePostUnlike = () => {
+    setIsLikedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(unlikePostAction(data));
+    }
+  };
+
+  const handlePostSave = () => {
+    setIsSavedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(savePostAction(data));
+    }
+  };
+
+  const handlePostUnsave = () => {
+    setIsSavedLoading(true);
+
+    if (token && post?.id) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(unsavePostAction(data));
+    }
+  };
+
+  const updatePostLiked = useCallback(
+    (postId, updatedPost, isLiked) => {
+      const updatedPostId = updatedPost?.id;
+      if (updatedPostId === postId) {
+        checkPostLiked(true);
+
+        isLiked
+          ? dispatch(clearLikedPost(updatedPostId))
+          : dispatch(clearUnlikedPost(updatedPostId));
+        updateLoadedPostEntry(updatedPostId, updatedPost);
+      }
+    },
+    [checkPostLiked, dispatch, updateLoadedPostEntry]
+  );
+
+  const updatePostSaved = useCallback(
+    (postId, isSaved) => {
+      checkPostSaved(true);
+
+      isSaved
+        ? dispatch(clearSavedPost(postId))
+        : dispatch(clearUnsavedPost(postId));
+    },
+    [checkPostSaved, dispatch]
+  );
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.likedPosts) {
+      const likedPost = postSocial.likedPosts[postId];
+      updatePostLiked(postId, likedPost, true);
+    }
+  }, [post?.id, postSocial.likedPosts, updatePostLiked]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.unlikedPosts) {
+      const unlikedPost = postSocial.unlikedPosts[postId];
+      updatePostLiked(postId, unlikedPost, false);
+    }
+  }, [post?.id, postSocial.unlikedPosts, updatePostLiked]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.savedPosts) {
+      updatePostSaved(postId, true);
+    }
+  }, [post?.id, postSocial.savedPosts, updatePostSaved]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.unsavedPosts) {
+      updatePostSaved(postId, false);
+    }
+  }, [post?.id, postSocial.unsavedPosts, updatePostSaved]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.isLikedByUser) {
+      const isLiked = postSocial.isLikedByUser[postId];
+
+      dispatch(clearIsPostLikedByUser(postId));
+      addPostLikedToCacheMap(postId, postIdPage, isLiked);
+    }
+  }, [
+    addPostLikedToCacheMap,
+    dispatch,
+    post?.id,
+    postIdPage,
+    postSocial.isLikedByUser,
+  ]);
+
+  useEffect(() => {
+    const postId = post?.id;
+    if (postId && postId in postSocial.isSavedByUser) {
+      const isSaved = postSocial.isSavedByUser[postId];
+
+      dispatch(clearIsPostSavedByUser(postId));
+      addPostSavedToCacheMap(postId, postIdPage, isSaved);
+    }
+  }, [
+    addPostSavedToCacheMap,
+    dispatch,
+    post?.id,
+    postIdPage,
+    postSocial.isSavedByUser,
+  ]);
+
+  useEffect(() => {
+    let timer = null;
+    if (isSavedBtnLoaded.current) {
+      isPostSavedCached(post?.id, postIdPage)
+        ? checkPostSaved()
+        : (timer = setTimeout(() => {
+            checkPostSaved(true);
+          }, REQUEST_DELAY_IN_MS));
     } else {
-      const truncatedText = isTextOverflowing
-        ? text
-        : `${text.substring(0, maxChars)}...`;
-      const readMoreLink = (
-        <Text
-          as="span"
-          alignSelf="end"
-          color={"gray.500"}
-          _dark={{ color: "gray.400" }}
-          fontWeight="semibold"
-          cursor="pointer"
-          _hover={{
-            textDecorationLine: "underline",
-          }}
-          onClick={() => setIsTextOverflowing(!isTextOverflowing)}
-        >
-          {isTextOverflowing ? "less" : "more"}
-        </Text>
-      );
-      return (
-        <>
-          <Text noOfLines={!isTextOverflowing ? 2 : {}}>{truncatedText}</Text>
-
-          {readMoreLink}
-        </>
-      );
-    }
-  };
-
-  const captionText = useTruncateAndAddReadMore(caption, 140);
-
-  function generateRandomName() {
-    const names = [
-      "John Doe",
-      "Jane Smith",
-      "Alex Johnson Hades Kate Wilber Robert",
-      "Sarah Thompson",
-    ];
-    const randomIndex = Math.floor(Math.random() * names.length);
-    return names[randomIndex];
-  }
-
-  function generateRandomUsername(fullname) {
-    const username = fullname.replace(/\s+/g, "_").toLowerCase();
-
-    return username;
-  }
-
-  function generateRandomCaption() {
-    const captions = [
-      "Laborum nemo error odio. Ratione explicabo et odio.",
-      "Vel aperiam doloribus mollitia et et. Fuga autem omnis voluptates nihil in fugit totam adipisci. Voluptatum voluptatem exercitationem rerum molestiae cum et hic. Molestias dolores ex et molestiae. Quaerat qui et voluptate adipisci autem.",
-      "Est asperiores dignissimos fuga. Voluptas id at voluptatum. Ea facere magni necessitatibus et praesentium aut.",
-      "Porro et nulla nulla quo rem rerum exercitationem. Facilis quia dolorem beatae sed eos exercitationem voluptas reprehenderit et. Cum voluptate repudiandae laborum ut tempore. Laborum maxime nihil ab veniam in. In distinctio laboriosam.",
-      "Et est in est rerum est. Vel labore veniam repellat fugit eum distinctio quia eaque consequatur. Est eos deserunt in.",
-      "Delectus sit cupiditate est. Quod maxime consequatur consequatur.",
-      "Ipsa ratione harum consectetur quas repudiandae quibusdam sint amet ducimus.",
-      "Enim rem odio eos est repudiandae eveniet distinctio voluptatum reprehenderit.",
-    ];
-    const randomIndex = Math.floor(Math.random() * captions.length);
-    return captions[randomIndex];
-  }
-
-  function generateRandomComments() {
-    const randomComments = [];
-    const comments = [
-      "Laborum nemo error odio. Ratione explicabo et odio.",
-      "Vel aperiam doloribus mollitia et et. Fuga autem omnis voluptates nihil in fugit totam adipisci. Voluptatum voluptatem exercitationem rerum molestiae cum et hic. Molestias dolores ex et molestiae. Quaerat qui et voluptate adipisci autem.",
-      "Est asperiores dignissimos fuga. Voluptas id at voluptatum. Ea facere magni necessitatibus et praesentium aut.",
-      "Porro et nulla nulla quo rem rerum exercitationem. Facilis quia dolorem beatae sed eos exercitationem voluptas reprehenderit et. Cum voluptate repudiandae laborum ut tempore. Laborum maxime nihil ab veniam in. In distinctio laboriosam.",
-      "Et est in est rerum est. Vel labore veniam repellat fugit eum distinctio quia eaque consequatur. Est eos deserunt in.",
-      "Delectus sit cupiditate est. Quod maxime consequatur consequatur.",
-      "Ipsa ratione harum consectetur quas repudiandae quibusdam sint amet ducimus.",
-      "Enim rem odio eos est repudiandae eveniet distinctio voluptatum reprehenderit.",
-    ];
-
-    const randomIndex = Math.floor(Math.random() * comments.length);
-    for (let i = 0; i < randomIndex; i++) {
-      const comment = comments[i];
-      randomComments.push(comment);
+      isSavedBtnLoaded.current = true;
     }
 
-    return randomComments;
-  }
+    return () => clearTimeout(timer);
+  }, [checkPostSaved, isPostSavedCached, post?.id, postIdPage]);
 
-  function useTextOverflow(lines = 1) {
-    const textRef = useRef(null);
-    const containerRef = useRef(null);
-    const [isTextOverflowing, setIsTextOverflowing] = useState(false);
+  useEffect(() => {
+    let timer = null;
+    if (isLikedBtnLoaded.current) {
+      isPostLikedCached(post?.id, postIdPage)
+        ? checkPostLiked()
+        : (timer = setTimeout(() => {
+            checkPostLiked(true);
+          }, REQUEST_DELAY_IN_MS));
+    } else {
+      isLikedBtnLoaded.current = true;
+    }
 
-    useEffect(() => {
-      const handleResize = () => {
-        if (textRef.current && containerRef.current) {
-          const text = textRef.current.innerText;
-          const containerWidth =
-            containerRef.current.getBoundingClientRect().width;
-          const charWidth = 8; // Adjust this value based on current font and styling
-          const maxChars = Math.floor(containerWidth / charWidth);
+    return () => clearTimeout(timer);
+  }, [checkPostLiked, isPostLikedCached, post?.id, postIdPage]);
 
-          lines === 1
-            ? setIsTextOverflowing(text.length > maxChars + charWidth / 2)
-            : setIsTextOverflowing(
-                text.length > maxChars * lines + charWidth * lines
-              );
+  useEffect(() => {
+    if (token && post?.id && commentManagement.isCommentCreated) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(clearCommentManagement());
+      dispatch(findPostByIdAction(data));
+    }
+  }, [commentManagement.isCommentCreated, dispatch, post?.id, token]);
+
+  useEffect(() => {
+    if (token && post?.id && commentManagement.isCommentDeleted) {
+      const data = {
+        token,
+        postId: post?.id,
+      };
+
+      dispatch(clearCommentManagement());
+      dispatch(findPostByIdAction(data));
+    }
+  }, [commentManagement.isCommentDeleted, dispatch, post?.id, token]);
+
+  useEffect(() => {
+    const postById = findPostById;
+
+    if (postById) {
+      dispatch(clearPostById());
+      updateLoadedPostEntry(postById?.id, postById);
+    }
+  }, [dispatch, findPostById, updateLoadedPostEntry]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup function when PostFeedCard is unmounted
+      // Fetch the updated post data before unmounting
+      const likeStatusUpdatedComments = likeStatusUpdatedCommentsSet.current;
+
+      if (token && post?.id && likeStatusUpdatedComments.size > 0) {
+        const data = {
+          token,
+          postId: post?.id,
+        };
+
+        dispatch(findPostByIdAction(data));
+      }
+
+      for (let commentId of likeStatusUpdatedComments) {
+        if (commentId) {
+          dispatch(clearLikedComment(commentId));
+          dispatch(clearUnlikedComment(commentId));
         }
-      };
+      }
+      likeStatusUpdatedCommentsSet.current.clear();
+    };
+  }, [dispatch, post?.id, token]);
 
-      handleResize();
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRelativePostTime(getRelativePostTime(post?.createdAt));
+    }, 60000); // Update every minute
 
-      window.addEventListener("resize", handleResize);
-
-      return () => {
-        window.removeEventListener("resize", handleResize);
-      };
-    }, []);
-
-    return { textRef, containerRef, isTextOverflowing };
-  }
+    return () => {
+      clearInterval(interval);
+    };
+  }, [post?.createdAt]);
 
   return (
     <Card
       mb={5}
       variant={useColorModeValue("outline", "elevated")}
+      w="full"
       maxW="xl"
       rounded="lg"
       boxShadow={"md"}
@@ -196,46 +460,54 @@ const PostFeedCard = ({ currUser, user, post }) => {
     >
       <PostViewModal
         currUser={currUser}
-        user={user}
-        post={post}
+        post={{ ...post, isLikedByUser, isSavedByUser }}
+        updateLoadedPostEntry={updateLoadedPostEntry}
         isOpen={isOpenPostViewModal}
         onClose={onClosePostViewModal}
       />
       <CardHeader>
         <Flex overflow="hidden">
-          <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
-            <Avatar
-              name={user?.fullname}
-              src={user?.dp}
-              size="md"
-              loading="lazy"
-            />
+          <Flex flex="1" gap="3" align="center" flexWrap="wrap">
+            <Link
+              as={RouteLink}
+              to={`/profile/${post?.user?.username}`}
+              rounded="full"
+            >
+              <AvatarWithLoader
+                loaderSize={12}
+                name={post?.user?.name}
+                src={post?.user?.userImage ? post?.user?.userImage : {}}
+                size="md"
+              />
+            </Link>
 
             <Flex flexDirection="column" mb={-1} justify="center">
-              <Heading size="sm" wordBreak="break-word">
-                {user?.username}
+              <Heading size="sm" wordBreak="break-word" noOfLines={2}>
+                <Link as={RouteLink} to={`/profile/${post?.user?.username}`}>
+                  {post?.user?.username}
+                </Link>
               </Heading>
               <Text
                 fontSize={{ base: "xs", md: "sm" }}
                 color={useColorModeValue("gray.500", "gray.400")}
                 letterSpacing="wide"
                 wordBreak="break-word"
+                noOfLines={1}
               >
-                Amsterdam, Netherlands
+                {post?.location}
               </Text>
             </Flex>
           </Flex>
-          {/* <IconButton
-            variant="ghost"
-            colorScheme="gray"
-            aria-label="See menu"
-            icon={<BsThreeDotsVertical />}
-          /> */}
-          <PostActionsMenu
-            isOpen={isOpenPostActionsMenu}
-            onClose={onClosePostActionsMenu}
-            menuIcon={<BsThreeDotsVertical />}
-          />
+
+          <Flex py={1}>
+            <PostActionsMenu
+              currUser={currUser}
+              post={{ ...post, isLikedByUser, isSavedByUser }}
+              updateLoadedPostEntry={updateLoadedPostEntry}
+              onClose={onClosePostActionsMenu}
+              menuIcon={<BsThreeDotsVertical />}
+            />
+          </Flex>
         </Flex>
       </CardHeader>
       <CardBody pt={0} px={3}>
@@ -250,23 +522,19 @@ const PostFeedCard = ({ currUser, user, post }) => {
           overflow="hidden"
         >
           <Flex
+            flex={1}
             rounded="lg"
-            minH="200px"
-            align="center"
+            minH="280px"
+            maxH="340px"
             justify="center"
-            w="full"
           >
-            <Box maxW="1280px" maxH="720px">
-              <Image
-                src={post?.image}
-                // fallbackSrc="path/to/placeholder.jpg"
-                alt="Post Image"
-                loading="lazy"
-                objectFit="cover"
-                w="full"
-                h="full"
-              />
-            </Box>
+            <ImageWithLoader
+              src={post?.image}
+              alt="Post Image"
+              objectFit="contain"
+              maxW="full"
+              maxH="inherit"
+            />
           </Flex>
 
           <Flex
@@ -284,7 +552,12 @@ const PostFeedCard = ({ currUser, user, post }) => {
               justify="space-between"
             >
               <IconButton
-                icon={<BiSolidBookmark />}
+                icon={isSavedByUser ? <RiBookmarkFill /> : <RiBookmarkLine />}
+                isLoading={
+                  post?.id in postSocial.isSavedLoading
+                    ? postSocial.isSavedLoading[post?.id]
+                    : isSavedLoading
+                }
                 bg={useColorModeValue("gray.100", "gray.500")}
                 rounded="full"
                 colorScheme="cyan"
@@ -295,10 +568,17 @@ const PostFeedCard = ({ currUser, user, post }) => {
                 _hover={{
                   bg: useColorModeValue("gray.200", "gray.600"),
                 }}
+                onClick={isSavedByUser ? handlePostUnsave : handlePostSave}
               />
 
               <IconButton
                 icon={<BiExpandAlt />}
+                isDisabled={
+                  isLikedLoading ||
+                  isSavedLoading ||
+                  commentManagement.isCreatingComment ||
+                  commentManagement.isDeletingComment
+                }
                 bg={useColorModeValue("gray.100", "gray.500")}
                 rounded="full"
                 colorScheme="twitter"
@@ -313,151 +593,58 @@ const PostFeedCard = ({ currUser, user, post }) => {
               />
             </Flex>
           </Flex>
-
-          {/* <Flex
-            position="absolute"
-            flexWrap={"wrap"}
-            justify="space-between"
-            rounded="lg"
-            w="full"
-            p={3}
-          > */}
-          {/* <Flex
-              top="0"
-              flexDirection={"column"}
-              rounded="lg"
-            >
-              <Flex align={"flex-start"} rounded="full">
-                <IconButton
-                  icon={<FaHeart />}
-                  bg={useColorModeValue("gray.100", "gray.500")}
-                  rounded="full"
-                  colorScheme="red"
-                  fontSize={{ base: "md", md: "lg" }}
-                  variant="ghost"
-                  aria-label="Like"
-                  boxShadow={"md"}
-                  _hover={{
-                    bg: useColorModeValue("gray.200", "gray.600"),
-                  }}
-                />
-                <Badge
-                  variant={"solid"}
-                  ml="-2"
-                  px={2.5}
-                  // py={0.5}
-                  bgGradient={"linear(to-tr, yellow.400, pink.500)"}
-                  fontSize={{ base: "xs", md: "sm" }}
-                  fontWeight="semibold"
-                  fontFamily="sans-serif"
-                  rounded="full"
-                  boxShadow={"md"}
-                >
-                  433.8k
-                </Badge>
-              </Flex>
-
-              <Flex align={"flex-start"} rounded="full" mt={3}>
-                <IconButton
-                  icon={<FaRegComment />}
-                  bg={useColorModeValue("gray.100", "gray.500")}
-                  rounded="full"
-                  colorScheme="gray"
-                  fontSize={{ base: "md", md: "lg" }}
-                  variant="ghost"
-                  aria-label="Comment"
-                  boxShadow={"md"}
-                  _hover={{
-                    bg: useColorModeValue("gray.200", "gray.600"),
-                  }}
-                />
-                <Badge
-                  variant={"solid"}
-                  ml="-2"
-                  px={2.5}
-                  // py={0.5}
-                  bgGradient={"linear(to-tr, yellow.400, pink.500)"}
-                  fontSize={{ base: "xs", md: "sm" }}
-                  fontWeight="semibold"
-                  fontFamily="sans-serif"
-                  rounded="full"
-                  boxShadow={"md"}
-                >
-                  12.6k
-                </Badge>
-              </Flex>
-
-              <Flex align={"flex-start"} rounded="full" mt={3} mb={3}>
-                <IconButton
-                  icon={<FaRegPaperPlane />}
-                  bg={useColorModeValue("gray.100", "gray.500")}
-                  rounded="full"
-                  colorScheme="gray"
-                  fontSize={{ base: "md", md: "lg" }}
-                  variant="ghost"
-                  aria-label="Share"
-                  boxShadow={"md"}
-                  _hover={{
-                    bg: useColorModeValue("gray.200", "gray.600"),
-                  }}
-                />
-              </Flex>
-            </Flex> */}
-
-          {/* <Flex
-              // right="0"
-              rounded="lg"
-            >
-              <IconButton
-                icon={<FaRegBookmark />}
-                bg={useColorModeValue("gray.100", "gray.500")}
-                rounded="full"
-                colorScheme="gray"
-                fontSize={{ base: "md", md: "lg" }}
-                variant="ghost"
-                aria-label="Save"
-                boxShadow={"md"}
-                _hover={{
-                  bg: useColorModeValue("gray.200", "gray.600"),
-                }}
-              />
-            </Flex> */}
-          {/* </Flex> */}
         </Flex>
 
         <Flex mx={-2} align="start" justify="space-between" overflow="hidden">
           <Flex align="center" flexWrap="wrap">
             <Flex align="center" mr={{ base: "0", md: "2" }}>
               <IconButton
-                icon={<FaHeart />}
+                icon={isLikedByUser ? <FaHeart /> : <FaRegHeart />}
+                isLoading={
+                  post?.id in postSocial.isLikedLoading
+                    ? postSocial.isLikedLoading[post?.id]
+                    : isLikedLoading
+                }
                 rounded="full"
-                colorScheme="red"
+                colorScheme={isLikedByUser ? "red" : "gray"}
                 fontSize={"24"}
                 variant="ghost"
                 aria-label="Like"
+                onClick={isLikedByUser ? handlePostUnlike : handlePostLike}
               />
 
-              <AvatarGroup
-                display={{ base: "none", md: "inherit" }}
-                size="sm"
-                alignItems={"center"}
-                max={4}
-              >
-                <Avatar name={user?.fullname} src={user?.dp} loading="lazy" />
-                <Avatar
-                  name="Kent Dodds"
-                  src="https://bit.ly/kent-c-dodds"
-                  loading="lazy"
-                />
-                <Avatar
-                  name="Prosper Muyiwa"
-                  src="https://bit.ly/prosper-baba"
-                  loading="lazy"
-                />
-
+              {likedByUsersLength > 0 ? (
+                <AvatarGroupWithLoader
+                  loaderHeight={6}
+                  avatars={likedByUsersAvatars}
+                  hideBelow="md"
+                  size="sm"
+                  alignItems={"center"}
+                >
+                  <Badge
+                    variant={"subtle"}
+                    ml={0.5}
+                    pl={likedByUsersLength > 3 ? 2 : 3}
+                    pr={2}
+                    colorScheme="red"
+                    fontSize={"sm"}
+                    fontWeight="semibold"
+                    fontFamily="sans-serif"
+                    textTransform="capitalize"
+                    rounded="full"
+                    boxShadow={"md"}
+                  >
+                    {additionalLikesText}{" "}
+                    <Text as="span" fontSize="xs" fontWeight="normal">
+                      {likesText}
+                    </Text>
+                  </Badge>
+                </AvatarGroupWithLoader>
+              ) : (
                 <Badge
+                  display={{ base: "none", md: "inherit" }}
                   variant={"subtle"}
-                  ml={0.5}
+                  ml={-1}
                   px={2}
                   colorScheme="red"
                   fontSize={"sm"}
@@ -467,111 +654,50 @@ const PostFeedCard = ({ currUser, user, post }) => {
                   rounded="full"
                   boxShadow={"md"}
                 >
-                  +110.65k{" "}
-                  <Text
-                    as="span"
-                    fontSize="xs"
-                    fontWeight="normal"
-                    textTransform="capitalize"
-                  >
-                    Likes
+                  <Text as="span" fontSize="xs" fontWeight="normal">
+                    Be the first to <b>like!</b>
                   </Text>
                 </Badge>
-              </AvatarGroup>
+              )}
             </Flex>
 
-            <Flex align="center">
-              <IconButton
-                icon={<FaRegComment />}
-                rounded="full"
-                colorScheme="gray"
-                fontSize={"24"}
-                variant="ghost"
-                aria-label="Comment"
-              />
-              <Badge
-                variant={"subtle"}
-                ml={-1}
-                px={2}
-                colorScheme="blue"
-                fontSize={"sm"}
-                fontWeight="semibold"
-                fontFamily="sans-serif"
-                textTransform="capitalize"
-                rounded="full"
-                boxShadow={"md"}
-              >
-                433.84k{" "}
-                <Text as="span" fontSize="xs" fontWeight="normal">
-                  Comments
-                </Text>
-              </Badge>
-            </Flex>
+            {commentsLength > 0 && (
+              <Flex align="center">
+                <IconButton
+                  icon={<FaRegComment />}
+                  pointerEvents="none"
+                  rounded="full"
+                  colorScheme="gray"
+                  fontSize={"24"}
+                  variant="ghost"
+                  aria-label="Comment"
+                />
+                <Badge
+                  variant={"subtle"}
+                  ml={-1}
+                  px={2}
+                  colorScheme="blue"
+                  fontSize={"sm"}
+                  fontWeight="semibold"
+                  fontFamily="sans-serif"
+                  textTransform="capitalize"
+                  rounded="full"
+                  boxShadow={"md"}
+                >
+                  {commentsCount}{" "}
+                  <Text as="span" fontSize="xs" fontWeight="normal">
+                    {commentsText}
+                  </Text>
+                </Badge>
+              </Flex>
+            )}
           </Flex>
 
           <Flex align="center" rounded="full">
-            {/* <Box align="start">
-              <IconButton
-                icon={<FaRegHeart />}
-                // bg={useColorModeValue("gray.100", "gray.500")}
-                rounded="full"
-                colorScheme="gray"
-                fontSize={{ base: "md", md: "24px" }}
-                variant="ghost"
-                aria-label="Like"
-                // boxShadow={"md"}
-                // _hover={{
-                //   bg: useColorModeValue("gray.200", "gray.600"),
-                // }}
-              />
-              <Badge
-                variant={"subtle"}
-                ml={-1}
-                px={2}
-                colorScheme="red"
-                fontSize={"sm"}
-                fontWeight="medium"
-                fontFamily="sans-serif"
-                textTransform="capitalize"
-                rounded="full"
-                boxShadow={"md"}
-              >
-                Like
-              </Badge>
-            </Box> */}
-
-            {/* <Box>
-              <IconButton
-                icon={<FaRegComment />}
-                // bg={useColorModeValue("gray.100", "gray.500")}
-                rounded="full"
-                colorScheme="gray"
-                fontSize={{ base: "md", md: "24" }}
-                variant="ghost"
-                aria-label="Comment"
-                // boxShadow={"md"}
-                // _hover={{
-                //   bg: useColorModeValue("gray.200", "gray.600"),
-                // }}
-              />
-              <Badge
-                variant={"subtle"}
-                ml={-1}
-                px={2}
-                colorScheme="blue"
-                fontSize={"sm"}
-                fontWeight="semibold"
-                fontFamily="sans-serif"
-                rounded="full"
-                boxShadow={"md"}
-              >
-                433.8K
-              </Badge>
-            </Box> */}
-
             <Box>
               <IconButton
                 icon={<PiPaperPlaneTiltBold />}
+                pointerEvents="none"
                 rounded="full"
                 colorScheme="gray"
                 fontSize={"24"}
@@ -584,27 +710,42 @@ const PostFeedCard = ({ currUser, user, post }) => {
         </Flex>
 
         <Flex
-          mb={1}
-          display={{ base: "inherit", md: "none" }}
+          mb={likedByUsersLength > 0 ? 1 : 2}
+          hideFrom="md"
           align="center"
           overflow="hidden"
         >
-          <AvatarGroup size="sm" alignItems={"center"} max={4}>
-            <Avatar name={user?.fullname} src={user?.dp} loading="lazy" />
-            <Avatar
-              name="Kent Dodds"
-              src="https://bit.ly/kent-c-dodds"
-              loading="lazy"
-            />
-            <Avatar
-              name="Prosper Muyiwa"
-              src="https://bit.ly/prosper-baba"
-              loading="lazy"
-            />
-
+          {likedByUsersLength > 0 ? (
+            <AvatarGroupWithLoader
+              loaderHeight={6}
+              avatars={likedByUsersAvatars}
+              hideFrom="md"
+              size="sm"
+              alignItems={"center"}
+            >
+              <Badge
+                variant={"subtle"}
+                ml={0.5}
+                pl={likedByUsersLength > 3 ? 2 : 3}
+                pr={2}
+                colorScheme="red"
+                fontSize={"sm"}
+                fontWeight="semibold"
+                fontFamily="sans-serif"
+                textTransform="capitalize"
+                rounded="full"
+                boxShadow={"md"}
+              >
+                {additionalLikesText}{" "}
+                <Text as="span" fontSize="xs" fontWeight="normal">
+                  {likesText}
+                </Text>
+              </Badge>
+            </AvatarGroupWithLoader>
+          ) : (
             <Badge
               variant={"subtle"}
-              ml={0.5}
+              ml={0}
               px={2}
               colorScheme="red"
               fontSize={"sm"}
@@ -614,79 +755,92 @@ const PostFeedCard = ({ currUser, user, post }) => {
               rounded="full"
               boxShadow={"md"}
             >
-              +110.65k{" "}
-              <Text
-                as="span"
-                fontSize="xs"
-                fontWeight="normal"
-                textTransform="capitalize"
-              >
-                Likes
+              <Text as="span" fontSize="xs" fontWeight="normal">
+                Be the first to <b>like!</b>
               </Text>
             </Badge>
-          </AvatarGroup>
-        </Flex>
-
-        <Flex mb={2} align="start" overflow="hidden">
-          <Text fontSize={"xs"} noOfLines={2} overflow="hidden">
-            Liked by{" "}
-            <Text as="span" wordBreak="break-all" fontWeight="semibold">
-              {user?.username.length > 50
-                ? `${user?.username.slice(0, 50)}...`
-                : user?.username}
-            </Text>{" "}
-            and{" "}
-            <Text as="span" fontWeight="semibold">
-              112 others
-            </Text>
-          </Text>
-        </Flex>
-
-        <Flex mb={2} align="center" justify="space-between" overflow="hidden">
-          <Flex align="start" overflow="hidden">
-            <Box fontSize="sm" noOfLines={2}>
-              <Text as="span" fontWeight="semibold" noOfLines={1}>
-                {user?.username}
-              </Text>{" "}
-              <HStack justify="space-between">
-                {captionText}
-                {/* <Text noOfLines={!captionText.isTextOverflowing ? 2 : {}}>
-                  {captionText.truncatedText}
-                </Text>
-                {caption.length > 100 && (
-                  <Text
-                    as="span"
-                    alignSelf="end"
-                    color={"gray.500"}
-                    _dark={{ color: "gray.400" }}
-                    fontWeight="semibold"
-                    cursor="pointer"
-                    _hover={{
-                      textDecorationLine: "underline",
-                    }}
-                    onClick={() =>
-                      captionText.setIsTextOverflowing(
-                        !captionText.isTextOverflowing
-                      )
-                    }
-                  >
-                    {captionText.isTextOverflowing ? "less" : "more"}
-                  </Text>
-                )} */}
-              </HStack>
-            </Box>
-          </Flex>
+          )}
         </Flex>
 
         <Flex
-          mb={post?.comments?.length > 0 ? 2 : 0}
+          mb={likedByUsersLength > 0 ? 2 : 1}
+          align="start"
+          overflow="hidden"
+        >
+          {likedByUsersLength > 0 && (
+            <Text fontSize={"xs"} noOfLines={4} overflow="hidden">
+              Liked by{" "}
+              <Text as="span" wordBreak="break-all" fontWeight="semibold">
+                {post?.likedByUsers
+                  .slice(-MAX_LIKED_USER_AVATARS)
+                  .filter((user) => user.id !== currUser?.id)
+                  .concat(isLikedByUser ? [currUser] : [])
+                  .reverse()
+                  .reduce((acc, user, index) => {
+                    return index < MAX_LIKED_USER_AVATARS
+                      ? [...acc, user]
+                      : acc;
+                  }, [])
+                  .map((user) => (
+                    <Link
+                      as={RouteLink}
+                      key={user.id}
+                      to={`/profile/${user.username}`}
+                    >
+                      {user.id === currUser?.id ? "you" : user.username}
+                    </Link>
+                  ))
+                  .reduce((prev, curr, index, array) => {
+                    const isFirst = index === 0;
+                    const isLast = index === array.length - 1;
+                    const separator =
+                      likedByUsersLength > MAX_LIKED_USER_AVATARS || !isLast
+                        ? ", "
+                        : " and ";
+
+                    return isFirst ? [curr] : [...prev, separator, curr];
+                  }, [])}
+              </Text>
+              {likedByUsersLength > MAX_LIKED_USER_AVATARS && (
+                <>
+                  {" "}
+                  and{" "}
+                  <Text as="span" fontWeight="semibold">
+                    {likedByOthersCount} {likedByOthersText}
+                  </Text>
+                </>
+              )}
+            </Text>
+          )}
+        </Flex>
+
+        {post?.caption?.length > 0 && (
+          <Flex mb={2} align="center" justify="space-between" overflow="hidden">
+            <Flex
+              align="start"
+              flex={1}
+              p={1}
+              border="1px"
+              borderColor="gray.300"
+              rounded="md"
+              overflow="hidden"
+            >
+              <Box fontSize="sm" noOfLines={2}>
+                <HStack justify="space-between">{truncatedCaptionText}</HStack>
+              </Box>
+            </Flex>
+          </Flex>
+        )}
+
+        <Flex
+          mb={commentsLength > 0 ? 2 : 0}
+          pb={1}
           align="start"
           overflow="hidden"
         >
           <Badge
             variant={"subtle"}
             px={2.5}
-            mb={1}
             colorScheme="teal"
             fontSize={{ base: "xs", md: "xs" }}
             fontWeight="semibold"
@@ -695,12 +849,12 @@ const PostFeedCard = ({ currUser, user, post }) => {
             rounded="full"
             boxShadow={"md"}
           >
-            16 hours ago
+            {relativePostTime}
           </Badge>
         </Flex>
 
         <Flex
-          borderTop={post?.comments?.length > 0 ? "1px" : {}}
+          borderTop={commentsLength > 0 ? "1px" : {}}
           borderTopColor={useColorModeValue("gray.500", "gray.400")}
           align="center"
           w="full"
@@ -713,11 +867,16 @@ const PostFeedCard = ({ currUser, user, post }) => {
             overflow="hidden"
             noOfLines={2}
           >
-            {post?.comments?.length ? (
+            {commentsLength > 0 ? (
               post?.comments
                 ?.slice(0, MAX_COMMENTS)
                 .map((comment, index) => (
-                  <PostCommentCard key={index} user={user} comment={comment} />
+                  <PostCommentCard
+                    key={index}
+                    currUser={currUser}
+                    comment={comment}
+                    changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
+                  />
                 ))
             ) : (
               <></>
@@ -725,12 +884,11 @@ const PostFeedCard = ({ currUser, user, post }) => {
           </Flex>
         </Flex>
 
-        <Flex align="start" overflow="hidden">
-          {post?.comments?.length && post?.comments?.length > MAX_COMMENTS ? (
+        {commentsLength > MAX_COMMENTS && (
+          <Flex align="start" mt={2} pb={1} overflow="hidden">
             <Badge
               variant={"solid"}
               px={2.5}
-              mb={post?.comments?.length > 0 ? 1 : 0}
               bgGradient={"linear(to-tr, yellow.400, pink.500)"}
               fontSize={{ base: "xs", md: "xs" }}
               fontWeight="semibold"
@@ -738,105 +896,114 @@ const PostFeedCard = ({ currUser, user, post }) => {
               letterSpacing="wide"
               rounded="full"
               boxShadow={"md"}
-              cursor="pointer"
+              cursor={
+                isLikedLoading ||
+                isSavedLoading ||
+                commentManagement.isCreatingComment ||
+                commentManagement.isDeletingComment
+                  ? "not-allowed"
+                  : "pointer"
+              }
+              opacity={
+                isLikedLoading ||
+                isSavedLoading ||
+                commentManagement.isCreatingComment ||
+                commentManagement.isDeletingComment
+                  ? 0.6
+                  : 1
+              }
               _hover={{
                 transition: "transform .3s ease",
-                transform: "scaleX(1.025) translateX(1.5%)",
+                transform:
+                  isLikedLoading ||
+                  isSavedLoading ||
+                  commentManagement.isCreatingComment ||
+                  commentManagement.isDeletingComment
+                    ? "scaleX(1)"
+                    : "scaleX(1.025) translateX(1.5%)",
               }}
-              onClick={onOpenPostViewModal}
+              onClick={
+                isLikedLoading ||
+                isSavedLoading ||
+                commentManagement.isCreatingComment ||
+                commentManagement.isDeletingComment
+                  ? () => {}
+                  : onOpenPostViewModal
+              }
             >
-              View all {post?.comments?.length} comments
+              View all {commentsLength} comments
             </Badge>
-          ) : (
-            <></>
-          )}
-        </Flex>
-
-        {/* <Flex align="start" overflow="hidden">
-          {user.comments.length && user.comments.length > MAX_COMMENTS ? (
-            <Text
-              fontSize="xs"
-              color={"gray.500"}
-              _dark={{ color: "gray.400" }}
-              textTransform="uppercase"
-              letterSpacing="wide"
-              cursor="pointer"
-              _hover={{
-                textDecorationLine: "underline",
-              }}
-            >
-              View all {user.comments.length} comments
-            </Text>
-          ) : (
-            <></>
-          )}
-        </Flex> */}
-
-        {/* <Flex
-          pt={2}
-          // mb={2}
-          borderTop="1px"
-          borderTopColor={useColorModeValue("gray.500", "gray.400")}
-          align="start"
-          // justify="center"
-          overflow="hidden"
-        >
-           <Text
-            fontSize="xs"
-            color={useColorModeValue("gray.500", "gray.400")}
-            textTransform="uppercase"
-            letterSpacing="wide"
-          >
-            16 hours ago
-          </Text> 
-        </Flex> */}
+          </Flex>
+        )}
       </CardBody>
       <CardFooter pt={0} px={3}>
         <Flex align="center" w="full" overflow="hidden">
           <Flex align="center">
-            <Avatar
-              name={currUser?.fullname}
-              src={currUser?.dp}
+            <AvatarWithLoader
+              loaderSize={9}
+              name={currUser?.name}
+              src={currUser?.userImage ? currUser?.userImage : {}}
               boxSize={9}
-              loading="lazy"
             />
           </Flex>
-          <Flex
-            flex="1"
-            align="center"
-            ml={2}
-            bg={"gray.100"}
-            rounded="full"
-            overflow="hidden"
+
+          <Formik
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={handleCommentFormSubmission}
           >
-            <Link pl="2" as={RouteLink} href="">
-              <Icon color={"gray.500"} as={FaRegFaceSmile} boxSize={6} />
-            </Link>
-            <Input
-              type="text"
-              placeholder="Add a comment..."
-              bg={"gray.100"}
-              border={0}
-              color={"gray.500"}
-              rounded="full"
-              w="full"
-              focusBorderColor="transparent"
-              _placeholder={{
-                color: "gray.500",
-              }}
-            />
-            <Link pr="0" as={RouteLink}>
-              <IconButton
-                icon={<AiOutlineSend />}
+            {({ isValid, isSubmitting }) => (
+              <Flex
+                as={Form}
+                flex="1"
+                align="center"
+                ml={2}
+                bg={"gray.100"}
                 rounded="full"
-                color={useColorModeValue("blue.400", "blue.500")}
-                fontSize={"24"}
-                fontWeight="bold"
-                variant="ghost"
-                aria-label="Post Comment"
-              />
-            </Link>
-          </Flex>
+                overflow="hidden"
+              >
+                <CustomCommentTextInput
+                  isRequired
+                  id={"comment"}
+                  name={"comment"}
+                  placeholder={"Add a comment..."}
+                  bg={"gray.100"}
+                  color={"gray.500"}
+                  rounded="full"
+                  w="full"
+                  outline="none"
+                  borderColor="transparent"
+                  focusBorderColor="transparent"
+                  maxChars={COMMENT_MAX_CHARS}
+                  _placeholder={{
+                    color: "gray.500",
+                  }}
+                  inputLeftElement={
+                    <Icon color={"gray.500"} as={FaRegFaceSmile} boxSize={6} />
+                  }
+                  inputRightElement={
+                    <IconButton
+                      type={"submit"}
+                      isDisabled={
+                        !isValid ||
+                        isSubmitting ||
+                        commentManagement.isDeletingComment
+                      }
+                      isLoading={commentManagement.isCreatingComment}
+                      icon={<AiOutlineSend />}
+                      rounded="full"
+                      color="blue.400"
+                      fontSize="2xl"
+                      fontWeight="bold"
+                      variant="ghost"
+                      aria-label="Post Comment"
+                      _dark={{ color: "blue.500" }}
+                    />
+                  }
+                />
+              </Flex>
+            )}
+          </Formik>
         </Flex>
       </CardFooter>
     </Card>

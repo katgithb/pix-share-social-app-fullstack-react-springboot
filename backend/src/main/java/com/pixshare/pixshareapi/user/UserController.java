@@ -1,8 +1,8 @@
 package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.auth.AuthenticationService;
-import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.dto.UserTokenIdentity;
+import com.pixshare.pixshareapi.dto.*;
+import com.pixshare.pixshareapi.post.PostService;
 import com.pixshare.pixshareapi.story.StoryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,71 +17,63 @@ public class UserController {
 
     private final UserService userService;
 
+    private final PostService postService;
+
     private final AuthenticationService authenticationService;
 
     private final StoryService storyService;
 
-    public UserController(UserService userService, AuthenticationService authenticationService, StoryService storyService) {
+    public UserController(UserService userService, PostService postService, AuthenticationService authenticationService, StoryService storyService) {
         this.userService = userService;
+        this.postService = postService;
         this.authenticationService = authenticationService;
         this.storyService = storyService;
     }
 
     @GetMapping("/id/{userId}")
     public ResponseEntity<UserDTO> findUserById(
-            @PathVariable("userId") Long userId) {
-        UserDTO user = userService.findUserById(userId);
-        user.setStories(
-                storyService.findStoriesByUserId(userId)
-        );
+            @PathVariable("userId") Long userId,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        UserDTO user = userService.findUserById(identity.getId(), userId);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @GetMapping("/username/{username}")
     public ResponseEntity<UserDTO> findUserByUsername(
-            @PathVariable("username") String username) {
-        UserDTO user = userService.findUserByUsername(username);
-        user.setStories(
-                storyService.findStoriesByUserId(user.getId())
-        );
+            @PathVariable("username") String username,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        UserDTO user = userService.findUserByUsername(identity.getId(), username);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @GetMapping("/m/{userIds}")
     public ResponseEntity<List<UserDTO>> findUserByIds(
-            @PathVariable("userIds") List<Long> userIds) {
-        List<UserDTO> users = userService.findUserByIds(userIds).stream()
-                .peek(userDTO -> userDTO.setStories(
-                        storyService.findStoriesByUserId(userDTO.getId())
-                ))
-                .toList();
-
-        return new ResponseEntity<>(users, HttpStatus.OK);
-    }
-
-    @GetMapping("/account/profile")
-    public ResponseEntity<UserDTO> findUserProfile(
+            @PathVariable("userIds") List<Long> userIds,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        UserDTO user = userService.findUserById(identity.getId());
+        List<UserDTO> users = userService.findUserByIds(identity.getId(), userIds);
 
-        return new ResponseEntity<>(user, HttpStatus.OK);
+        return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
     // /search?q=query
     @GetMapping("/search")
-    public ResponseEntity<List<UserDTO>> searchUser(
-            @RequestParam("q") String query) {
-        List<UserDTO> users = userService.searchUser(query).stream()
-                .peek(userDTO -> userDTO.setStories(
-                        storyService.findStoriesByUserId(userDTO.getId())
-                ))
-                .toList();
+    public ResponseEntity<PagedResponse<UserDTO>> searchUser(
+            @RequestParam("q") String query,
+            @ModelAttribute PageRequestDTO pageRequest,
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<UserDTO> userResponse = userService.searchUser(identity.getId(), query, pageRequest);
 
-        return new ResponseEntity<>(users, HttpStatus.OK);
+        return new ResponseEntity<>(userResponse, HttpStatus.OK);
     }
 
     @GetMapping("/popular")
@@ -89,12 +81,7 @@ public class UserController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        List<UserDTO> users = userService.findPopularUsers(identity.getId()).stream()
-                .peek(userDTO -> userDTO.setStories(
-                        storyService.findStoriesByUserId(userDTO.getId())
-                ))
-                .toList();
-        ;
+        List<UserDTO> users = userService.findPopularUsers(identity.getId());
 
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
@@ -121,6 +108,27 @@ public class UserController {
         MessageResponse response = new MessageResponse(message);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/account/profile")
+    public ResponseEntity<UserDTO> findUserProfile(
+            @RequestHeader("Authorization") String authHeader) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        UserDTO user = userService.findUserById(identity.getId(), identity.getId());
+
+        return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+    @GetMapping("/account/saved")
+    public ResponseEntity<PagedResponse<PostDTO>> findSavedPostsByUserId(
+            @RequestHeader("Authorization") String authHeader,
+            @ModelAttribute PageRequestDTO pageRequest) {
+        UserTokenIdentity identity = authenticationService
+                .getUserIdentityFromToken(authHeader);
+        PagedResponse<PostDTO> postResponse = postService.findSavedPostsByUserId(identity.getId(), pageRequest);
+
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
     }
 
     @PostMapping("/account/password/verify")
@@ -161,7 +169,6 @@ public class UserController {
                 .getUserIdentityFromToken(authHeader);
         userService.removeUserImage(identity.getId());
     }
-
 
     @PutMapping("/account/edit")
     public void updateUser(

@@ -3,13 +3,101 @@ import {
   Button,
   Flex,
   HStack,
+  Link,
   Stack,
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
-import React from "react";
+import _ from "lodash";
+import React, { useCallback, useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link as RouteLink } from "react-router-dom";
+import { fetchUserProfileAction } from "../../../redux/actions/user/userProfileActions";
+import {
+  followUserAction,
+  unfollowUserAction,
+} from "../../../redux/actions/user/userSocialActions";
+import { getHumanReadableNumberFormat } from "../../../utils/commonUtils";
 
-const UserProfileStats = ({ userDetails, maxCharsMobileUserDetails }) => {
+const UserProfileStats = ({
+  userDetails,
+  maxCharsMobileUserDetails,
+  totalPosts = 0,
+  isGivenUserCurrUser = false,
+}) => {
+  const profileBioLength = userDetails?.bio?.length || 0;
+  const totalPostsCount = getHumanReadableNumberFormat(totalPosts);
+  const totalPostsText = totalPosts === 1 ? "post" : "posts";
+
+  const followersLength = userDetails?.follower?.length || 0;
+  const followersCount = getHumanReadableNumberFormat(followersLength);
+  const followersText = followersLength === 1 ? "follower" : "followers";
+
+  const followingLength = userDetails?.following?.length || 0;
+  const followingCount = getHumanReadableNumberFormat(followingLength);
+  const followingText = "following";
+
+  const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+  const userSocial = useSelector((store) => store.user.userSocial);
+
+  const [isFollowedByUser, setIsFollowedByUser] = useState(
+    userDetails && !_.isEmpty(userDetails)
+      ? userDetails?.isFollowedByAuthUser
+      : false
+  );
+
+  const handleFollowUser = () => {
+    if (token && userDetails?.id) {
+      const data = {
+        token,
+        userId: userDetails?.id,
+      };
+
+      dispatch(followUserAction(data));
+    }
+  };
+
+  const handleUnfollowUser = () => {
+    if (token && userDetails?.id) {
+      const data = {
+        token,
+        userId: userDetails?.id,
+      };
+
+      dispatch(unfollowUserAction(data));
+    }
+  };
+
+  const updateUserFollowed = useCallback(
+    (isFollowed) => {
+      setIsFollowedByUser(isFollowed);
+
+      if (token) {
+        const data = {
+          token,
+        };
+
+        dispatch(fetchUserProfileAction(data));
+      }
+    },
+    [dispatch, token]
+  );
+
+  useEffect(() => {
+    const userId = userDetails?.id;
+    if (userId && userId in userSocial.followedUsers) {
+      updateUserFollowed(true);
+    }
+  }, [updateUserFollowed, userDetails?.id, userSocial.followedUsers]);
+
+  useEffect(() => {
+    const userId = userDetails?.id;
+    if (userId && userId in userSocial.unfollowedUsers) {
+      updateUserFollowed(false);
+    }
+  }, [updateUserFollowed, userDetails?.id, userSocial.unfollowedUsers]);
+
   return (
     <>
       <HStack
@@ -21,8 +109,7 @@ const UserProfileStats = ({ userDetails, maxCharsMobileUserDetails }) => {
         mt={{
           base: "1",
           md:
-            userDetails?.bio &&
-            userDetails?.bio?.length > maxCharsMobileUserDetails
+            userDetails?.bio && profileBioLength > maxCharsMobileUserDetails
               ? "4"
               : "3",
         }}
@@ -36,9 +123,9 @@ const UserProfileStats = ({ userDetails, maxCharsMobileUserDetails }) => {
             textTransform="uppercase"
             display="block"
           >
-            10
+            {totalPostsCount}
           </Text>{" "}
-          posts
+          {totalPostsText}
         </Box>
         <Box flex={{ base: "1", md: "0" }} textAlign="center">
           <Text
@@ -49,9 +136,9 @@ const UserProfileStats = ({ userDetails, maxCharsMobileUserDetails }) => {
             textTransform="uppercase"
             display="block"
           >
-            {userDetails?.follower.length}
+            {followersCount}
           </Text>{" "}
-          {userDetails?.follower.length > 1 ? "followers" : "follower"}
+          {followersText}
         </Box>
         <Box flex={{ base: "1", md: "0" }} textAlign="center">
           <Text
@@ -62,39 +149,97 @@ const UserProfileStats = ({ userDetails, maxCharsMobileUserDetails }) => {
             textTransform="uppercase"
             display="block"
           >
-            {userDetails?.following.length}
+            {followingCount}
           </Text>{" "}
-          following
+          {followingText}
         </Box>
       </HStack>
 
       <Stack direction={{ base: "row", md: "column" }} w="full" spacing={4}>
         <Flex flex="1" justify="center">
-          <Button
-            size="md"
+          <Link
+            as={RouteLink}
             w="full"
-            rounded="2xl"
-            colorScheme="gray"
-            fontSize={"sm"}
+            to="/"
+            style={{ textDecoration: "none" }}
           >
-            Edit Profile
-          </Button>
+            <Button
+              size="md"
+              w="full"
+              rounded="2xl"
+              colorScheme="gray"
+              fontSize={"sm"}
+            >
+              Back to Home
+            </Button>
+          </Link>
         </Flex>
         <Flex flex="1" justify="center">
-          <Button
-            size="md"
-            w="full"
-            color={useColorModeValue("gray.50", "gray.100")}
-            bg={useColorModeValue("blue.500", "blue.400")}
-            rounded="2xl"
-            fontSize={"md"}
-            _hover={{
-              bg: useColorModeValue("blue.600", "blue.500"),
-              color: useColorModeValue("gray.100", "gray.200"),
-            }}
-          >
-            Follow
-          </Button>
+          {isGivenUserCurrUser ? (
+            <Link
+              as={RouteLink}
+              w="full"
+              to={"/account/edit"}
+              style={{ textDecoration: "none" }}
+            >
+              <Button
+                size="md"
+                w="full"
+                color={"gray.50"}
+                bg={"blue.500"}
+                rounded="2xl"
+                fontSize={"sm"}
+                _hover={{
+                  bg: "blue.600",
+                  color: "gray.100",
+                }}
+                _dark={{
+                  bg: "blue.400",
+                  color: "gray.100",
+                  _hover: {
+                    bg: "blue.500",
+                    color: "gray.200",
+                  },
+                }}
+              >
+                Edit Profile
+              </Button>
+            </Link>
+          ) : (
+            <Link w="full" style={{ textDecoration: "none" }}>
+              <Button
+                isLoading={
+                  userDetails?.id in userSocial.isFollowedLoading
+                    ? userSocial.isFollowedLoading[userDetails?.id]
+                    : false
+                }
+                loadingText="Updating..."
+                size="md"
+                w="full"
+                color={"gray.50"}
+                bg={isFollowedByUser ? "red.500" : "blue.500"}
+                rounded="2xl"
+                fontSize={"sm"}
+                _hover={{
+                  bg: isFollowedByUser ? "red.600" : "blue.600",
+                  color: "gray.100",
+                }}
+                _dark={{
+                  bg: isFollowedByUser ? "red.500" : "blue.400",
+                  color: "gray.100",
+                  _hover: {
+                    bg: isFollowedByUser ? "red.600" : "blue.500",
+                    color: "gray.200",
+                  },
+                }}
+                onClick={
+                  isFollowedByUser ? handleUnfollowUser : handleFollowUser
+                }
+              >
+                {isFollowedByUser ? "Unfollow" : "Follow"}
+              </Button>
+            </Link>
+          )}
         </Flex>
       </Stack>
     </>

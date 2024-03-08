@@ -1,265 +1,344 @@
-import { Flex, useColorMode, useTheme } from "@chakra-ui/react";
-import React, { useEffect, useRef, useState } from "react";
-import { useResizeDetector } from "react-resize-detector";
-import { MagicSpinner } from "react-spinners-kit";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { VariableSizeList as WindowList } from "react-window";
-import InfiniteLoader from "react-window-infinite-loader";
+import { Flex } from "@chakra-ui/react";
+import { Map, OrderedMap, Set } from "immutable";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useSelector } from "react-redux";
+import { Virtuoso } from "react-virtuoso";
+import {
+  POSTS_DEFAULT_PAGE,
+  POSTS_PER_PAGE,
+} from "../../../utils/constants/pagination/postPagination";
+import EmptyPostFeed from "../EmptyPostFeed";
+import EndOfPostFeed from "./EndOfPostFeed";
 import PostFeedCard from "./PostFeedCard/PostFeedCard";
+import PostFeedCardSkeleton from "./PostFeedCard/PostFeedCardSkeleton";
 
-const PostFeed = ({ currUser, posts }) => {
-  const { colorMode } = useColorMode();
-  const theme = useTheme();
-  const [loadedPosts, setLoadedPosts] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
-  const listRef = useRef({});
-  const itemHeights = useRef({});
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const fetchNextPageDelayInMs = 8000;
-  // const [fetchNextPageTimerInSec, setFetchNextPageTimerInSec] = useState(
-  //   fetchNextPageDelayInMs / 1000
-  // );
-  const pageSize = 15;
-  const totalPage = Math.ceil(posts?.length / pageSize);
-  const prefetchThreshold = Math.floor(pageSize / 3);
+const PostFeed = ({
+  currUser,
+  posts,
+  handlePageChange,
+  isHomePageFeed,
+  isPostLikedCached,
+  isPostSavedCached,
+  checkPostLikedByCurrUser,
+  checkPostSavedByCurrUser,
+  addPostLikedToCacheMap,
+  addPostSavedToCacheMap,
+  removeCachedPostLikedPage,
+  removeCachedPostSavedPage,
+}) => {
+  const [latestLoadedPage, setLatestLoadedPage] = useState(POSTS_DEFAULT_PAGE);
+  const [loadedPostsPage, setLoadedPostsPage] = useState(posts);
+  const [pageIndexMap, setPageIndexMap] = useState(Map());
+  const [postIdToPageMap, setPostIdToPageMap] = useState(Map());
+  const [loadedPostsMap, setLoadedPostsMap] = useState(OrderedMap());
 
-  // const loadMorePosts = (startIndex, stopIndex) => {
-  //   // setLoading(true);
-  //   return new Promise((resolve) => {
-  //     setTimeout(() => {
-  //       const nextPageStartIndex = (page - 1) * pageSize;
-  //       const nextPageStopIndex = page * pageSize;
-
-  //       const newPosts =
-  //         posts?.length <= pageSize
-  //           ? posts
-  //           : posts?.slice(nextPageStartIndex, nextPageStopIndex); // Replace with your actual API response
-
-  //       // setLoadedPosts((prevPosts) => [...prevPosts, ...newPosts]);
-
-  //       if (page >= totalPage) {
-  //         setHasMore(false); // Set hasMore to false if the page number exceeds the total number of pages
-  //       }
-
-  //       console.log(
-  //         "page and totalPages and hasMore: ",
-  //         page,
-  //         totalPage,
-  //         hasMore
-  //       );
-
-  //       // setLoading(false);
-
-  //       // resolve(); // Resolve the Promise after the delay
-  //       resolve(newPosts); // Resolve the Promise with the newPosts
-  //     }, 4000); // Simulate a 4-second delay
-  //   }).then((newPosts) => {
-  //     setLoadedPosts((prevPosts) => [...prevPosts, ...newPosts]); // Update loadedPosts after the Promise is resolved
-  //     setLoading(false); // Set loading to false after the Promise is resolved
-  //     setPage((prevPage) => prevPage + 1); // Increment the page state variable
-  //   });
-
-  // };
-
-  const loadMorePosts = async () => {
-    if (!hasMore) return;
-    setLoading(true);
-    // const interval = setInterval(() => {
-    // setFetchNextPageTimerInSec((prevTimer) => prevTimer - 1);
-    // }, 2000);
-
-    try {
-      const newPosts = await new Promise((resolve) => {
-        setTimeout(() => {
-          const nextPageStartIndex = (page - 1) * pageSize;
-          const nextPageStopIndex = page * pageSize;
-
-          const postsToLoad =
-            posts?.length <= pageSize
-              ? posts
-              : posts?.slice(nextPageStartIndex, nextPageStopIndex); // Replace with your actual API response
-
-          resolve(postsToLoad); // Resolve the Promise with the postsToLoad
-        }, fetchNextPageDelayInMs); // Simulate a delay
-      });
-
-      if (page >= totalPage) {
-        setHasMore(false); // Set hasMore to false if the page number exceeds the total number of pages
-      }
-
-      setLoadedPosts((prevPosts) => [...prevPosts, ...newPosts]); // Update loadedPosts after the Promise is resolved
-      // setLoading(false);
-      setPage((prevPage) => prevPage + 1); // Increment the page state variable
-    } catch (error) {
-      console.error("Error loading posts:", error);
-    } finally {
-      // clearInterval(interval);
-      // setFetchNextPageTimerInSec(fetchNextPageDelayInMs / 1000); // Reset the timer
-      setLoading(false); // Set loading to false after the Promise has completed
-    }
-  };
-
-  console.log(
-    "page and totalPages and hasMore and loadedPosts: ",
-    page,
-    totalPage,
-    hasMore,
-    loadedPosts
+  const { popularUsers } = useSelector((store) => store.user.userLookup);
+  const { isPostCreated, isPostDeleted, deletedPostId } = useSelector(
+    (store) => store.post.postManagement
   );
+  const { isLoading: isLoadingPostLookup } = useSelector(
+    (store) => store.post.postLookup
+  );
+  const virtuosoRef = useRef(null);
 
-  const fetchInitialPosts = (limit) => {
-    return posts?.length <= limit ? posts : posts?.slice(0, limit);
+  const loadMorePosts = () => {
+    if (loadedPostsPage.last) return;
+
+    handlePageChange(latestLoadedPage + 1);
+
+    // Increment the latestLoadedPage state variable
+    latestLoadedPage < loadedPostsPage.totalPages
+      ? setLatestLoadedPage((prevPage) => prevPage + 1)
+      : setLatestLoadedPage(loadedPostsPage.page + 1);
   };
 
-  // If there are more items to be loaded then add an extra row to hold a loading indicator.
-  const itemCount = hasMore ? loadedPosts.length + 1 : posts?.length;
-
-  // Only load 1 page of items at a time.
-  // Pass an empty callback to InfiniteLoader in case it asks us to load more than once.
-  const loadMoreItems = loading ? () => {} : loadMorePosts;
-
-  // Every row is loaded except for our loading indicator row.
-  const isItemLoaded = (index) => !hasMore || index < loadedPosts.length;
-
-  const measureRowHeight = (index) => {
-    const itemHeightPaddingInPx = 16;
-    const itemDefaultHeight = 460; // Default height if not measured yet
-    return (
-      itemHeights.current[index] + itemHeightPaddingInPx ||
-      itemDefaultHeight + itemHeightPaddingInPx
-    );
-  };
-
-  useEffect(() => {
-    // Set the initial loadedPosts when the component is loaded
-    const initialPosts = fetchInitialPosts(pageSize);
-    console.log("initialPosts", initialPosts); // Replace with your logic to fetch the initial posts
-    setLoadedPosts(initialPosts);
-    setPage(page + 1);
-  }, []);
-
-  // console.log("loadedPosts", loadedPosts);
-  // console.log("rowHeights: ", itemHeights.current);
-  console.log("threshold index: ", prefetchThreshold);
-
-  const PostFeedCardWithResizeHandling = React.memo(({ index, post }) => {
-    const { id, image, caption, comments } = post;
-    const { height, ref } = useResizeDetector({
-      refreshMode: "debounce",
-      refreshRate: 400,
+  const handleRefreshFeed = () => {
+    // Scroll to the last item in the list
+    const itemCount = loadedPostsMap.size;
+    virtuosoRef.current?.scrollToIndex({
+      index: itemCount - 1,
     });
 
-    useEffect(() => {
-      if (height) {
-        const itemHeight = height; // Use the height of the container
-        itemHeights.current[index] = itemHeight;
-        listRef.current.resetAfterIndex(index);
+    // Reload the page
+    window.location.reload();
+  };
+
+  const populateInitialPostsPage = useCallback((initialPostsPage) => {
+    if (initialPostsPage?.content) {
+      const initialPosts = initialPostsPage?.content;
+      const postIds = initialPosts.map((post) => post.id);
+      console.log("Initial Posts:", initialPosts);
+
+      const newPageIndexMap = Map().set(initialPostsPage?.page, postIds);
+      setPageIndexMap(newPageIndexMap);
+
+      const newPostIdToPageMap = Map(
+        initialPosts.map((post) => [post.id, initialPostsPage?.page])
+      );
+      setPostIdToPageMap(newPostIdToPageMap);
+
+      const newLoadedPostsMap = OrderedMap(
+        initialPosts.map((post) => [post.id, post])
+      );
+      setLoadedPostsMap(newLoadedPostsMap);
+    }
+  }, []);
+
+  const addNewPostsPageData = useCallback((newPostsPage) => {
+    if (
+      newPostsPage?.content &&
+      newPostsPage?.page < newPostsPage?.totalPages
+    ) {
+      const newPosts = newPostsPage?.content;
+      const postIds = newPosts.map((post) => post.id);
+      console.log("New Posts:", newPosts);
+
+      const newPageIndexMap = Map().set(newPostsPage?.page, postIds);
+      setPageIndexMap((prevMap) => prevMap.merge(newPageIndexMap));
+
+      const newPostIdToPageMap = Map(
+        newPosts.map((post) => [post.id, newPostsPage?.page])
+      );
+      setPostIdToPageMap((prevMap) => prevMap.merge(newPostIdToPageMap));
+
+      const newLoadedPostsMap = OrderedMap(
+        newPosts.map((post) => [post.id, post])
+      );
+      setLoadedPostsMap((prevPostsMap) =>
+        prevPostsMap.merge(newLoadedPostsMap)
+      );
+    }
+  }, []);
+
+  const clearDeletedPostData = useCallback(
+    (deletedPostId, deletedPostPageNum) => {
+      setPageIndexMap((prevMap) =>
+        prevMap.filter((_, pageNum) => pageNum !== deletedPostPageNum)
+      );
+
+      setPostIdToPageMap((prevMap) =>
+        prevMap.filter((_, postId) => postId !== deletedPostId)
+      );
+
+      setLoadedPostsMap((prevPostsMap) =>
+        prevPostsMap.filter((_, postId) => postId !== deletedPostId)
+      );
+    },
+    []
+  );
+
+  const updateLoadedPostEntry = useCallback((postId, updatedPost) => {
+    const updatedPostMap = Map().set(postId, updatedPost);
+    setLoadedPostsMap((prevPostsMap) => prevPostsMap.merge(updatedPostMap));
+  }, []);
+
+  const clearPagesOnPostDelete = useCallback(
+    (pagesToRemove = []) => {
+      let postIdsToRemove = Set();
+      const postIdsToRemoveBatches = [];
+
+      pagesToRemove.forEach((_, pageNum) => {
+        const pagePostIds = pageIndexMap.get(pageNum);
+        const postIdsToRemoveBatch = Set(pagePostIds);
+
+        postIdsToRemove = postIdsToRemove.union(pagePostIds);
+
+        postIdsToRemoveBatches.push(postIdsToRemoveBatch);
+      });
+
+      console.log("pagesToRemove: ", pagesToRemove);
+
+      setPageIndexMap((prevMap) =>
+        prevMap.filter((_, pageNum) => !pagesToRemove.has(pageNum))
+      );
+
+      setPostIdToPageMap((prevMap) =>
+        prevMap.filter((_, postId) => !postIdsToRemove.has(postId))
+      );
+
+      setLoadedPostsMap((prevPostsMap) =>
+        postIdsToRemoveBatches.reduce(
+          (map, batch) => map.filter((_, postId) => !batch.has(postId)),
+          prevPostsMap
+        )
+      );
+    },
+    [pageIndexMap]
+  );
+
+  const refetchPostPage = useCallback(
+    (pageNumber) => {
+      handlePageChange(pageNumber);
+
+      setLatestLoadedPage(pageNumber);
+    },
+    [handlePageChange]
+  );
+
+  const clearCachedPage = useCallback(
+    (pageNumber) => {
+      removeCachedPostLikedPage(pageNumber);
+      removeCachedPostSavedPage(pageNumber);
+    },
+    [removeCachedPostLikedPage, removeCachedPostSavedPage]
+  );
+
+  useEffect(() => {
+    if (posts) {
+      const loadedPostsPage = posts;
+      setLoadedPostsPage(posts);
+
+      if (loadedPostsPage?.page === POSTS_DEFAULT_PAGE - 1) {
+        populateInitialPostsPage(loadedPostsPage);
+      } else {
+        addNewPostsPageData(loadedPostsPage);
       }
-    }, [height, index]);
+    }
+  }, [addNewPostsPageData, populateInitialPostsPage, posts]);
 
-    return (
-      <div ref={ref} style={{ maxWidth: "100%" }}>
-        <PostFeedCard
-          currUser={currUser}
-          user={post?.user}
-          post={{
-            id,
-            image,
-            caption,
-            comments,
-          }}
-        />
-      </div>
+  useEffect(() => {
+    if (isPostCreated) {
+      // Refetch first page
+      refetchPostPage(POSTS_DEFAULT_PAGE);
+
+      clearCachedPage(POSTS_DEFAULT_PAGE - 1);
+    }
+  }, [clearCachedPage, isPostCreated, refetchPostPage]);
+
+  useEffect(() => {
+    if (isPostDeleted && deletedPostId) {
+      const deletedPostPageNum = postIdToPageMap.get(deletedPostId);
+
+      clearDeletedPostData(deletedPostId, deletedPostPageNum);
+
+      const pagesToRemove =
+        deletedPostPageNum === POSTS_DEFAULT_PAGE - 1
+          ? Map()
+          : pageIndexMap.filter((_, pageNum) => pageNum > deletedPostPageNum);
+
+      clearPagesOnPostDelete(pagesToRemove);
+
+      // Only refetch deleted page
+      refetchPostPage(deletedPostPageNum + 1);
+
+      clearCachedPage(deletedPostPageNum);
+    }
+  }, [
+    clearCachedPage,
+    clearDeletedPostData,
+    clearPagesOnPostDelete,
+    deletedPostId,
+    isPostDeleted,
+    pageIndexMap,
+    postIdToPageMap,
+    refetchPostPage,
+  ]);
+
+  console.log(
+    "latestLoadedPage and totalPages and lastPage and loadedPostsPage and loadedPosts: ",
+    latestLoadedPage,
+    loadedPostsPage.totalPages,
+    loadedPostsPage.last,
+    loadedPostsPage,
+    loadedPostsMap,
+    pageIndexMap,
+    postIdToPageMap
+  );
+
+  const PostFeedCardItem = ({ post, postIdPage }) => {
+    const MemoizedPostFeedCard = useMemo(
+      () => (
+        <Flex key={post?.id} justifyContent="center">
+          <PostFeedCard
+            currUser={currUser}
+            post={post}
+            postIdPage={postIdPage}
+            isPostLikedCached={isPostLikedCached}
+            isPostSavedCached={isPostSavedCached}
+            checkPostLikedByCurrUser={checkPostLikedByCurrUser}
+            checkPostSavedByCurrUser={checkPostSavedByCurrUser}
+            addPostLikedToCacheMap={addPostLikedToCacheMap}
+            addPostSavedToCacheMap={addPostSavedToCacheMap}
+            updateLoadedPostEntry={updateLoadedPostEntry}
+          />
+        </Flex>
+      ),
+      [post, postIdPage]
     );
-  });
 
-  PostFeedCardWithResizeHandling.displayName = "PostFeedCardWithResizeHandling";
+    return MemoizedPostFeedCard;
+  };
 
-  const rowRenderer = React.memo(({ index, style }) => {
-    const post = loadedPosts[index];
+  const rowContent = (index) => {
+    const post = loadedPostsMap.valueSeq().get(index);
+    const postIdPage = postIdToPageMap.get(post?.id);
 
-    // if (loading) {
-    //   console.log("Loading... ", fetchNextPageTimerInSec, "s");
-    // }
+    return <PostFeedCardItem post={post} postIdPage={postIdPage} />;
+  };
 
-    const loadingSpinner = (
-      <Flex m={4} justifyContent="center" alignItems="center">
-        <MagicSpinner
-          color={
-            colorMode === "dark"
-              ? theme.colors.blue[300]
-              : theme.colors.blue[500]
-          }
-          size={60}
-          loading={loading}
-        />
-      </Flex>
-    );
+  const ScrollSeekPlaceholder = ({ height, width, index }) => (
+    <PostFeedCardSkeleton height={height} width={width} index={index} />
+  );
 
-    let content;
-    if (!isItemLoaded(index) || index >= loadedPosts.length) {
-      content = loadingSpinner;
-    } else {
-      content = <PostFeedCardWithResizeHandling index={index} post={post} />;
+  const Footer = () => {
+    if (isLoadingPostLookup) {
+      // Adjust the number of loading placeholders based on the page size
+      const loadingPlaceholderCount = Math.ceil(POSTS_PER_PAGE / 5);
+
+      // Generate the loading placeholders
+      const loadingPlaceholders = Array.from(
+        { length: loadingPlaceholderCount },
+        (_, index) => <PostFeedCardSkeleton key={index} index={index} />
+      );
+
+      return <>{loadingPlaceholders}</>;
     }
 
-    return (
-      <div
-        key={post?.id}
-        style={{
-          ...style,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "center",
-          scrollBehavior: "smooth",
-        }}
-      >
-        {content}
-      </div>
-    );
-  });
+    if (loadedPostsPage.totalPages === 0) {
+      return (
+        <EmptyPostFeed
+          isHomePageFeed={isHomePageFeed}
+          suggestedUsers={popularUsers}
+        />
+      );
+    }
 
-  rowRenderer.displayName = "rowRenderer";
+    if (loadedPostsPage.totalPages > 0 && loadedPostsPage.last) {
+      return <EndOfPostFeed handleRefreshFeed={handleRefreshFeed} />;
+    }
+
+    return null;
+  };
 
   return (
     <Flex flexDirection={"column"}>
       <div
         style={{
           height: "100vh",
-          // overflow: "auto",
-          justifyContent: "center",
-          // scrollBehavior: "smooth",
-          willChange: "transform",
+          scrollBehavior: "smooth",
+          // willChange: "transform",
         }}
       >
-        <InfiniteLoader
-          isItemLoaded={isItemLoaded}
-          itemCount={itemCount}
-          loadMoreItems={loadMoreItems}
-          threshold={prefetchThreshold}
-        >
-          {({ onItemsRendered, ref }) => (
-            <AutoSizer disableWidth>
-              {({ height }) => (
-                <WindowList
-                  height={height}
-                  itemCount={itemCount}
-                  onItemsRendered={onItemsRendered}
-                  itemSize={measureRowHeight}
-                  // width={width}
-                  // ref={ref}
-                  ref={(el) => {
-                    listRef.current = el;
-                    ref(el);
-                  }}
-                >
-                  {rowRenderer}
-                </WindowList>
-              )}
-            </AutoSizer>
-          )}
-        </InfiniteLoader>
+        <Virtuoso
+          ref={virtuosoRef}
+          style={{
+            height: "100%",
+          }}
+          totalCount={loadedPostsMap.size}
+          endReached={loadMorePosts}
+          itemContent={rowContent}
+          components={{ ScrollSeekPlaceholder, Footer }}
+          scrollSeekConfiguration={{
+            enter: (velocity) => Math.abs(velocity) > 1250,
+            exit: (velocity) => Math.abs(velocity) < 100,
+          }}
+        />
       </div>
     </Flex>
   );

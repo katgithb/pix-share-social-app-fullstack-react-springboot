@@ -4,10 +4,10 @@ import Signin from "../components/auth/Signin/Signin";
 import Signup from "../components/auth/Signup/Signup";
 import Footer from "../components/shared/Footer";
 import MainLayout from "../layouts/MainLayout";
+import Discover from "../pages/Discover";
 import Home from "../pages/Home";
 import PageNotFound from "../pages/PageNotFound";
 import Profile from "../pages/Profile";
-import Story from "../pages/Story";
 import ProtectedRoute from "./ProtectedRoute";
 
 const router = createBrowserRouter([
@@ -32,6 +32,10 @@ const router = createBrowserRouter([
             element: <Home />,
           },
           {
+            path: "/discover",
+            element: <Discover />,
+          },
+          {
             path: "/profile/:username",
             element: (
               <>
@@ -51,10 +55,10 @@ const router = createBrowserRouter([
           },
         ],
       },
-      {
-        path: "/story/:userId",
-        element: <Story />,
-      },
+      // {
+      //   path: "/story/:userId",
+      //   element: <Story />,
+      // },
     ],
   },
   {

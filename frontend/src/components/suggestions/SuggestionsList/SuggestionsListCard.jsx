@@ -1,20 +1,21 @@
-import { Avatar, Box, Button, Flex, Link, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Link, Text } from "@chakra-ui/react";
 import React from "react";
 import { Link as RouteLink } from "react-router-dom";
+import AvatarWithLoader from "../../shared/AvatarWithLoader";
 
 const SuggestionsListCard = ({ user }) => {
   return (
     <Flex py="2">
       <Flex alignItems="center">
-        <Link as={RouteLink} href="#">
-          <Avatar
+        <Link as={RouteLink} to={`/profile/${user?.username}`} rounded="full">
+          <AvatarWithLoader
+            loaderSize={10}
             name={user?.name}
-            src={user?.userImage}
-            // size="sm"
+            src={user?.userImage ? user?.userImage : {}}
+            size="sm"
             boxSize="10"
             alt="User Avatar"
             boxShadow={"md"}
-            loading="lazy"
             _hover={{
               transition: "transform 0.3s ease",
               transform: "rotate(8deg) scale(1.2)",
@@ -43,14 +44,14 @@ const SuggestionsListCard = ({ user }) => {
       <Flex flex="1" alignItems="center" justifyContent="end">
         <Link
           as={RouteLink}
-          href="#"
+          to={`/profile/${user?.username}`}
           fontSize="xs"
           color={"cyan.500"}
           _dark={{ color: "cyan.400" }}
           fontWeight="bold"
         >
           <Button colorScheme="cyan" variant="outline" size="xs" rounded="full">
-            Follow
+            Profile
           </Button>
         </Link>
       </Flex>

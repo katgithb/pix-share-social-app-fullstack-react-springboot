@@ -1,6 +1,8 @@
 package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.comment.CommentRepository;
+import com.pixshare.pixshareapi.dto.PageRequestDTO;
+import com.pixshare.pixshareapi.dto.PagedResponse;
 import com.pixshare.pixshareapi.dto.UserDTO;
 import com.pixshare.pixshareapi.dto.UserDTOMapper;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
@@ -10,16 +12,20 @@ import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.post.PostRepository;
 import com.pixshare.pixshareapi.story.Story;
 import com.pixshare.pixshareapi.story.StoryRepository;
+import com.pixshare.pixshareapi.story.StoryService;
 import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
 import com.pixshare.pixshareapi.upload.UploadType;
+import com.pixshare.pixshareapi.util.ImageUtil;
+import com.pixshare.pixshareapi.validation.ValidationUtil;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -36,20 +42,30 @@ public class UserServiceImpl implements UserService {
 
     private final StoryRepository storyRepository;
 
+    private final StoryService storyService;
+
     private final UploadService uploadService;
 
+    private final ImageUtil imageUtil;
+
     private final PasswordEncoder passwordEncoder;
+
+    private final ValidationUtil validationUtil;
 
     private final UserDTOMapper userDTOMapper;
 
     public UserServiceImpl(UserRepository userRepository, PostRepository postRepository, CommentRepository commentRepository,
-                           StoryRepository storyRepository, UploadService uploadService, PasswordEncoder passwordEncoder, UserDTOMapper userDTOMapper) {
+                           StoryRepository storyRepository, StoryService storyService, UploadService uploadService, ImageUtil imageUtil,
+                           PasswordEncoder passwordEncoder, ValidationUtil validationUtil, UserDTOMapper userDTOMapper) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.storyRepository = storyRepository;
+        this.storyService = storyService;
         this.uploadService = uploadService;
+        this.imageUtil = imageUtil;
         this.passwordEncoder = passwordEncoder;
+        this.validationUtil = validationUtil;
         this.userDTOMapper = userDTOMapper;
     }
 
@@ -83,11 +99,16 @@ public class UserServiceImpl implements UserService {
         }
 
         // save
+        validationUtil.performValidationOnField(User.class, "password", registrationRequest.password());
+
         User user = new User(registrationRequest.username(),
                 registrationRequest.email(),
                 passwordEncoder.encode(registrationRequest.password()),
                 registrationRequest.name(),
                 registrationRequest.gender());
+
+        List<String> omittedFields = Collections.singletonList("password");
+        validationUtil.performValidation(user, omittedFields);
         userRepository.save(user);
     }
 
@@ -112,6 +133,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // Update password
+        validationUtil.performValidationOnField(User.class, "password", newPassword);
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
@@ -121,19 +143,8 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        byte[] imageBytes;
-        // Check if the file is an image
-        if (!Objects.requireNonNull(imageFile.getContentType()).startsWith("image")) {
-            throw new RequestValidationException("File is not an image");
-        }
-
-        // Check if the image file can be read
-        try {
-            imageBytes = imageFile.getBytes();
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-            throw new RequestValidationException("File does not exist or could not be read");
-        }
+        // Get image bytes from image file
+        byte[] imageBytes = imageUtil.getImageBytesFromMultipartFile(imageFile);
 
         // Upload user image to cloudinary and get the public ID and secure URL
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, UploadType.AVATAR.name());
@@ -224,25 +235,52 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO findUserById(Long userId) throws ResourceNotFoundException {
+    public UserDTO findUserById(Long authUserId, Long userId) throws ResourceNotFoundException {
         return userRepository.findById(userId)
                 .map(userDTOMapper)
+                .map(userDTO -> {
+                    userDTO.setIsFollowedByAuthUser(
+                            userRepository.isFollowedByUser(userDTO.getId(), authUserId)
+                    );
+                    userDTO.setStories(
+                            storyService.findStoriesByUserId(userDTO.getId())
+                    );
+                    return userDTO;
+                })
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
     }
 
     @Override
-    public UserDTO findUserByEmail(String email) throws ResourceNotFoundException {
+    public UserDTO findUserByEmail(Long authUserId, String email) throws ResourceNotFoundException {
         UserDTO user = userRepository.findByEmail(email)
                 .map(userDTOMapper)
+                .map(userDTO -> {
+                    userDTO.setIsFollowedByAuthUser(
+                            userRepository.isFollowedByUser(userDTO.getId(), authUserId)
+                    );
+                    userDTO.setStories(
+                            storyService.findStoriesByUserId(userDTO.getId())
+                    );
+                    return userDTO;
+                })
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
         return user;
     }
 
     @Override
-    public UserDTO findUserByUsername(String username) throws ResourceNotFoundException {
+    public UserDTO findUserByUsername(Long authUserId, String username) throws ResourceNotFoundException {
         UserDTO user = userRepository.findByUserHandleName(username)
                 .map(userDTOMapper)
+                .map(userDTO -> {
+                    userDTO.setIsFollowedByAuthUser(
+                            userRepository.isFollowedByUser(userDTO.getId(), authUserId)
+                    );
+                    userDTO.setStories(
+                            storyService.findStoriesByUserId(userDTO.getId())
+                    );
+                    return userDTO;
+                })
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
         return user;
@@ -288,11 +326,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> findUserByIds(List<Long> userIds) throws ResourceNotFoundException {
+    public List<UserDTO> findUserByIds(Long authUserId, List<Long> userIds) throws ResourceNotFoundException {
         List<UserDTO> users = userRepository.findAllUsersByUserIds(userIds).stream()
                 .map(userDTOMapper)
+                .peek(userDTO -> {
+                    userDTO.setIsFollowedByAuthUser(
+                            userRepository.isFollowedByUser(userDTO.getId(), authUserId)
+                    );
+                    userDTO.setStories(
+                            storyService.findStoriesByUserId(userDTO.getId())
+                    );
+                })
                 .collect(Collectors.collectingAndThen(Collectors.toList(), result -> {
-                    if (result.isEmpty()) throw new ResourceNotFoundException("User not found");
+                    if (result.isEmpty())
+                        throw new ResourceNotFoundException("No users found with the provided ID(s)");
                     return result;
                 }));
 
@@ -300,15 +347,32 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> searchUser(String searchQuery) throws ResourceNotFoundException {
-        List<UserDTO> users = userRepository.findByQuery(searchQuery).stream()
-                .map(userDTOMapper)
-                .collect(Collectors.collectingAndThen(Collectors.toList(), result -> {
-                    if (result.isEmpty()) throw new ResourceNotFoundException("User not found");
-                    return result;
-                }));
+    public PagedResponse<UserDTO> searchUser(Long userId, String searchQuery, PageRequestDTO pageRequest) {
+        // create Pageable instance
+        Pageable pageable = pageRequest.toPageable();
+        Page<User> pagedUsers = userRepository.findByQuery(userId, searchQuery, pageable);
 
-        return users;
+        // get users content from Page
+        List<UserDTO> content = pagedUsers.getContent()
+                .stream()
+                .map(userDTOMapper)
+                .peek(userDTO -> {
+                    userDTO.setIsFollowedByAuthUser(
+                            userRepository.isFollowedByUser(userDTO.getId(), userId)
+                    );
+                    userDTO.setStories(
+                            storyService.findStoriesByUserId(userDTO.getId())
+                    );
+                })
+                .toList();
+
+        return new PagedResponse<>(
+                content,
+                pagedUsers.getNumber(),
+                pagedUsers.getSize(),
+                pagedUsers.getTotalElements(),
+                pagedUsers.getTotalPages(),
+                pagedUsers.isLast());
     }
 
     @Override
@@ -317,6 +381,14 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         List<UserDTO> users = userRepository.findPopularUsers(reqUser.getId()).stream()
                 .map(userDTOMapper)
+                .peek(userDTO -> {
+                    userDTO.setIsFollowedByAuthUser(
+                            userRepository.isFollowedByUser(userDTO.getId(), reqUser.getId())
+                    );
+                    userDTO.setStories(
+                            storyService.findStoriesByUserId(userDTO.getId())
+                    );
+                })
                 .toList();
 
         return users;
@@ -329,24 +401,40 @@ public class UserServiceImpl implements UserService {
     }
 
     // Helper method to create field update entries
-    private <T> Map.Entry<Object, Map<Object, Consumer<User>>> fieldUpdateEntry(T reqField, T userField, Consumer<User> consumer) {
-        Object key = reqField != null && !reqField.toString().trim().isEmpty() ? reqField : UUID.randomUUID().toString();
-
+    private <T> Map.Entry<Object, Map<Object, Consumer<User>>> fieldUpdateEntry(String fieldName, T reqField, T userField, Consumer<User> consumer) {
         return isFieldValueChanged(reqField, userField)
-                ? Map.entry(key, Collections.singletonMap(userField, consumer))
+                ? Map.entry(fieldName, Collections.singletonMap(userField, consumer))
                 : null;
     }
 
     private Map<Object, Map<Object, Consumer<User>>> populateFieldUpdateMap(UserUpdateRequest updateRequest, User user) {
         return Optional.ofNullable(updateRequest)
                 .map(req -> Stream.of(
-                                fieldUpdateEntry(req.username(), user.getUserHandleName(), c -> c.setUserHandleName(req.username())),
-                                fieldUpdateEntry(req.email(), user.getEmail(), c -> c.setEmail(req.email())),
-                                fieldUpdateEntry(req.name(), user.getName(), c -> c.setName(req.name())),
-                                fieldUpdateEntry(req.mobile(), user.getMobile(), c -> c.setMobile(req.mobile())),
-                                fieldUpdateEntry(req.website(), user.getWebsite(), c -> c.setWebsite(req.website())),
-                                fieldUpdateEntry(req.bio(), user.getBio(), c -> c.setBio(req.bio())),
-                                fieldUpdateEntry(req.gender(), user.getGender(), c -> c.setGender(req.gender()))
+                                fieldUpdateEntry("userHandleName", req.username(), user.getUserHandleName(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "userHandleName", req.username());
+                                    c.setUserHandleName(req.username());
+                                }),
+                                fieldUpdateEntry("email", req.email(), user.getEmail(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "email", req.email());
+                                    c.setEmail(req.email());
+                                }),
+                                fieldUpdateEntry("name", req.name(), user.getName(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "name", req.name());
+                                    c.setName(req.name());
+                                }),
+                                fieldUpdateEntry("mobile", req.mobile(), user.getMobile(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "mobile", req.mobile());
+                                    c.setMobile(req.mobile());
+                                }),
+                                fieldUpdateEntry("website", req.website(), user.getWebsite(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "website", req.website());
+                                    c.setWebsite(req.website());
+                                }),
+                                fieldUpdateEntry("bio", req.bio(), user.getBio(), c -> {
+                                    validationUtil.performValidationOnField(User.class, "bio", req.bio());
+                                    c.setBio(req.bio());
+                                }),
+                                fieldUpdateEntry("gender", req.gender(), user.getGender(), c -> c.setGender(req.gender()))
                         )
                         .filter(Objects::nonNull)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))

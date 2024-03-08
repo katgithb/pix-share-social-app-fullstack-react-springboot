@@ -12,7 +12,6 @@ import { FaMagnifyingGlass } from "react-icons/fa6";
 const SearchInputBar = ({
   isNavSearchBar,
   onOpenSearchModal,
-  searchQuery,
   handleSearchInputChange,
 }) => {
   return (
@@ -50,8 +49,9 @@ const SearchInputBar = ({
               fontWeight="normal"
               type="text"
               placeholder="Search..."
-              value={searchQuery ? searchQuery : ""}
-              onChange={handleSearchInputChange ? handleSearchInputChange : {}}
+              onChange={
+                handleSearchInputChange ? handleSearchInputChange : () => {}
+              }
             />
             <InputLeftElement h={"full"}>
               <Icon as={FaMagnifyingGlass} fontSize="lg" color={"gray.400"} />

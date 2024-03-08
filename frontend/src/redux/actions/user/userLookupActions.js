@@ -1,17 +1,22 @@
 import {
   getPopularUsers,
+  getSavedPostsByUserId,
   getUserByUserName,
   getUsersByUserIds,
   searchUsersBySearchTerm,
 } from "../../../services/api/userService";
 import {
+  clearSearchUsers,
   fetchPopularUsers,
   fetchPopularUsersPending,
+  findSavedPostsByUserId,
+  findSavedPostsByUserIdPending,
   findUserByUserName,
   findUserByUserNamePending,
   findUsersByUserIds,
   findUsersByUserIdsPending,
   searchUsers,
+  searchUsersFailure,
   searchUsersPending,
   userLookupFailure,
 } from "../../reducers/user/userLookupSlice";
@@ -50,6 +55,23 @@ export const findUsersByUserIdsAction = (data) => async (dispatch) => {
     });
 };
 
+export const findSavedPostsByUserIdAction = (data) => async (dispatch) => {
+  dispatch(findSavedPostsByUserIdPending());
+
+  getSavedPostsByUserId(data)
+    .then((response) => {
+      const savedPosts = response.data;
+
+      console.log("Saved Posts by User Id: ", savedPosts);
+
+      dispatch(findSavedPostsByUserId(savedPosts));
+    })
+    .catch((error) => {
+      console.log(error);
+      dispatch(userLookupFailure());
+    });
+};
+
 export const searchUsersAction = (data) => async (dispatch) => {
   dispatch(searchUsersPending());
 
@@ -63,7 +85,8 @@ export const searchUsersAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
-      dispatch(userLookupFailure());
+      dispatch(searchUsersFailure());
+      dispatch(clearSearchUsers());
     });
 };
 

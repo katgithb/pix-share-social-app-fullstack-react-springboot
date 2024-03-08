@@ -34,13 +34,9 @@ export const getUsersByUserIds = async (data) => {
 
 export const searchUsersBySearchTerm = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
+  const params = { q: data.query, ...data.pageFetchParams };
 
-  return await axiosInstance.get("/search", {
-    headers,
-    params: {
-      q: data.query,
-    },
-  });
+  return await axiosInstance.get("/search", { headers, params });
 };
 
 export const getPopularUsers = async (data) => {
@@ -65,6 +61,13 @@ export const updateUnfollow = async (data) => {
   return await axiosInstance.put(`/unfollow/${data.userId}`, null, {
     headers,
   });
+};
+
+export const getSavedPostsByUserId = async (data) => {
+  const headers = { Authorization: `Bearer ${data.token}` };
+  const params = data.pageFetchParams;
+
+  return await axiosInstance.get("/account/saved", { headers, params });
 };
 
 export const verifyPassword = async (data) => {
