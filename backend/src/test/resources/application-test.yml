@@ -6,5 +6,5 @@ spring:
     url: jdbc:postgresql://${TEST_DB_HOST}:${TEST_DB_PORT}/pixshare_test_db
   jpa:
     hibernate:
-      ddl-auto: 'create-drop'
+      ddl-auto: 'validate'
     show-sql: true

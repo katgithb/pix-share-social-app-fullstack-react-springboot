@@ -2,21 +2,26 @@ services:
   db:
     container_name: pixshare-postgres-db
     image: postgres:15.3-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER_FILE: /run/secrets/postgres-user
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
       POSTGRES_DB: pixshare_db
       PGDATA: /data/postgres
+    logging:
+      options:
+        max-size: 10m
+        max-file: "5"
     secrets:
       - postgres-user
       - postgres-password
     volumes:
       - db_data:/data/postgres
+      - ./init/db/postgres:/docker-entrypoint-initdb.d
     ports:
       - ${POSTGRES_DB_PORT}:5432
     networks:
       - db_net
-    restart: unless-stopped
 
 networks:
   db_net:

@@ -34,7 +34,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
 
         String firstName = FAKER.name().firstName();
         String lastName = FAKER.name().lastName();
-        username = firstName.toLowerCase() + lastName.toLowerCase() + "u123";
+        username = "u123_" + firstName.toLowerCase() + "_" + lastName.toLowerCase();
         name = firstName + " " + lastName;
         email = FAKER.internet().safeEmailAddress() + "-" + UUID.randomUUID();
         password = "password123#";
