@@ -6,7 +6,7 @@ server:
 spring:
   profiles:
     active:
-      - dev
+      - ${ACTIVE_SPRING_PROFILES:dev}
   datasource:
     #    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/pixshare_db
     username: ${DB_USER}

@@ -19,9 +19,24 @@ services:
       - db_data:/data/postgres
       - ./init/db/postgres:/docker-entrypoint-initdb.d
     ports:
-      - ${POSTGRES_DB_PORT}:5432
+      - ${POSTGRES_DB_PORT}:${POSTGRES_DB_DEFAULT_PORT}
     networks:
       - db_net
+
+  pixshare-api:
+    container_name: pixshare-api
+    image: projcodehub/pixshare-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:${POSTGRES_DB_DEFAULT_PORT}/pixshare_db
+    ports:
+      - 8088:8081
+    networks:
+      - db_net
+    depends_on:
+      - db
 
 networks:
   db_net:
