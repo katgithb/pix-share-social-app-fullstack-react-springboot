@@ -18,7 +18,7 @@ public abstract class AbstractTestcontainers {
     protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = new PostgreSQLContainer<>
             ("postgres:15.3-alpine")
             .withDatabaseName("pixshare_dao_unit_test_db")
-            .withUsername("pixshare_test")
+            .withUsername("test_user")
             .withPassword("testpassword");
 
     static {
