@@ -17,14 +17,13 @@ jobs:
           POSTGRES_USER: ${{ vars.POSTGRES_TEST_USER }}
           POSTGRES_PASSWORD: ${{ vars.POSTGRES_TEST_PASSWORD }}
           POSTGRES_DB: pixshare_test_db
-          POSTGRES_DB_PORT: ${{ vars.TEST_DB_PORT }}
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          - ${{ env.POSTGRES_DB_PORT }}:5432
+          - ${{ vars.TEST_DB_PORT }}:5432
     defaults:
       run:
         working-directory: ./backend
