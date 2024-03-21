@@ -4,7 +4,9 @@ server:
 spring:
   datasource:
     url: jdbc:postgresql://${TEST_DB_HOST}:${TEST_DB_PORT}/pixshare_test_db
+    username: ${TEST_DB_USER}
+    password: ${TEST_DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: 'create-drop'
+      ddl-auto: 'validate'
     show-sql: true
