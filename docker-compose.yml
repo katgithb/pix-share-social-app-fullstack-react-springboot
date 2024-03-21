@@ -2,100 +2,31 @@ services:
   db:
     container_name: pixshare-postgres-db
     image: postgres:15.3-alpine
-    restart: unless-stopped
     environment:
       POSTGRES_USER_FILE: /run/secrets/postgres-user
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
       POSTGRES_DB: pixshare_db
+      PGDATA: /data/postgres
     secrets:
       - postgres-user
       - postgres-password
-    logging:
-      options:
-        max-size: 10m
-        max-file: "5"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/data/postgres
     ports:
-      - ${DEV_DB_PORT}:${POSTGRES_DB_DEFAULT_PORT}
+      - ${POSTGRES_DB_PORT}:5432
     networks:
       - db_net
-
-  test-db:
-    container_name: pixshare-postgres-test-db
-    image: postgres:15.3-alpine
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_TEST_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD}
-      POSTGRES_DB: pixshare_test_db
-    logging:
-      options:
-        max-size: 10m
-        max-file: "5"
-    ports:
-      - ${TEST_DB_PORT}:${POSTGRES_DB_DEFAULT_PORT}
-    networks:
-      - db_net
-
-  pixshare-api:
-    container_name: pixshare-api
-    image: projcodehub/pixshare-api
-    restart: unless-stopped
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:${POSTGRES_DB_DEFAULT_PORT}/pixshare_db
-      DEV_DB_HOST: ${DEV_DB_HOST}
-      DEV_DB_PORT: ${DEV_DB_PORT}
-      PROD_DB_HOST: ${PROD_DB_HOST}
-      PROD_DB_PORT: ${PROD_DB_PORT}
-    secrets:
-      - db-user
-      - db-password
-      - jwt-secret-key
-      - jwt-token-issuer
-      - jwt-token-expiry-seconds
-      - cloudinary-url
-      - cloudinary-upload-preset
-      - cloudinary-upload-folder
-    entrypoint: [ "/data/scripts/load_secrets.sh",
-                  "java",
-                  "-cp",
-                  "@/app/jib-classpath-file",
-                  "com.pixshare.pixshareapi.PixshareApiApplication" ]
-    volumes:
-      - ./init/scripts/load_secrets.sh:/data/scripts/load_secrets.sh
-    ports:
-      - 8088:8081
-    networks:
-      - db_net
-    depends_on:
-      - db
 
 networks:
   db_net:
     driver: bridge
-
-volumes:
-  db_data:
 
 secrets:
   postgres-user:
     environment: POSTGRES_USER
   postgres-password:
     environment: POSTGRES_PASSWORD
-  db-user:
-    environment: DB_USER
-  db-password:
-    environment: DB_PASSWORD
-  jwt-secret-key:
-    environment: JWT_SECRET_KEY
-  jwt-token-issuer:
-    environment: JWT_TOKEN_ISSUER
-  jwt-token-expiry-seconds:
-    environment: JWT_TOKEN_EXPIRY_SECONDS
-  cloudinary-url:
-    environment: CLOUDINARY_URL
-  cloudinary-upload-preset:
-    environment: CLOUDINARY_UPLOAD_PRESET
-  cloudinary-upload-folder:
-    environment: CLOUDINARY_UPLOAD_FOLDER
+
+volumes:
+  db_data:

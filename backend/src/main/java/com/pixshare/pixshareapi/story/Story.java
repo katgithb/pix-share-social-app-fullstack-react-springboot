@@ -2,9 +2,11 @@ package com.pixshare.pixshareapi.story;
 
 import com.pixshare.pixshareapi.user.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Hibernate;
 
 import java.time.LocalDateTime;
@@ -18,35 +20,29 @@ import java.util.Objects;
 @Table(name = "story")
 public class Story {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "story_id_seq")
-    @SequenceGenerator(name = "story_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "story_seq")
+    @SequenceGenerator(name = "story_seq", allocationSize = 1)
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @NonNull
-    @Column(name = "image_upload_id", nullable = false)
+    @Column(name = "image_upload_id")
     private String imageUploadId;
 
-    @NonNull
-    @Column(name = "image", nullable = false)
+    @Column(name = "image")
     private String image;
 
     @Size(max = 250)
     @Column(name = "caption", columnDefinition = "TEXT")
     private String caption;
 
-    @NonNull
-    @PastOrPresent
-    @Column(name = "timestamp", nullable = false)
+    @Column(name = "timestamp")
     private LocalDateTime timestamp;
 
-    @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    public Story(String imageUploadId, String image, String caption, LocalDateTime timestamp, User user) {
-        this.imageUploadId = imageUploadId;
+    public Story(String image, String caption, LocalDateTime timestamp, User user) {
         this.image = image;
         this.caption = caption;
         this.timestamp = timestamp;

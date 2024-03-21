@@ -18,7 +18,7 @@ import java.util.List;
 public class StoryServiceImpl implements StoryService {
 
     private final StoryRepository storyRepository;
-
+    
     private final UploadService uploadService;
 
     private final UserRepository userRepository;
@@ -38,7 +38,6 @@ public class StoryServiceImpl implements StoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         Story story = new Story(
-                storyRequest.image(),
                 storyRequest.image(),
                 storyRequest.caption(),
                 LocalDateTime.now(),

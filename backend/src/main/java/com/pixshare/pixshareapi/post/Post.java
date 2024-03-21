@@ -20,8 +20,8 @@ import java.util.Set;
 @Table(name = "post")
 public class Post {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "post_id_seq")
-    @SequenceGenerator(name = "post_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "post_seq")
+    @SequenceGenerator(name = "post_seq", allocationSize = 1)
     @Column(name = "id", nullable = false)
     private Long id;
 

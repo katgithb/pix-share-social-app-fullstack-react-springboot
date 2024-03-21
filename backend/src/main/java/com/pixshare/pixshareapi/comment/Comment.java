@@ -22,8 +22,8 @@ import java.util.Set;
 @Table(name = "comment")
 public class Comment {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "comment_id_seq")
-    @SequenceGenerator(name = "comment_id_seq", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "comment_seq")
+    @SequenceGenerator(name = "comment_seq", allocationSize = 1)
     @Column(name = "id", nullable = false)
     private Long id;
 
