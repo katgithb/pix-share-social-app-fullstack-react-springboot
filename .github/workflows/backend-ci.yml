@@ -39,4 +39,11 @@ jobs:
           cache: 'maven'
 
       - name: Build and run Unit/Integration tests with Maven
+        env:
+          ACTIVE_SPRING_PROFILES: test
+          TEST_DB_HOST: ${{ vars.TEST_DB_HOST }}
+          TEST_DB_PORT: ${{ vars.TEST_DB_PORT }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          JWT_TOKEN_ISSUER: ${{ secrets.JWT_TOKEN_ISSUER }}
+          JWT_TOKEN_EXPIRY_SECONDS: ${{ secrets.JWT_TOKEN_EXPIRY_SECONDS }}
         run: mvn -B -ntp verify
