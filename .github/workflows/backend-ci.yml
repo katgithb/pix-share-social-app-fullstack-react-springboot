@@ -41,6 +41,8 @@ jobs:
       - name: Build and run Unit/Integration tests with Maven
         env:
           ACTIVE_SPRING_PROFILES: test
+          TEST_DB_USER: ${{ vars.POSTGRES_TEST_USER }}
+          TEST_DB_PASSWORD: ${{ vars.POSTGRES_TEST_PASSWORD }}
           TEST_DB_HOST: ${{ vars.TEST_DB_HOST }}
           TEST_DB_PORT: ${{ vars.TEST_DB_PORT }}
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
