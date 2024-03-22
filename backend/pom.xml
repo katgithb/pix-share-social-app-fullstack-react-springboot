@@ -24,6 +24,8 @@
         <java.version>17</java.version>
         <jjwt.version>0.11.5</jjwt.version>
         <docker.username>projcodehub</docker.username>
+        <docker.image.name>pixshare-api</docker.image.name>
+        <docker.image.tag/>
     </properties>
 
     <dependencies>
@@ -227,7 +229,7 @@
 
                     <to>
                         <image>
-                            docker.io/${docker.username}/${project.artifactId}:${project.version}
+                            docker.io/${docker.username}/${docker.image.name}:${docker.image.tag}
                         </image>
                         <tags>
                             <tag>latest</tag>

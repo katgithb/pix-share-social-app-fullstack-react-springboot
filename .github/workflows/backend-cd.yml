@@ -1,0 +1,82 @@
+name: CD - Deploy Backend
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15.3-alpine
+        env:
+          POSTGRES_USER: ${{ vars.POSTGRES_TEST_USER }}
+          POSTGRES_PASSWORD: ${{ vars.POSTGRES_TEST_PASSWORD }}
+          POSTGRES_DB: pixshare_test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - ${{ vars.TEST_DB_PORT }}:5432
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+      - name: Set build number
+        id: build-number
+        run: echo "BUILD_NUMBER=$(date '+%Y%m%d.%j.%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Build, Package and Push Docker image with Maven
+        run:
+          mvn -B -ntp verify -Ddocker.image.tag=${{ steps.build-number.outputs.BUILD_NUMBER }} jib:build
+
+      - name: Update api image tag in Dockerrun.aws.json with new build number
+        run: |
+          echo "Dockerrun.aws.json before image tag update:"
+          cat Dockerrun.aws.json
+          sed -i -E 's/(${{ secrets.DOCKERHUB_USERNAME }}\/pixshare-api:)([^"]*)/\1'"${{ steps.build-number.outputs.BUILD_NUMBER }}"'/' Dockerrun.aws.json
+          echo "Dockerrun.aws.json after image tag update:"
+          cat Dockerrun.aws.json
+
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: ${{ secrets.AWS_EB_APPLICATION_NAME }}
+          environment_name: ${{ secrets.AWS_EB_ENVIRONMENT_NAME }}
+          version_label: ${{ steps.build-number.outputs.BUILD_NUMBER }}
+          version_description: ${{ github.SHA }}
+          region: ${{ secrets.AWS_EB_REGION }}
+          deployment_package: backend/Dockerrun.aws.json
+
+      - name: Commit and push Dockerrun.aws.json
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add Dockerrun.aws.json
+          git commit -m "Update Dockerrun.aws.json with new api image tag ${{ steps.build-number.outputs.BUILD_NUMBER }}"
+          git push
