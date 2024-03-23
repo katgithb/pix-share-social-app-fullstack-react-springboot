@@ -81,7 +81,7 @@ jobs:
           application_name: ${{ secrets.AWS_EB_APPLICATION_NAME }}
           environment_name: ${{ secrets.AWS_EB_ENVIRONMENT_NAME }}
           version_label: ${{ steps.build-number.outputs.BUILD_NUMBER }}
-          version_description: ${{ github.SHA }}
+          version_description: ${{ github.sha }}
           region: ${{ secrets.AWS_EB_REGION }}
           deployment_package: backend/Dockerrun.aws.json
 
@@ -96,4 +96,4 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          branch: ${{ vars.TARGET_BRANCH }}
