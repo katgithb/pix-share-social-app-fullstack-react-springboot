@@ -51,4 +51,4 @@ jobs:
           CLOUDINARY_URL: ${{ vars.TEST_CLOUDINARY_URL }}
           CLOUDINARY_UPLOAD_PRESET: ${{ vars.TEST_CLOUDINARY_UPLOAD_PRESET }}
           CLOUDINARY_UPLOAD_FOLDER: ${{ vars.TEST_CLOUDINARY_UPLOAD_FOLDER }}
-        run: mvn -B -ntp verify
+        run: mvn -B -ntp verify -Djib.skip=true

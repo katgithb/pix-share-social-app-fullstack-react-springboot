@@ -63,7 +63,7 @@ jobs:
           CLOUDINARY_UPLOAD_PRESET: ${{ vars.TEST_CLOUDINARY_UPLOAD_PRESET }}
           CLOUDINARY_UPLOAD_FOLDER: ${{ vars.TEST_CLOUDINARY_UPLOAD_FOLDER }}
         run:
-          mvn -B -ntp verify -Ddocker.image.tag=${{ steps.build-number.outputs.BUILD_NUMBER }} jib:build
+          mvn -B -ntp verify -Ddocker.image.tag=${{ steps.build-number.outputs.BUILD_NUMBER }}
 
       - name: Update api image tag in Dockerrun.aws.json with new build number
         run: |
