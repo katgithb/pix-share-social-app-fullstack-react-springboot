@@ -85,10 +85,15 @@ jobs:
           region: ${{ secrets.AWS_EB_REGION }}
           deployment_package: backend/Dockerrun.aws.json
 
-      - name: Commit and push Dockerrun.aws.json
+      - name: Commit changes in Dockerrun.aws.json
         run: |
+          echo "Branch: ${{ github.ref }}"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add Dockerrun.aws.json
-          git commit -m "Update Dockerrun.aws.json with new api image tag ${{ steps.build-number.outputs.BUILD_NUMBER }}"
-          git push
+          git commit -a -m "Update Dockerrun.aws.json with new api image tag ${{ steps.build-number.outputs.BUILD_NUMBER }}"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
