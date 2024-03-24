@@ -85,9 +85,17 @@ jobs:
           region: ${{ secrets.AWS_EB_REGION }}
           deployment_package: backend/Dockerrun.aws.json
 
+      - name: Switch to target branch
+        run: git checkout ${{ vars.TARGET_BRANCH }}
+
+      - name: Merge main branch into target branch
+        run: git merge main
+
       - name: Commit changes in Dockerrun.aws.json
         run: |
-          echo "Branch: ${{ github.ref }}"
+          echo "Branch ref: ${{ github.ref }}"
+          echo "Target branch: ${{ vars.TARGET_BRANCH }}"
+          git branch
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git commit -a -m "Update Dockerrun.aws.json with new api image tag ${{ steps.build-number.outputs.BUILD_NUMBER }}"
@@ -97,3 +105,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ vars.TARGET_BRANCH }}
+          force: false  # Avoid force pushing
