@@ -91,7 +91,7 @@ jobs:
           ref: ${{ vars.TARGET_BRANCH }}
 
       - name: Merge main branch into target branch
-        run: git merge main
+        run: git merge origin/main
 
       - name: Commit changes in Dockerrun.aws.json
         run: |
