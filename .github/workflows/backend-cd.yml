@@ -91,13 +91,14 @@ jobs:
           ref: ${{ vars.TARGET_BRANCH }}
 
       - name: Merge main branch into target branch
-        run: git merge origin/main
-
-      - name: Commit changes in Dockerrun.aws.json
         run: |
           echo "Branch ref: ${{ github.ref }}"
           echo "Target branch: ${{ vars.TARGET_BRANCH }}"
           git branch
+          git merge origin/main
+
+      - name: Commit changes in Dockerrun.aws.json
+        run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git commit -a -m "Update Dockerrun.aws.json with new api image tag ${{ steps.build-number.outputs.BUILD_NUMBER }}"
