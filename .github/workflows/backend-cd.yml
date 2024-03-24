@@ -86,7 +86,9 @@ jobs:
           deployment_package: backend/Dockerrun.aws.json
 
       - name: Switch to target branch
-        run: git checkout ${{ vars.TARGET_BRANCH }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.TARGET_BRANCH }}
 
       - name: Merge main branch into target branch
         run: git merge main
