@@ -11,6 +11,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     services:
       postgres:
         image: postgres:15.3-alpine
@@ -31,6 +33,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java JDK
         uses: actions/setup-java@v4
@@ -85,13 +89,15 @@ jobs:
           region: ${{ secrets.AWS_EB_REGION }}
           deployment_package: backend/Dockerrun.aws.json
 
-      - name: Switch to target branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ vars.TARGET_BRANCH }}
-
       - name: Fetch changes from remote main branch
-        run: git fetch origin main:main
+        run: |
+          git checkout main
+          git fetch origin main:main ${{ vars.TARGET_BRANCH }}:${{ vars.TARGET_BRANCH }}
+
+      - name: Switch to target branch
+        run: |
+          git checkout ${{ vars.TARGET_BRANCH }}
+          git pull
 
       - name: Merge main branch into target branch
         run: |
