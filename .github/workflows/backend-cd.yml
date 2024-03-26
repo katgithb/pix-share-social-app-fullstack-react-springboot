@@ -180,5 +180,5 @@ jobs:
           elif [ "${{ job.status }}" = "cancelled" ]; then
                 STATUS_MESSAGE=":gitlab-warning: Cancelled"
           fi
-
-          curl -X POST -H 'Content-type: application/json' --data '{ "text": "Job Status: ${STATUS_MESSAGE}" }' "${{ secrets.SLACK_WEBHOOK_URL }}"
+          
+          curl -X POST -H 'Content-type: application/json' --data "{ \"text\": \"Job Status: ${STATUS_MESSAGE}\" }" "${{ secrets.SLACK_WEBHOOK_URL }}"
