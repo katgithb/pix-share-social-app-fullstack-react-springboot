@@ -174,11 +174,11 @@ jobs:
         run: |
           STATUS_MESSAGE=":question: Unknown"
           if [ "${{ job.status }}" = "success" ]; then
-                TEXT=":github-check-mark: Success"
+                STATUS_MESSAGE=":github-check-mark: Success"
           elif [ "${{ job.status }}" = "failure" ]; then
-                TEXT=":github-changes-requested: Failed"            
+                STATUS_MESSAGE=":github-changes-requested: Failed"            
           elif [ "${{ job.status }}" = "cancelled" ]; then
-                TEXT=":gitlab-warning: Cancelled"
+                STATUS_MESSAGE=":gitlab-warning: Cancelled"
           fi
 
-          curl -X POST -H 'Content-type: application/json' --data '{ "text": "Job Run Id: :github-actions: ${{ github.run_id }} Job Status: $STATUS_MESSAGE" }' "${{ secrets.SLACK_WEBHOOK_URL }}"
+          curl -X POST -H 'Content-type: application/json' --data '{ "text": "Job Run Id: :github-actions: ${{ github.run_id }} Job Status: '${STATUS_MESSAGE}'" }' "${{ secrets.SLACK_WEBHOOK_URL }}"
