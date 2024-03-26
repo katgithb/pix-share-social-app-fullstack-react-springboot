@@ -47,7 +47,7 @@ jobs:
         run: >
           curl -X POST -H 'Content-type: application/json' --data '
           {
-            "text": "Backend deployment started :spring-boot: :radical_rocket: :fingers_crossed:",
+            "text": "Backend deployment started :spring-boot: :radical_rocket: :fingers_crossed: - :github-actions: Job #${{ github.run_id }}",
           }
           ' "${{ secrets.SLACK_WEBHOOK_URL }}"
 
@@ -181,4 +181,4 @@ jobs:
                 STATUS_MESSAGE=":gitlab-warning: Cancelled"
           fi
 
-          curl -X POST -H 'Content-type: application/json' --data '{ "text": "Job Run Id: :github-actions: ${{ github.run_id }} Job Status: '${STATUS_MESSAGE}'" }' "${{ secrets.SLACK_WEBHOOK_URL }}"
+          curl -X POST -H 'Content-type: application/json' --data '{ "text": "Job Status: ${STATUS_MESSAGE}" }' "${{ secrets.SLACK_WEBHOOK_URL }}"
