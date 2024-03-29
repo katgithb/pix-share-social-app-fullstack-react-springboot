@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { checkAuthState } from "../redux/actions/auth/authActions";
@@ -7,9 +7,12 @@ import { fetchUserProfileAction } from "../redux/actions/user/userProfileActions
 const ProtectedRoute = () => {
   const location = useLocation();
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector((store) => store.auth.isAuthenticated);
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
   const token = localStorage.getItem("token");
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+
+  const isAuthenticated = useSelector((store) => store.auth.isAuthenticated);
+  const selectUserProfile = useSelector((store) => store.user.userProfile);
+  const userProfile = useMemo(() => selectUserProfile, [selectUserProfile]);
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -23,18 +26,23 @@ const ProtectedRoute = () => {
   }, [dispatch, location]);
 
   useEffect(() => {
-    if (token) {
+    if (isAuthenticated && token) {
       dispatch(fetchUserProfileAction({ token }));
     }
-  }, [dispatch, token]);
+  }, [dispatch, isAuthenticated, token]);
 
-  if (!isAuthChecked) {
+  if (!isAuthChecked || userProfile.isLoading) {
     return null; // Render nothing until authentication check is complete
   }
 
   console.log("Authenticated: ", isAuthenticated);
+  console.log("Authenticated User: ", userProfile.currUser);
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
+  return isAuthenticated && userProfile.currUser ? (
+    <Outlet />
+  ) : (
+    <Navigate to="/login" />
+  );
 };
 
 export default ProtectedRoute;

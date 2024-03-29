@@ -10,7 +10,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { Form, Formik } from "formik";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink, useNavigate } from "react-router-dom";
 import logo from "../../../assets/images/pixshare_logo.png";
@@ -19,6 +19,7 @@ import {
   checkAuthState,
   signupAction,
 } from "../../../redux/actions/auth/authActions";
+import { fetchUserProfileAction } from "../../../redux/actions/user/userProfileActions";
 import CustomPasswordInput from "../../shared/customFormElements/CustomPasswordInput";
 import CustomSelect from "../../shared/customFormElements/CustomSelect";
 import CustomTextInput from "../../shared/customFormElements/CustomTextInput";
@@ -27,18 +28,25 @@ const SignupForm = ({ initialValues, validationSchema }) => {
   const formLogo = useColorModeValue(logo, altLogo);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+
   const auth = useSelector((store) => store.auth);
+  const selectUserProfile = useSelector((store) => store.user.userProfile);
+  const userProfile = useMemo(() => selectUserProfile, [selectUserProfile]);
 
   const handleFormSubmission = (values, { setSubmitting }) => {
     setSubmitting(true);
     console.log("Form Values: ", values);
     const newUser = {
-      name: `${values.firstName} ${values.lastName}`,
+      name: values.lastName
+        ? `${values.firstName} ${values.lastName}`
+        : `${values.firstName}`,
       username: values.username,
       gender: values.gender,
       email: values.email,
       password: values.password,
     };
+
     dispatch(signupAction(newUser));
     setSubmitting(false);
   };
@@ -48,14 +56,20 @@ const SignupForm = ({ initialValues, validationSchema }) => {
   }, [dispatch]);
 
   useEffect(() => {
+    if (auth.isAuthenticated && token) {
+      dispatch(fetchUserProfileAction({ token }));
+    }
+  }, [auth.isAuthenticated, dispatch, token]);
+
+  useEffect(() => {
     console.log(auth.signup?.username);
     if (auth.signup?.username) {
       navigate("/login");
     }
-    if (auth.isAuthenticated) {
+    if (userProfile.currUser) {
       navigate("/");
     }
-  }, [auth.isAuthenticated, auth.signup, navigate]);
+  }, [auth.signup?.username, navigate, userProfile.currUser]);
 
   return (
     <Formik
@@ -165,7 +179,7 @@ const SignupForm = ({ initialValues, validationSchema }) => {
               <Button
                 type={"submit"}
                 isDisabled={!isValid || isSubmitting}
-                isLoading={auth.isLoading}
+                isLoading={auth.isLoading || userProfile.isLoading}
                 loadingText="Signing Up..."
                 bg="blue.400"
                 color="white"

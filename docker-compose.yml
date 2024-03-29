@@ -71,6 +71,17 @@ services:
     depends_on:
       - db
 
+  pixshare-react:
+    container_name: pixshare-react
+    image: projcodehub/pixshare-react
+    restart: unless-stopped
+    build:
+      context: ./frontend
+    ports:
+      - 3000:5173
+    depends_on:
+      - pixshare-api
+
 networks:
   db_net:
     driver: bridge
