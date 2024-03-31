@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import PagePreloader from "../components/shared/PagePreloader";
 import { checkAuthState } from "../redux/actions/auth/authActions";
 import { fetchUserProfileAction } from "../redux/actions/user/userProfileActions";
 
@@ -32,7 +33,7 @@ const ProtectedRoute = () => {
   }, [dispatch, isAuthenticated, token]);
 
   if (!isAuthChecked || userProfile.isLoading) {
-    return null; // Render nothing until authentication check is complete
+    return <PagePreloader />; // Render preloader until authentication check is complete
   }
 
   console.log("Authenticated: ", isAuthenticated);
