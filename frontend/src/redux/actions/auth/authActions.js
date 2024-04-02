@@ -54,14 +54,14 @@ export const signupAction = (data) => async (dispatch) => {
 
   createUser(data)
     .then((response) => {
-      const user = data;
+      const { password, ...user } = data;
       console.log("User signup: ", response);
 
       dispatch(signUp(user));
 
       console.log("Signup Success");
       successToastNotification(
-        `Account created for ${data.name}.`
+        `Account created for ${data.name}`
         // "We've created your account for you."
       );
     })
@@ -98,6 +98,7 @@ export const signoutAction = () => (dispatch) => {
 
 export const checkAuthState = () => (dispatch) => {
   const token = localStorage.getItem("token");
+  console.log("token: ", token);
 
   if (!token) {
     // Token is missing, user is not authenticated
@@ -110,18 +111,23 @@ export const checkAuthState = () => (dispatch) => {
 
     dispatch(signOut());
   } else {
-    const { exp } = jwtDecode(token);
-    const currentDate = Date.now();
-    const expirationDate = exp * 1000;
+    try {
+      const { exp } = jwtDecode(token);
+      const currentDate = Date.now();
+      const expirationDate = exp * 1000;
 
-    if (currentDate > expirationDate) {
-      // Token is expired, user is not authenticated
+      if (currentDate > expirationDate) {
+        // Token is expired, user is not authenticated
+        dispatch(signoutAction());
+      } else {
+        // Token is valid, user is authenticated
+        console.log("Auth token: ", token);
+
+        dispatch(signIn({ token }));
+      }
+    } catch (error) {
+      console.log(error);
       dispatch(signoutAction());
-    } else {
-      // Token is valid, user is authenticated
-      console.log("Auth token: ", token);
-
-      dispatch(signIn({ token }));
     }
   }
 };

@@ -1,0 +1,6 @@
+.vscode
+node_modules
+Dockerfile
+.env
+.dockerignore
+.DS_Store

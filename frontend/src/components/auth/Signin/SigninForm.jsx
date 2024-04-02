@@ -10,7 +10,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { Form, Formik } from "formik";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink, useNavigate } from "react-router-dom";
 import logo from "../../../assets/images/pixshare_logo.png";
@@ -19,6 +19,7 @@ import {
   checkAuthState,
   signinAction,
 } from "../../../redux/actions/auth/authActions";
+import { fetchUserProfileAction } from "../../../redux/actions/user/userProfileActions";
 import CustomPasswordInput from "../../shared/customFormElements/CustomPasswordInput";
 import CustomTextInput from "../../shared/customFormElements/CustomTextInput";
 
@@ -26,8 +27,11 @@ const SigninForm = ({ initialValues, validationSchema }) => {
   const formLogo = useColorModeValue(logo, altLogo);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+
   const { isAuthenticated, isLoading } = useSelector((store) => store.auth);
-  // const token = localStorage.getItem("token");
+  const selectUserProfile = useSelector((store) => store.user.userProfile);
+  const userProfile = useMemo(() => selectUserProfile, [selectUserProfile]);
 
   const handleFormSubmission = (values, { setSubmitting }) => {
     setSubmitting(true);
@@ -41,10 +45,16 @@ const SigninForm = ({ initialValues, validationSchema }) => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && token) {
+      dispatch(fetchUserProfileAction({ token }));
+    }
+  }, [dispatch, isAuthenticated, token]);
+
+  useEffect(() => {
+    if (userProfile.currUser) {
       navigate("/");
     }
-  }, [isAuthenticated, navigate]);
+  }, [navigate, userProfile.currUser]);
 
   return (
     <Formik
@@ -109,7 +119,7 @@ const SigninForm = ({ initialValues, validationSchema }) => {
               <Button
                 type={"submit"}
                 isDisabled={!isValid || isSubmitting}
-                isLoading={isLoading}
+                isLoading={isLoading || userProfile.isLoading}
                 loadingText="Signing In..."
                 bg="blue.400"
                 color="white"
