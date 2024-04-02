@@ -1,0 +1,35 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "name": "pixshare-react",
+      "image": "projcodehub/pixshare-react:latest",
+      "essential": false,
+      "memory": 192,
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "containerPort": 5173
+        }
+      ]
+    },
+    {
+      "name": "pixshare-api",
+      "image": "projcodehub/pixshare-api:20240326.086.134132",
+      "essential": true,
+      "memory": 512,
+      "portMappings": [
+        {
+          "hostPort": 8080,
+          "containerPort": 8080
+        }
+      ],
+      "environment": [
+        {
+          "name": "SPRING_DATASOURCE_URL",
+          "value": "jdbc:postgresql://awseb-e-jm7sye4if4-stack-awsebrdsdatabase-pw5r8gezrcof.clc8m84260m9.eu-central-1.rds.amazonaws.com:5432/pixshare_db"
+        }
+      ]
+    }
+  ]
+}

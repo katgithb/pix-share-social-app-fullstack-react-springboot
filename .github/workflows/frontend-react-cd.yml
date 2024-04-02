@@ -1,4 +1,4 @@
-name: CD - Deploy Backend
+name: CD - Deploy React Frontend
 
 on:
   workflow_dispatch:
@@ -6,48 +6,31 @@ on:
     branches:
       - main
     paths:
-      - 'backend/**'
+      - 'frontend/**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    services:
-      postgres:
-        image: postgres:15.3-alpine
-        env:
-          POSTGRES_USER: ${{ vars.POSTGRES_TEST_USER }}
-          POSTGRES_PASSWORD: ${{ vars.POSTGRES_TEST_PASSWORD }}
-          POSTGRES_DB: pixshare_test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - ${{ vars.TEST_DB_PORT }}:5432
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./frontend
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set up Java JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'maven'
+      - name: Send Slack notification about commit message and sha
+        run: >
+          curl -X POST -H 'Content-type: application/json' --data '
+          {
+            "text": ":github-logo: pix-share-social-app-fullstack-react-springboot repository commit message: ${{ github.event.head_commit.message }} - sha: ${{ github.sha }}",
+          }
+          ' "${{ secrets.SLACK_WEBHOOK_URL }}"
 
       - name: Send Slack notification about deployment start
         run: >
           curl -X POST -H 'Content-type: application/json' --data '
           {
-            "text": "Backend deployment started :spring-boot: :radical_rocket: :fingers_crossed: - :github-actions: Job #${{ github.run_id }}",
+            "text": "React Frontend deployment started :react: :radical_rocket: :fingers_crossed: - :github-actions: Job #${{ github.run_id }}",
           }
           ' "${{ secrets.SLACK_WEBHOOK_URL }}"
 
@@ -61,43 +44,29 @@ jobs:
         id: build-number
         run: echo "BUILD_NUMBER=$(date '+%Y%m%d.%j.%H%M%S')" >> $GITHUB_OUTPUT
 
-      - name: Send Slack notification about maven build start
+      - name: Docker Build and Push
+        run: |
+          chmod +x ../.ci-cd/scripts/docker_build_publish.sh
+          USERNAME=${{ secrets.DOCKERHUB_USERNAME }} \
+          REPO=pixshare-react \
+          TAG=${{ steps.build-number.outputs.BUILD_NUMBER }} \          
+          ../.ci-cd/scripts/docker_build_publish.sh . \
+          --build-arg api_base_url=http://pixshare-api-env.eba-cvdwiy5c.eu-central-1.elasticbeanstalk.com:8080 \
+          --build-arg api_version=v1
+
+      - name: Send Slack notification about docker image pushed to docker hub
         run: >
           curl -X POST -H 'Content-type: application/json' --data '
           {
-            "text": ":apache_maven: :container: Building with Maven and Jib Maven Plugin",
+            "text": ":docker: Image tag: ${{ steps.build-number.outputs.BUILD_NUMBER }} pushed to Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/pixshare-react",
           }
           ' "${{ secrets.SLACK_WEBHOOK_URL }}"
 
-      - name: Build, Package and Push Docker image with Maven
-        env:
-          ACTIVE_SPRING_PROFILES: test
-          TEST_DB_USER: ${{ vars.POSTGRES_TEST_USER }}
-          TEST_DB_PASSWORD: ${{ vars.POSTGRES_TEST_PASSWORD }}
-          TEST_DB_HOST: ${{ vars.TEST_DB_HOST }}
-          TEST_DB_PORT: ${{ vars.TEST_DB_PORT }}
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          JWT_TOKEN_ISSUER: ${{ secrets.JWT_TOKEN_ISSUER }}
-          JWT_TOKEN_EXPIRY_SECONDS: ${{ secrets.JWT_TOKEN_EXPIRY_SECONDS }}
-          CLOUDINARY_URL: ${{ vars.TEST_CLOUDINARY_URL }}
-          CLOUDINARY_UPLOAD_PRESET: ${{ vars.TEST_CLOUDINARY_UPLOAD_PRESET }}
-          CLOUDINARY_UPLOAD_FOLDER: ${{ vars.TEST_CLOUDINARY_UPLOAD_FOLDER }}
-        run:
-          mvn -B -ntp verify -Ddocker.image.tag=${{ steps.build-number.outputs.BUILD_NUMBER }}
-
-      - name: Send Slack notification about maven build end
-        run: >
-          curl -X POST -H 'Content-type: application/json' --data '
-          {
-            "text": ":apache_maven: Maven build completed. :docker: Image tag: ${{ steps.build-number.outputs.BUILD_NUMBER }} pushed to Docker Hub: https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/pixshare-api",
-          }
-          ' "${{ secrets.SLACK_WEBHOOK_URL }}"  
-
-      - name: Update api image tag in Dockerrun.aws.json with new build number
+      - name: Update react frontend image tag in Dockerrun.aws.json with new build number
         run: |
           echo "Dockerrun.aws.json before image tag update:"
           cat ../Dockerrun.aws.json
-          sed -i -E 's/(${{ secrets.DOCKERHUB_USERNAME }}\/pixshare-api:)([^"]*)/\1'"${{ steps.build-number.outputs.BUILD_NUMBER }}"'/' ../Dockerrun.aws.json
+          sed -i -E 's/(${{ secrets.DOCKERHUB_USERNAME }}\/pixshare-react:)([^"]*)/\1'"${{ steps.build-number.outputs.BUILD_NUMBER }}"'/' ../Dockerrun.aws.json
           echo "Dockerrun.aws.json after image tag update:"
           cat ../Dockerrun.aws.json
 
@@ -120,6 +89,7 @@ jobs:
           version_description: ${{ github.sha }}
           region: ${{ secrets.AWS_EB_REGION }}
           deployment_package: Dockerrun.aws.json
+          wait_for_environment_recovery: 60
 
       - name: Send Slack notification about repo commit start
         run: >
@@ -152,7 +122,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -a -m "Update Dockerrun.aws.json with new api image tag ${{ steps.build-number.outputs.BUILD_NUMBER }}"
+          git commit -a -m "Update Dockerrun.aws.json with new react frontend image tag ${{ steps.build-number.outputs.BUILD_NUMBER }}"
 
       - name: Push changes
         uses: ad-m/github-push-action@master
@@ -180,5 +150,5 @@ jobs:
           elif [ "${{ job.status }}" = "cancelled" ]; then
                 STATUS_MESSAGE=":gitlab-warning: Cancelled"
           fi
-          
+
           curl -X POST -H 'Content-type: application/json' --data "{ \"text\": \"Job Status: ${STATUS_MESSAGE}\" }" "${{ secrets.SLACK_WEBHOOK_URL }}"
