@@ -51,7 +51,7 @@ jobs:
           REPO=pixshare-react \
           TAG=${{ steps.build-number.outputs.BUILD_NUMBER }} \          
           ../.ci-cd/scripts/docker_build_publish.sh . \
-          --build-arg api_base_url=http://pixshare-api-env.eba-cvdwiy5c.eu-central-1.elasticbeanstalk.com:8080 \
+          --build-arg api_base_url=${{ secrets.AWS_EB_ENVIRONMENT_URL  }}:8080 \
           --build-arg api_version=v1
 
       - name: Send Slack notification about docker image pushed to docker hub
