@@ -5,7 +5,7 @@
       "name": "pixshare-react",
       "image": "projcodehub/pixshare-react:latest",
       "essential": false,
-      "memory": 192,
+      "memory": 100,
       "portMappings": [
         {
           "hostPort": 80,
