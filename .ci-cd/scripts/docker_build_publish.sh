@@ -2,8 +2,6 @@
 : "${REPO:?REPO not set or empty}"
 : "${TAG:?TAG not set or empty}"
 
-set -e
-
 docker buildx create --use
 
 docker buildx build \
