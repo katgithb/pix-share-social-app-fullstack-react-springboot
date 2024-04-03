@@ -46,6 +46,9 @@ jobs:
 
       - name: Docker Build and Push
         run: |
+          pwd
+          ls -a
+          ls ../ -a
           chmod +x ../.ci-cd/scripts/docker_build_publish.sh
           USERNAME=${{ secrets.DOCKERHUB_USERNAME }} \
           REPO=pixshare-react \
