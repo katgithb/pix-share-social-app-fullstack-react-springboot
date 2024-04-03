@@ -1,6 +1,16 @@
-: "${USERNAME:?USERNAME not set or empty}"
-: "${REPO:?REPO not set or empty}"
-: "${TAG:?TAG not set or empty}"
+#!/bin/bash
+
+# Validate input variables
+function validate_args() {
+  for arg in "$@"; do
+    if [ -z "${!arg}" ]; then
+      echo "ERROR: $arg not set or empty"
+      exit 1
+    fi
+  done
+}
+
+validate_args USERNAME REPO TAG
 
 docker buildx create --use
 
