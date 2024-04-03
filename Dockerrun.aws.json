@@ -15,7 +15,7 @@
     },
     {
       "name": "pixshare-api",
-      "image": "projcodehub/pixshare-api:20240326.086.134132",
+      "image": "projcodehub/pixshare-api:20240403.094.090636",
       "essential": true,
       "memory": 512,
       "portMappings": [
