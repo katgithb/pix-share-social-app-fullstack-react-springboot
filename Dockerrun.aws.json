@@ -3,7 +3,7 @@
   "containerDefinitions": [
     {
       "name": "pixshare-react",
-      "image": "projcodehub/pixshare-react:latest",
+      "image": "projcodehub/pixshare-react:20240404.095.055003",
       "essential": false,
       "memory": 100,
       "portMappings": [
