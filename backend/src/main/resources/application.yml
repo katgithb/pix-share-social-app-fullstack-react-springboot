@@ -26,6 +26,12 @@ cors:
   allowed-headers: "*"
   exposed-headers: "*"
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+
 jwt:
   secret-key: ${JWT_SECRET_KEY}
   token-issuer: ${JWT_TOKEN_ISSUER}
