@@ -10,9 +10,9 @@ import {
   useColorModeValue,
   VStack,
 } from "@chakra-ui/react";
-import Lottie from "lottie-react";
+import Lottie from "react-lottie-player/dist/LottiePlayerLight";
 import { useNavigate } from "react-router-dom";
-import Animation from "../assets/animations/404Animation.json";
+import NotFoundAnimation from "../assets/animations/404Animation.json";
 
 const PageNotFound = () => {
   const navigate = useNavigate();
@@ -102,7 +102,7 @@ const PageNotFound = () => {
             mt={12}
             mx="auto"
           >
-            <Lottie animationData={Animation} loop={true} />
+            <Lottie animationData={NotFoundAnimation} loop={true} play />
           </Box>
         </Flex>
       </Box>
