@@ -16,6 +16,14 @@
         {
           "name": "SPRING_DATASOURCE_URL",
           "value": "jdbc:postgresql://awseb-e-k2xbfm6m2f-stack-awsebrdsdatabase-j1u5fpuqutq8.clc8m84260m9.eu-central-1.rds.amazonaws.com:5432/ebdb"
+        },
+        {
+          "name": "SERVER_TOMCAT_MAX_CONNECTIONS",
+          "value": 150
+        },
+        {
+          "name": "SERVER_TOMCAT_THREADS_MAX",
+          "value": 50
         }
       ]
     }

@@ -43,6 +43,14 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
+      - name: Send Slack notification about commit message and sha
+        run: >
+          curl -X POST -H 'Content-type: application/json' --data '
+          {
+            "text": ":github-logo: pix-share-social-app-fullstack-react-springboot repository commit message: ${{ github.event.head_commit.message }} | sha: ${{ github.sha }}",
+          }
+          ' "${{ secrets.SLACK_WEBHOOK_URL }}"
+
       - name: Send Slack notification about deployment start
         run: >
           curl -X POST -H 'Content-type: application/json' --data '
