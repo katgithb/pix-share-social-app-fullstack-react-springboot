@@ -5,7 +5,7 @@
       "name": "pixshare-api",
       "image": "projcodehub/pixshare-api:20240408.099.132146",
       "essential": true,
-      "memory": 512,
+      "memory": 496,
       "portMappings": [
         {
           "hostPort": 80,
@@ -23,7 +23,7 @@
         },
         {
           "name": "SERVER_TOMCAT_THREADS_MAX",
-          "value": 50
+          "value": 30
         }
       ]
     }
