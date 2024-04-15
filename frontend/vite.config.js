@@ -1,10 +1,32 @@
 import terser from "@rollup/plugin-terser";
 import react from "@vitejs/plugin-react-swc";
+import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 import { defineConfig, splitVendorChunkPlugin } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), splitVendorChunkPlugin()],
+  plugins: [
+    react(),
+    splitVendorChunkPlugin(),
+    ViteImageOptimizer({
+      png: {
+        // https://sharp.pixelplumbing.com/api-output#png
+        quality: 80,
+      },
+      jpeg: {
+        // https://sharp.pixelplumbing.com/api-output#jpeg
+        quality: 80,
+      },
+      jpg: {
+        // https://sharp.pixelplumbing.com/api-output#jpeg
+        quality: 80,
+      },
+      tiff: {
+        // https://sharp.pixelplumbing.com/api-output#tiff
+        quality: 80,
+      },
+    }),
+  ],
   build: {
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
