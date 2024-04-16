@@ -1,8 +1,10 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
       "source": "/([^.]+)",
       "destination": "/",
+      "statusCode": 200,
       "has": [
         {
           "type": "header",
@@ -14,12 +16,30 @@
     {
       "source": "/.*",
       "destination": "/401.html",
-      "headers": { "www-authenticate": "Basic realm=\"vercel-basic-auth\"" },
+      "statusCode": 401,
       "missing": [
         {
           "type": "header",
           "key": "authorization",
           "value": "Basic @VERCEL_BASIC_AUTH_TOKEN"
+        }
+      ]
+    }
+  ],
+  "headers": [
+    {
+      "source": "/.*",
+      "missing": [
+        {
+          "type": "header",
+          "key": "authorization",
+          "value": "Basic @VERCEL_BASIC_AUTH_TOKEN"
+        }
+      ],
+      "headers": [
+        {
+          "key": "www-authenticate",
+          "value": "Basic realm=\"vercel-basic-auth\""
         }
       ]
     }
