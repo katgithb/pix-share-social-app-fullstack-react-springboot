@@ -3,7 +3,6 @@
     {
       "source": "/([^.]+)",
       "destination": "/",
-      "status": 200,
       "has": [
         {
           "type": "header",
@@ -14,7 +13,7 @@
     },
     {
       "source": "/.*",
-      "status": 401,
+      "destination": "/401.html",
       "headers": { "www-authenticate": "Basic realm=\"vercel-basic-auth\"" },
       "missing": [
         {
