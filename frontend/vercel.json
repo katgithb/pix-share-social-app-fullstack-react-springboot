@@ -9,7 +9,7 @@
         {
           "type": "header",
           "key": "authorization",
-          "value": "Basic @VERCEL_BASIC_AUTH_TOKEN"
+          "value": "Basic $VERCEL_BASIC_AUTH_TOKEN"
         }
       ]         
     },
@@ -21,7 +21,7 @@
         {
           "type": "header",
           "key": "authorization",
-          "value": "Basic @VERCEL_BASIC_AUTH_TOKEN"
+          "value": "Basic $VERCEL_BASIC_AUTH_TOKEN"
         }
       ]
     }
@@ -33,7 +33,7 @@
         {
           "type": "header",
           "key": "authorization",
-          "value": "Basic @VERCEL_BASIC_AUTH_TOKEN"
+          "value": "Basic $VERCEL_BASIC_AUTH_TOKEN"
         }
       ],
       "headers": [
