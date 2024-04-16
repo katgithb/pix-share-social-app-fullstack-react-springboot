@@ -14,7 +14,7 @@
       ]         
     },
     {
-      "source": "/.*",
+      "source": "/(.*)",
       "destination": "/401.html",
       "statusCode": 401,
       "missing": [
@@ -28,7 +28,7 @@
   ],
   "headers": [
     {
-      "source": "/.*",
+      "source": "/(.*)",
       "missing": [
         {
           "type": "header",
