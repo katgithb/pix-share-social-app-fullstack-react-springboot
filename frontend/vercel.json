@@ -9,7 +9,7 @@
         {
           "type": "header",
           "key": "authorization",
-          "value": "Basic $VERCEL_BASIC_AUTH_TOKEN"
+          "value": "Basic d2ViX3VzZXI6M1hjSXRJbmdqM3RtM2FuIw=="
         }
       ]         
     },
@@ -21,7 +21,7 @@
         {
           "type": "header",
           "key": "authorization",
-          "value": "Basic $VERCEL_BASIC_AUTH_TOKEN"
+          "value": "Basic d2ViX3VzZXI6M1hjSXRJbmdqM3RtM2FuIw=="
         }
       ]
     }
@@ -33,7 +33,7 @@
         {
           "type": "header",
           "key": "authorization",
-          "value": "Basic $VERCEL_BASIC_AUTH_TOKEN"
+          "value": "Basic d2ViX3VzZXI6M1hjSXRJbmdqM3RtM2FuIw=="
         }
       ],
       "headers": [
