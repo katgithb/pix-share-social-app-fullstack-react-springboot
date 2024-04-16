@@ -2,7 +2,27 @@
   "rewrites": [
     {
       "source": "/([^.]+)",
-      "destination": "/"          
+      "destination": "/",
+      "status": 200,
+      "has": [
+        {
+          "type": "header",
+          "key": "authorization",
+          "value": "Basic @VERCEL_BASIC_AUTH_TOKEN"
+        }
+      ]         
+    },
+    {
+      "source": "/.*",
+      "status": 401,
+      "headers": { "www-authenticate": "Basic realm=\"vercel-basic-auth\"" },
+      "missing": [
+        {
+          "type": "header",
+          "key": "authorization",
+          "value": "Basic @VERCEL_BASIC_AUTH_TOKEN"
+        }
+      ]
     }
   ]    
 } 
