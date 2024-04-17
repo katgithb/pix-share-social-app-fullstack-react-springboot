@@ -1,8 +1,47 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
       "source": "/([^.]+)",
-      "destination": "/"          
+      "destination": "/",
+      "statusCode": 200,
+      "has": [
+        {
+          "type": "header",
+          "key": "authorization",
+          "value": "Basic d2ViX3VzZXI6M1hjSXRJbmdqM3RtM2FuIw=="
+        }
+      ]         
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/401.html",
+      "statusCode": 401,
+      "missing": [
+        {
+          "type": "header",
+          "key": "authorization",
+          "value": "Basic d2ViX3VzZXI6M1hjSXRJbmdqM3RtM2FuIw=="
+        }
+      ]
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "missing": [
+        {
+          "type": "header",
+          "key": "authorization",
+          "value": "Basic d2ViX3VzZXI6M1hjSXRJbmdqM3RtM2FuIw=="
+        }
+      ],
+      "headers": [
+        {
+          "key": "www-authenticate",
+          "value": "Basic realm=\"vercel-basic-auth\""
+        }
+      ]
     }
   ]    
 } 
