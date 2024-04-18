@@ -122,11 +122,19 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public PostDTO findPostById(Long postId, Long userId) throws ResourceNotFoundException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         PostDTO post = postRepository.findById(postId)
                 .map(postDTOMapper)
                 .map(postDTO -> {
                     postDTO.setComments(
-                            commentService.findCommentsByPostId(postDTO.getId(), userId)
+                            commentService.findCommentsByPostId(postDTO.getId(), user.getId())
+                    );
+                    postDTO.setIsLikedByAuthUser(
+                            isPostLikedByUser(postDTO.getId(), user.getId())
+                    );
+                    postDTO.setIsSavedByAuthUser(
+                            isPostSavedByUser(postDTO.getId(), user.getId())
                     );
                     return postDTO;
                 })
@@ -146,9 +154,17 @@ public class PostServiceImpl implements PostService {
                 .getContent()
                 .stream()
                 .map(postDTOMapper)
-                .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId(), authUserId)
-                ))
+                .peek(postDTO -> {
+                    postDTO.setComments(
+                            commentService.findCommentsByPostId(postDTO.getId(), authUserId)
+                    );
+                    postDTO.setIsLikedByAuthUser(
+                            isPostLikedByUser(postDTO.getId(), authUserId)
+                    );
+                    postDTO.setIsSavedByAuthUser(
+                            isPostSavedByUser(postDTO.getId(), authUserId)
+                    );
+                })
                 .toList();
 
 
@@ -172,9 +188,17 @@ public class PostServiceImpl implements PostService {
                 .getContent()
                 .stream()
                 .map(postDTOMapper)
-                .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId(), authUserId)
-                ))
+                .peek(postDTO -> {
+                    postDTO.setComments(
+                            commentService.findCommentsByPostId(postDTO.getId(), authUserId)
+                    );
+                    postDTO.setIsLikedByAuthUser(
+                            isPostLikedByUser(postDTO.getId(), authUserId)
+                    );
+                    postDTO.setIsSavedByAuthUser(
+                            isPostSavedByUser(postDTO.getId(), authUserId)
+                    );
+                })
                 .toList();
 
         return new PagedResponse<>(
@@ -197,9 +221,17 @@ public class PostServiceImpl implements PostService {
                 .getContent()
                 .stream()
                 .map(postDTOMapper)
-                .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId(), authUserId)
-                ))
+                .peek(postDTO -> {
+                    postDTO.setComments(
+                            commentService.findCommentsByPostId(postDTO.getId(), authUserId)
+                    );
+                    postDTO.setIsLikedByAuthUser(
+                            isPostLikedByUser(postDTO.getId(), authUserId)
+                    );
+                    postDTO.setIsSavedByAuthUser(
+                            isPostSavedByUser(postDTO.getId(), authUserId)
+                    );
+                })
                 .toList();
 
         return new PagedResponse<>(
@@ -222,9 +254,17 @@ public class PostServiceImpl implements PostService {
                 .getContent()
                 .stream()
                 .map(postDTOMapper)
-                .peek(postDTO -> postDTO.setComments(
-                        commentService.findCommentsByPostId(postDTO.getId(), userId)
-                ))
+                .peek(postDTO -> {
+                    postDTO.setComments(
+                            commentService.findCommentsByPostId(postDTO.getId(), userId)
+                    );
+                    postDTO.setIsLikedByAuthUser(
+                            isPostLikedByUser(postDTO.getId(), userId)
+                    );
+                    postDTO.setIsSavedByAuthUser(
+                            isPostSavedByUser(postDTO.getId(), userId)
+                    );
+                })
                 .toList();
 
 
@@ -273,6 +313,7 @@ public class PostServiceImpl implements PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         Boolean isPostLiked = postRepository.isPostLikedByUser(post.getId(), user.getId());
+        Boolean isPostSaved = postRepository.isPostSavedByUser(post.getId(), user.getId());
 
         if (!isPostLiked) {
             post.getLikedByUsers().add(user);
@@ -281,6 +322,8 @@ public class PostServiceImpl implements PostService {
 
         PostDTO postDTO = postDTOMapper.apply(post);
         postDTO.setComments(commentService.findCommentsByPostId(post.getId(), userId));
+        postDTO.setIsLikedByAuthUser(true);
+        postDTO.setIsSavedByAuthUser(isPostSaved);
 
         return postDTO;
     }
@@ -292,6 +335,7 @@ public class PostServiceImpl implements PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         Boolean isPostLiked = postRepository.isPostLikedByUser(post.getId(), user.getId());
+        Boolean isPostSaved = postRepository.isPostSavedByUser(post.getId(), user.getId());
 
         if (isPostLiked) {
             post.getLikedByUsers().remove(user);
@@ -300,6 +344,8 @@ public class PostServiceImpl implements PostService {
 
         PostDTO postDTO = postDTOMapper.apply(post);
         postDTO.setComments(commentService.findCommentsByPostId(post.getId(), userId));
+        postDTO.setIsLikedByAuthUser(false);
+        postDTO.setIsSavedByAuthUser(isPostSaved);
 
         return postDTO;
     }

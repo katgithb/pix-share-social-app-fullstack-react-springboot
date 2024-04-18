@@ -21,4 +21,6 @@ public class PostDTO {
     private UserView user;
     private List<CommentDTO> comments;
     private Set<UserView> likedByUsers;
+    private Boolean isLikedByAuthUser;
+    private Boolean isSavedByAuthUser;
 }

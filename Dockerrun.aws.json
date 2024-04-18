@@ -5,7 +5,7 @@
       "name": "pixshare-api",
       "image": "projcodehub/pixshare-api:20240411.102.122528",
       "essential": true,
-      "memory": 496,
+      "memory": 448,
       "portMappings": [
         {
           "hostPort": 80,
