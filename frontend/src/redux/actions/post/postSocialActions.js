@@ -1,25 +1,27 @@
 import {
-  isPostLikedByCurrentUserRequest,
-  isPostSavedByCurrentUserRequest,
   likePostRequest,
   savePostRequest,
   unlikePostRequest,
   unsavePostRequest,
 } from "../../../services/api/postService";
 import {
-  isPostLikedByUser,
-  isPostLikedByUserFailure,
-  isPostLikedByUserPending,
-  isPostSavedByUser,
-  isPostSavedByUserFailure,
-  isPostSavedByUserPending,
   likePost,
+  likePostFailure,
+  likePostPending,
   savePost,
+  savePostFailure,
+  savePostPending,
   unlikePost,
+  unlikePostFailure,
+  unlikePostPending,
   unsavePost,
+  unsavePostFailure,
+  unsavePostPending,
 } from "../../reducers/post/postSocialSlice";
 
 export const likePostAction = (data) => async (dispatch) => {
+  dispatch(likePostPending(data.postId));
+
   likePostRequest(data)
     .then((response) => {
       const likedPost = response.data;
@@ -29,10 +31,13 @@ export const likePostAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(likePostFailure(data.postId));
     });
 };
 
 export const unlikePostAction = (data) => async (dispatch) => {
+  dispatch(unlikePostPending(data.postId));
+
   unlikePostRequest(data)
     .then((response) => {
       const unlikedPost = response.data;
@@ -42,26 +47,13 @@ export const unlikePostAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
-    });
-};
-
-export const isPostLikedByUserAction = (data) => async (dispatch) => {
-  dispatch(isPostLikedByUserPending(data.postId));
-
-  isPostLikedByCurrentUserRequest(data)
-    .then((response) => {
-      const isLiked = response.data;
-      console.log("Post Liked: ", isLiked);
-
-      dispatch(isPostLikedByUser({ postId: data.postId, isLiked }));
-    })
-    .catch((error) => {
-      console.log(error);
-      dispatch(isPostLikedByUserFailure(data.postId));
+      dispatch(unlikePostFailure(data.postId));
     });
 };
 
 export const savePostAction = (data) => async (dispatch) => {
+  dispatch(savePostPending(data.postId));
+
   savePostRequest(data)
     .then(() => {
       dispatch(savePost(data.postId));
@@ -70,10 +62,13 @@ export const savePostAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
+      dispatch(savePostFailure(data.postId));
     });
 };
 
 export const unsavePostAction = (data) => async (dispatch) => {
+  dispatch(unsavePostPending(data.postId));
+
   unsavePostRequest(data)
     .then(() => {
       dispatch(unsavePost(data.postId));
@@ -82,21 +77,6 @@ export const unsavePostAction = (data) => async (dispatch) => {
     })
     .catch((error) => {
       console.log(error);
-    });
-};
-
-export const isPostSavedByUserAction = (data) => async (dispatch) => {
-  dispatch(isPostSavedByUserPending(data.postId));
-
-  isPostSavedByCurrentUserRequest(data)
-    .then((response) => {
-      const isSaved = response.data;
-      console.log("Post Saved: ", isSaved);
-
-      dispatch(isPostSavedByUser({ postId: data.postId, isSaved }));
-    })
-    .catch((error) => {
-      console.log(error);
-      dispatch(isPostSavedByUserFailure(data.postId));
+      dispatch(unsavePostFailure(data.postId));
     });
 };

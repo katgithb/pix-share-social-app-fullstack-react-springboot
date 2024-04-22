@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import PagePreloader from "../components/shared/PagePreloader";
@@ -15,6 +15,15 @@ const ProtectedRoute = () => {
   const selectUserProfile = useSelector((store) => store.user.userProfile);
   const userProfile = useMemo(() => selectUserProfile, [selectUserProfile]);
 
+  const fetchCurrUser = useCallback(
+    (isAuthenticated) => {
+      if (token && isAuthenticated) {
+        dispatch(fetchUserProfileAction({ token }));
+      }
+    },
+    [dispatch, token]
+  );
+
   useEffect(() => {
     const handleLocationChange = () => {
       dispatch(checkAuthState());
@@ -23,14 +32,15 @@ const ProtectedRoute = () => {
 
     handleLocationChange(); // Run on initial render
 
-    return () => {}; // Clean up the listener when the component unmounts
+    console.log("Location: ", location);
+
+    // Clean up the listener when the component unmounts
+    return () => {};
   }, [dispatch, location]);
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      dispatch(fetchUserProfileAction({ token }));
-    }
-  }, [dispatch, isAuthenticated, token]);
+    fetchCurrUser(isAuthenticated);
+  }, [dispatch, fetchCurrUser, isAuthenticated, token]);
 
   if (!isAuthChecked || userProfile.isLoading) {
     return <PagePreloader />; // Render preloader until authentication check is complete

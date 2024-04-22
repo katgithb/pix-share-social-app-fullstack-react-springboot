@@ -9,9 +9,15 @@ import {
   useColorModeValue,
   useDisclosure,
 } from "@chakra-ui/react";
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { BsThreeDots } from "react-icons/bs";
+import { useDispatch } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
+import { findPostByIdAction } from "../../../../../redux/actions/post/postLookupActions";
+import {
+  clearLikedComment,
+  clearUnlikedComment,
+} from "../../../../../redux/reducers/comment/commentSocialSlice";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
 import CustomizableModal from "../../../../shared/CustomizableModal";
 import PostActionsMenu from "../PostActionsMenu";
@@ -26,9 +32,54 @@ const PostViewModal = ({
   onClose,
 }) => {
   const [isImageExpanded, setIsImageExpanded] = useState(false);
+  const [isSavedStatusUpdated, setIsSavedStatusUpdated] = useState(false);
+  const likeStatusUpdatedCommentsSet = useRef(new Set());
+
+  const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+
+  const changeCommentLikeUpdatesSet = useCallback((commentId) => {
+    if (!likeStatusUpdatedCommentsSet.current.has(commentId)) {
+      likeStatusUpdatedCommentsSet.current.add(commentId);
+    }
+  }, []);
+
+  const clearCommentLikeUpdates = useCallback(
+    (commentLikeUpdatesSet = new Set()) => {
+      for (let commentId of commentLikeUpdatesSet) {
+        if (commentId) {
+          dispatch(clearLikedComment(commentId));
+          dispatch(clearUnlikedComment(commentId));
+        }
+      }
+    },
+    [dispatch]
+  );
+
+  const refetchPost = useCallback(
+    (postId) => {
+      if (token && postId) {
+        const data = {
+          token,
+          postId,
+        };
+
+        dispatch(findPostByIdAction(data));
+      }
+    },
+    [dispatch, token]
+  );
 
   const handleModalClose = () => {
+    const commentLikeUpdatesSet = likeStatusUpdatedCommentsSet.current;
     setIsImageExpanded(false);
+
+    if (isSavedStatusUpdated || commentLikeUpdatesSet.size > 0) {
+      refetchPost(post?.id);
+      clearCommentLikeUpdates(commentLikeUpdatesSet);
+    }
+
+    likeStatusUpdatedCommentsSet.current.clear();
     onClose();
   };
 
@@ -39,7 +90,11 @@ const PostViewModal = ({
       size={isImageExpanded ? "full" : "5xl"}
       header={
         isImageExpanded ? null : (
-          <HeaderContent currUser={currUser} post={post} />
+          <HeaderContent
+            currUser={currUser}
+            post={post}
+            handleModalClose={handleModalClose}
+          />
         )
       }
       showModalCloseButton={false}
@@ -59,7 +114,9 @@ const PostViewModal = ({
             currUser={currUser}
             post={post}
             updateLoadedPostEntry={updateLoadedPostEntry}
+            changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
             setIsImageExpanded={setIsImageExpanded}
+            setIsSavedStatusUpdated={setIsSavedStatusUpdated}
             onClose={handleModalClose}
           />
         </ScaleFade>
@@ -68,7 +125,7 @@ const PostViewModal = ({
   );
 };
 
-const HeaderContent = ({ currUser, post }) => {
+const HeaderContent = ({ currUser, post, handleModalClose }) => {
   const {
     isOpen: isOpenPostActionsMenu,
     onOpen: onOpenPostActionsMenu,
@@ -119,6 +176,8 @@ const HeaderContent = ({ currUser, post }) => {
           <PostActionsMenu
             currUser={currUser}
             post={post}
+            isModalActionsMenu
+            handleModalClose={handleModalClose}
             onClose={onClosePostActionsMenu}
             menuIcon={<BsThreeDots />}
           />

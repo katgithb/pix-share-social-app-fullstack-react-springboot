@@ -6,6 +6,7 @@ import {
   useBreakpointValue,
   useDisclosure,
 } from "@chakra-ui/react";
+import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { BiExpandAlt } from "react-icons/bi";
 import { FaComment, FaHeart } from "react-icons/fa6";
@@ -37,6 +38,10 @@ const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
 
   const [showOverlay, setShowOverlay] = useState(false);
   const isActivePost = postInteraction.activePostId === post?.id || showOverlay;
+  const [isSavedByUser, setIsSavedByUser] = useState(
+    post && !_.isEmpty(post) ? post?.isSavedByAuthUser : false
+  );
+
   const likedByUsersLength = post?.likedByUsers?.length || 0;
   const likedByUsersCount = getHumanReadableNumberFormat(likedByUsersLength);
   const commentsLength = post?.comments?.length || 0;
@@ -61,7 +66,12 @@ const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
   };
 
   useEffect(() => {
-    if (token && post?.id && commentManagement.isCommentCreated) {
+    if (
+      token &&
+      post?.id &&
+      commentManagement.isCommentCreated &&
+      commentManagement.updatedPostId === post?.id
+    ) {
       const data = {
         token,
         postId: post?.id,
@@ -70,10 +80,21 @@ const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
       dispatch(clearCommentManagement());
       dispatch(findPostByIdAction(data));
     }
-  }, [commentManagement.isCommentCreated, dispatch, post?.id, token]);
+  }, [
+    commentManagement.isCommentCreated,
+    commentManagement.updatedPostId,
+    dispatch,
+    post?.id,
+    token,
+  ]);
 
   useEffect(() => {
-    if (token && post?.id && commentManagement.isCommentDeleted) {
+    if (
+      token &&
+      post?.id &&
+      commentManagement.isCommentDeleted &&
+      commentManagement.updatedPostId === post?.id
+    ) {
       const data = {
         token,
         postId: post?.id,
@@ -82,16 +103,22 @@ const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
       dispatch(clearCommentManagement());
       dispatch(findPostByIdAction(data));
     }
-  }, [commentManagement.isCommentDeleted, dispatch, post?.id, token]);
+  }, [
+    commentManagement.isCommentDeleted,
+    commentManagement.updatedPostId,
+    dispatch,
+    post?.id,
+    token,
+  ]);
 
   useEffect(() => {
     const postById = findPostById;
 
-    if (postById) {
+    if (postById && postById?.id === post?.id) {
       dispatch(clearPostById());
       updateLoadedPostEntry(postById?.id, postById);
     }
-  }, [dispatch, findPostById, updateLoadedPostEntry]);
+  }, [dispatch, findPostById, post?.id, updateLoadedPostEntry]);
 
   return (
     <Flex
@@ -106,7 +133,7 @@ const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
     >
       <PostViewModal
         currUser={currUser}
-        post={post}
+        post={{ ...post, isSavedByUser }}
         updateLoadedPostEntry={updateLoadedPostEntry}
         isOpen={isOpenPostViewModal}
         onClose={onClosePostViewModal}

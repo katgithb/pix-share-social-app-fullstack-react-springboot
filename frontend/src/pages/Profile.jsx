@@ -6,17 +6,13 @@ import {
   useBreakpointValue,
 } from "@chakra-ui/react";
 import _ from "lodash";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import ProfileHeader from "../components/profile/ProfileHeader/ProfileHeader";
 import ProfileSectionTabs from "../components/profile/ProfileSectionTabs/ProfileSectionTabs";
 import useCurrUserProfileCheck from "../hooks/useCurrUserProfileCheck";
-import { findUserByUserNameAction } from "../redux/actions/user/userLookupActions";
-import {
-  clearFollowedUser,
-  clearUnfollowedUser,
-} from "../redux/reducers/user/userSocialSlice";
+import { clearFindUserByUserName } from "../redux/reducers/user/userLookupSlice";
 
 const Profile = () => {
   const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
@@ -26,7 +22,6 @@ const Profile = () => {
   const dispatch = useDispatch();
   const token = localStorage.getItem("token");
   const [postsPage, setPostsPage] = useState({});
-  const prevCurrUserRef = useRef(null);
 
   const userProfile = useSelector((store) => store.user.userProfile);
   const { findByUsername } = useSelector((store) => store.user.userLookup);
@@ -47,6 +42,11 @@ const Profile = () => {
   const user = isGivenUserCurrUser ? userProfile.currUser : findByUsername;
 
   useEffect(() => {
+    // Cleanup function to dispatch clearFindUserByUserName action on unmount
+    return () => dispatch(clearFindUserByUserName());
+  }, [dispatch]);
+
+  useEffect(() => {
     const postsPage = postsByUserId;
 
     if (postsPage && !_.isEmpty(postsPage)) {
@@ -54,33 +54,6 @@ const Profile = () => {
       setPostsPage(postsPage);
     }
   }, [postsByUserId]);
-
-  useEffect(() => {
-    const currUser = userProfile.currUser;
-
-    if (
-      !isGivenUserCurrUser &&
-      currUser &&
-      token &&
-      username &&
-      prevCurrUserRef.current !== null &&
-      prevCurrUserRef.current !== currUser
-    ) {
-      const data = { token, username };
-      dispatch(findUserByUserNameAction(data));
-
-      dispatch(clearFollowedUser(user?.id));
-      dispatch(clearUnfollowedUser(user?.id));
-    }
-    prevCurrUserRef.current = currUser;
-  }, [
-    dispatch,
-    isGivenUserCurrUser,
-    token,
-    user?.id,
-    userProfile.currUser,
-    username,
-  ]);
 
   return (
     <>
