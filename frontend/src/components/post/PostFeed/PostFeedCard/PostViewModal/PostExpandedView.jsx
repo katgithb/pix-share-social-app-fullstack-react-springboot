@@ -18,13 +18,7 @@ import {
 } from "@chakra-ui/react";
 import { Form, Formik } from "formik";
 import _ from "lodash";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AiOutlineExpand, AiOutlineSend } from "react-icons/ai";
 import { BsCardText } from "react-icons/bs";
 import {
@@ -42,22 +36,13 @@ import { Virtuoso } from "react-virtuoso";
 import * as Yup from "yup";
 import useTruncateText from "../../../../../hooks/useTruncateText";
 import { createCommentAction } from "../../../../../redux/actions/comment/commentManagementActions";
-import { findPostByIdAction } from "../../../../../redux/actions/post/postLookupActions";
 import {
-  isPostLikedByUserAction,
-  isPostSavedByUserAction,
   likePostAction,
   savePostAction,
   unlikePostAction,
   unsavePostAction,
 } from "../../../../../redux/actions/post/postSocialActions";
 import {
-  clearLikedComment,
-  clearUnlikedComment,
-} from "../../../../../redux/reducers/comment/commentSocialSlice";
-import {
-  clearIsPostLikedByUser,
-  clearIsPostSavedByUser,
   clearLikedPost,
   clearSavedPost,
   clearUnlikedPost,
@@ -74,7 +59,9 @@ const PostExpandedView = ({
   currUser,
   post,
   updateLoadedPostEntry,
+  changeCommentLikeUpdatesSet,
   setIsImageExpanded,
+  setIsSavedStatusUpdated,
   onClose,
 }) => {
   const CAPTION_TRUNCATE_CHARS_LIMIT = 100;
@@ -104,13 +91,12 @@ const PostExpandedView = ({
     CAPTION_TRUNCATE_CHARS_LIMIT
   );
 
-  const [isLikedByUser, setIsLikedByUser] = useState(false);
-  const [isLikedLoading, setIsLikedLoading] = useState(true);
-  const [isSavedByUser, setIsSavedByUser] = useState(false);
-  const [isSavedLoading, setIsSavedLoading] = useState(true);
-  const isLikedBtnLoaded = useRef(false);
-  const isSavedBtnLoaded = useRef(false);
-  const likeStatusUpdatedCommentsSet = useRef(new Set());
+  const [isLikedByUser, setIsLikedByUser] = useState(
+    post && !_.isEmpty(post) ? post?.isLikedByAuthUser : false
+  );
+  const [isSavedByUser, setIsSavedByUser] = useState(
+    post && !_.isEmpty(post) ? post?.isSavedByUser : false
+  );
 
   const likedByUsersLength = post?.likedByUsers?.length || 0;
   const likesCount = getHumanReadableNumberFormat(likedByUsersLength);
@@ -125,34 +111,7 @@ const PostExpandedView = ({
     setIsImageExpanded(true);
   };
 
-  const clearCommentLikeUpdatesAndRefetchPost = (
-    postId,
-    commentLikeUpdatesSet = new Set()
-  ) => {
-    if (token && postId && commentLikeUpdatesSet.size > 0) {
-      const data = {
-        token,
-        postId,
-      };
-
-      dispatch(findPostByIdAction(data));
-    }
-
-    for (let commentId of commentLikeUpdatesSet) {
-      if (commentId) {
-        dispatch(clearLikedComment(commentId));
-        dispatch(clearUnlikedComment(commentId));
-      }
-    }
-  };
-
   const handleModalClose = () => {
-    clearCommentLikeUpdatesAndRefetchPost(
-      post?.id,
-      likeStatusUpdatedCommentsSet.current
-    );
-
-    likeStatusUpdatedCommentsSet.current.clear();
     onClose();
   };
 
@@ -171,43 +130,7 @@ const PostExpandedView = ({
     setSubmitting(false);
   };
 
-  const changeCommentLikeUpdatesSet = useCallback((commentId) => {
-    if (!likeStatusUpdatedCommentsSet.current.has(commentId)) {
-      likeStatusUpdatedCommentsSet.current.add(commentId);
-    }
-  }, []);
-
-  const fetchPostLiked = useCallback(
-    (postId) => {
-      if (token && postId) {
-        const data = {
-          token,
-          postId,
-        };
-
-        dispatch(isPostLikedByUserAction(data));
-      }
-    },
-    [dispatch, token]
-  );
-
-  const fetchPostSaved = useCallback(
-    (postId) => {
-      if (token && postId) {
-        const data = {
-          token,
-          postId,
-        };
-
-        dispatch(isPostSavedByUserAction(data));
-      }
-    },
-    [dispatch, token]
-  );
-
   const handlePostLike = () => {
-    setIsLikedLoading(true);
-
     if (token && post?.id) {
       const data = {
         token,
@@ -219,8 +142,6 @@ const PostExpandedView = ({
   };
 
   const handlePostUnlike = () => {
-    setIsLikedLoading(true);
-
     if (token && post?.id) {
       const data = {
         token,
@@ -232,8 +153,6 @@ const PostExpandedView = ({
   };
 
   const handlePostSave = () => {
-    setIsSavedLoading(true);
-
     if (token && post?.id) {
       const data = {
         token,
@@ -245,8 +164,6 @@ const PostExpandedView = ({
   };
 
   const handlePostUnsave = () => {
-    setIsSavedLoading(true);
-
     if (token && post?.id) {
       const data = {
         token,
@@ -261,9 +178,6 @@ const PostExpandedView = ({
     (postId, updatedPost, isLiked) => {
       const updatedPostId = updatedPost?.id;
       if (updatedPostId === postId) {
-        setIsLikedByUser(isLiked);
-        setIsLikedLoading(false);
-
         isLiked
           ? dispatch(clearLikedPost(updatedPostId))
           : dispatch(clearUnlikedPost(updatedPostId));
@@ -276,14 +190,14 @@ const PostExpandedView = ({
 
   const updatePostSaved = useCallback(
     (postId, isSaved) => {
-      setIsSavedByUser(isSaved);
-      setIsSavedLoading(false);
+      setIsSavedStatusUpdated(isSaved === post?.isSavedByUser ? false : true);
 
       isSaved
         ? dispatch(clearSavedPost(postId))
         : dispatch(clearUnsavedPost(postId));
+      setIsSavedByUser(isSaved);
     },
-    [dispatch]
+    [dispatch, post?.isSavedByUser, setIsSavedStatusUpdated]
   );
 
   useEffect(() => {
@@ -317,54 +231,6 @@ const PostExpandedView = ({
   }, [post?.id, postSocial.unsavedPosts, updatePostSaved]);
 
   useEffect(() => {
-    const postId = post?.id;
-    if (postId && postId in postSocial.isLikedByUser) {
-      const isLiked = postSocial.isLikedByUser[postId];
-
-      setIsLikedByUser(isLiked);
-      setIsLikedLoading(false);
-      dispatch(clearIsPostLikedByUser(postId));
-    }
-  }, [dispatch, post?.id, postSocial.isLikedByUser]);
-
-  useEffect(() => {
-    const postId = post?.id;
-    if (postId && postId in postSocial.isSavedByUser) {
-      const isSaved = postSocial.isSavedByUser[postId];
-
-      setIsSavedByUser(isSaved);
-      setIsSavedLoading(false);
-      dispatch(clearIsPostSavedByUser(postId));
-    }
-  }, [dispatch, post?.id, postSocial.isSavedByUser]);
-
-  useEffect(() => {
-    if (_.isBoolean(post?.isSavedByUser)) {
-      setIsSavedByUser(post?.isSavedByUser);
-      setIsSavedLoading(false);
-      return;
-    }
-    if (isSavedBtnLoaded.current) {
-      fetchPostSaved(post?.id);
-    } else {
-      isSavedBtnLoaded.current = true;
-    }
-  }, [fetchPostSaved, post?.id, post?.isSavedByUser]);
-
-  useEffect(() => {
-    if (_.isBoolean(post?.isLikedByUser)) {
-      setIsLikedByUser(post?.isLikedByUser);
-      setIsLikedLoading(false);
-      return;
-    }
-    if (isLikedBtnLoaded.current) {
-      fetchPostLiked(post?.id);
-    } else {
-      isLikedBtnLoaded.current = true;
-    }
-  }, [fetchPostLiked, post?.id, post?.isLikedByUser]);
-
-  useEffect(() => {
     const interval = setInterval(() => {
       setRelativePostTime(getRelativePostTime(post?.createdAt));
     }, 60000); // Update every minute
@@ -380,6 +246,7 @@ const PostExpandedView = ({
         <PostCommentCard
           key={comment?.id}
           currUser={currUser}
+          postId={post?.id}
           comment={comment}
           changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
           showRelativeTime={true}
@@ -520,7 +387,7 @@ const PostExpandedView = ({
               isLoading={
                 post?.id in postSocial.isSavedLoading
                   ? postSocial.isSavedLoading[post?.id]
-                  : isSavedLoading
+                  : false
               }
               bg={useColorModeValue("gray.100", "gray.500")}
               rounded="full"
@@ -688,7 +555,7 @@ const PostExpandedView = ({
                     isLoading={
                       post?.id in postSocial.isLikedLoading
                         ? postSocial.isLikedLoading[post?.id]
-                        : isLikedLoading
+                        : false
                     }
                     rounded="full"
                     colorScheme={isLikedByUser ? "red" : "gray"}

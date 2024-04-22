@@ -53,6 +53,9 @@ const userLookupSlice = createSlice({
       state.popularUsers = action.payload;
       state.isLoading = false;
     },
+    clearFindUserByUserName: (state) => {
+      state.findByUsername = null;
+    },
     clearSearchUsers: (state) => {
       state.searchUsers = {};
     },
@@ -77,6 +80,7 @@ export const {
   findSavedPostsByUserId,
   searchUsers,
   fetchPopularUsers,
+  clearFindUserByUserName,
   clearSearchUsers,
   searchUsersFailure,
   userLookupFailure,

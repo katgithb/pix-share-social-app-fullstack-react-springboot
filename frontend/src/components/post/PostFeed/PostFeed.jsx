@@ -18,20 +18,7 @@ import EndOfPostFeed from "./EndOfPostFeed";
 import PostFeedCard from "./PostFeedCard/PostFeedCard";
 import PostFeedCardSkeleton from "./PostFeedCard/PostFeedCardSkeleton";
 
-const PostFeed = ({
-  currUser,
-  posts,
-  handlePageChange,
-  isHomePageFeed,
-  isPostLikedCached,
-  isPostSavedCached,
-  checkPostLikedByCurrUser,
-  checkPostSavedByCurrUser,
-  addPostLikedToCacheMap,
-  addPostSavedToCacheMap,
-  removeCachedPostLikedPage,
-  removeCachedPostSavedPage,
-}) => {
+const PostFeed = ({ currUser, posts, handlePageChange, isHomePageFeed }) => {
   const [latestLoadedPage, setLatestLoadedPage] = useState(POSTS_DEFAULT_PAGE);
   const [loadedPostsPage, setLoadedPostsPage] = useState(posts);
   const [pageIndexMap, setPageIndexMap] = useState(Map());
@@ -181,14 +168,6 @@ const PostFeed = ({
     [handlePageChange]
   );
 
-  const clearCachedPage = useCallback(
-    (pageNumber) => {
-      removeCachedPostLikedPage(pageNumber);
-      removeCachedPostSavedPage(pageNumber);
-    },
-    [removeCachedPostLikedPage, removeCachedPostSavedPage]
-  );
-
   useEffect(() => {
     if (posts) {
       const loadedPostsPage = posts;
@@ -206,10 +185,8 @@ const PostFeed = ({
     if (isPostCreated) {
       // Refetch first page
       refetchPostPage(POSTS_DEFAULT_PAGE);
-
-      clearCachedPage(POSTS_DEFAULT_PAGE - 1);
     }
-  }, [clearCachedPage, isPostCreated, refetchPostPage]);
+  }, [isPostCreated, refetchPostPage]);
 
   useEffect(() => {
     if (isPostDeleted && deletedPostId) {
@@ -226,11 +203,8 @@ const PostFeed = ({
 
       // Only refetch deleted page
       refetchPostPage(deletedPostPageNum + 1);
-
-      clearCachedPage(deletedPostPageNum);
     }
   }, [
-    clearCachedPage,
     clearDeletedPostData,
     clearPagesOnPostDelete,
     deletedPostId,
@@ -251,25 +225,18 @@ const PostFeed = ({
     postIdToPageMap
   );
 
-  const PostFeedCardItem = ({ post, postIdPage }) => {
+  const PostFeedCardItem = ({ post }) => {
     const MemoizedPostFeedCard = useMemo(
       () => (
         <Flex key={post?.id} justifyContent="center">
           <PostFeedCard
             currUser={currUser}
             post={post}
-            postIdPage={postIdPage}
-            isPostLikedCached={isPostLikedCached}
-            isPostSavedCached={isPostSavedCached}
-            checkPostLikedByCurrUser={checkPostLikedByCurrUser}
-            checkPostSavedByCurrUser={checkPostSavedByCurrUser}
-            addPostLikedToCacheMap={addPostLikedToCacheMap}
-            addPostSavedToCacheMap={addPostSavedToCacheMap}
             updateLoadedPostEntry={updateLoadedPostEntry}
           />
         </Flex>
       ),
-      [post, postIdPage]
+      [post]
     );
 
     return MemoizedPostFeedCard;
@@ -277,9 +244,8 @@ const PostFeed = ({
 
   const rowContent = (index) => {
     const post = loadedPostsMap.valueSeq().get(index);
-    const postIdPage = postIdToPageMap.get(post?.id);
 
-    return <PostFeedCardItem post={post} postIdPage={postIdPage} />;
+    return <PostFeedCardItem post={post} />;
   };
 
   const ScrollSeekPlaceholder = ({ height, width, index }) => (

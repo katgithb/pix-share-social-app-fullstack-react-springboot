@@ -17,6 +17,10 @@ import {
   followUserAction,
   unfollowUserAction,
 } from "../../../redux/actions/user/userSocialActions";
+import {
+  clearFollowedUser,
+  clearUnfollowedUser,
+} from "../../../redux/reducers/user/userSocialSlice";
 import { getHumanReadableNumberFormat } from "../../../utils/commonUtils";
 
 const UserProfileStats = ({
@@ -70,15 +74,14 @@ const UserProfileStats = ({
   };
 
   const updateUserFollowed = useCallback(
-    (isFollowed) => {
+    (userId, isFollowed) => {
+      isFollowed
+        ? dispatch(clearFollowedUser(userId))
+        : dispatch(clearUnfollowedUser(userId));
       setIsFollowedByUser(isFollowed);
 
       if (token) {
-        const data = {
-          token,
-        };
-
-        dispatch(fetchUserProfileAction(data));
+        dispatch(fetchUserProfileAction({ token }));
       }
     },
     [dispatch, token]
@@ -87,14 +90,14 @@ const UserProfileStats = ({
   useEffect(() => {
     const userId = userDetails?.id;
     if (userId && userId in userSocial.followedUsers) {
-      updateUserFollowed(true);
+      updateUserFollowed(userId, true);
     }
   }, [updateUserFollowed, userDetails?.id, userSocial.followedUsers]);
 
   useEffect(() => {
     const userId = userDetails?.id;
     if (userId && userId in userSocial.unfollowedUsers) {
-      updateUserFollowed(false);
+      updateUserFollowed(userId, false);
     }
   }, [updateUserFollowed, userDetails?.id, userSocial.unfollowedUsers]);
 

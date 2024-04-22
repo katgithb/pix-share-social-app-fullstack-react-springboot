@@ -16,6 +16,7 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import { Form, Formik } from "formik";
+import _ from "lodash";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineSend } from "react-icons/ai";
 import { BiExpandAlt } from "react-icons/bi";
@@ -47,8 +48,6 @@ import {
 } from "../../../../redux/reducers/comment/commentSocialSlice";
 import { clearPostById } from "../../../../redux/reducers/post/postLookupSlice";
 import {
-  clearIsPostLikedByUser,
-  clearIsPostSavedByUser,
   clearLikedPost,
   clearSavedPost,
   clearUnlikedPost,
@@ -64,21 +63,9 @@ import ImageWithLoader from "../../../shared/ImageWithLoader";
 import PostActionsMenu from "./PostActionsMenu";
 import PostViewModal from "./PostViewModal/PostViewModal";
 
-const PostFeedCard = ({
-  currUser,
-  post,
-  postIdPage,
-  isPostLikedCached,
-  isPostSavedCached,
-  checkPostLikedByCurrUser,
-  checkPostSavedByCurrUser,
-  addPostLikedToCacheMap,
-  addPostSavedToCacheMap,
-  updateLoadedPostEntry,
-}) => {
+const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
   const MAX_COMMENTS = 2;
   const MAX_LIKED_USER_AVATARS = 3;
-  const REQUEST_DELAY_IN_MS = 400;
   const CAPTION_TRUNCATE_CHARS_LIMIT = 140;
   const COMMENT_MAX_CHARS = 250;
   const initialValues = {
@@ -117,12 +104,13 @@ const PostFeedCard = ({
     CAPTION_TRUNCATE_CHARS_LIMIT
   );
 
-  const [isLikedByUser, setIsLikedByUser] = useState(false);
-  const [isLikedLoading, setIsLikedLoading] = useState(true);
-  const [isSavedByUser, setIsSavedByUser] = useState(false);
-  const [isSavedLoading, setIsSavedLoading] = useState(true);
-  const isLikedBtnLoaded = useRef(false);
-  const isSavedBtnLoaded = useRef(false);
+  const [isLikedByUser, setIsLikedByUser] = useState(
+    post && !_.isEmpty(post) ? post?.isLikedByAuthUser : false
+  );
+  const [isSavedByUser, setIsSavedByUser] = useState(
+    post && !_.isEmpty(post) ? post?.isSavedByAuthUser : false
+  );
+  const [isSavedStatusUpdated, setIsSavedStatusUpdated] = useState(false);
   const likeStatusUpdatedCommentsSet = useRef(new Set());
 
   const likedByUsersLength = post?.likedByUsers?.length || 0;
@@ -161,6 +149,32 @@ const PostFeedCard = ({
       image: user?.userImage,
     }));
 
+  const clearCommentLikeUpdates = useCallback(
+    (commentLikeUpdatesSet = new Set()) => {
+      for (let commentId of commentLikeUpdatesSet) {
+        if (commentId) {
+          dispatch(clearLikedComment(commentId));
+          dispatch(clearUnlikedComment(commentId));
+        }
+      }
+    },
+    [dispatch]
+  );
+
+  const refetchPost = useCallback(
+    (postId) => {
+      if (token && postId) {
+        const data = {
+          token,
+          postId,
+        };
+
+        dispatch(findPostByIdAction(data));
+      }
+    },
+    [dispatch, token]
+  );
+
   const handleCommentFormSubmission = (values, { setSubmitting }) => {
     setSubmitting(true);
     console.log("Form Values: ", values);
@@ -182,37 +196,7 @@ const PostFeedCard = ({
     }
   }, []);
 
-  const checkPostLiked = useCallback(
-    (skipCache = false) => {
-      const isLiked = checkPostLikedByCurrUser(post?.id, postIdPage, skipCache);
-
-      if (isLiked === null) {
-        return;
-      }
-
-      setIsLikedByUser(isLiked);
-      setIsLikedLoading(false);
-    },
-    [checkPostLikedByCurrUser, post?.id, postIdPage]
-  );
-
-  const checkPostSaved = useCallback(
-    (skipCache = false) => {
-      const isSaved = checkPostSavedByCurrUser(post?.id, postIdPage, skipCache);
-
-      if (isSaved === null) {
-        return;
-      }
-
-      setIsSavedByUser(isSaved);
-      setIsSavedLoading(false);
-    },
-    [checkPostSavedByCurrUser, post?.id, postIdPage]
-  );
-
   const handlePostLike = () => {
-    setIsLikedLoading(true);
-
     if (token && post?.id) {
       const data = {
         token,
@@ -224,8 +208,6 @@ const PostFeedCard = ({
   };
 
   const handlePostUnlike = () => {
-    setIsLikedLoading(true);
-
     if (token && post?.id) {
       const data = {
         token,
@@ -237,8 +219,6 @@ const PostFeedCard = ({
   };
 
   const handlePostSave = () => {
-    setIsSavedLoading(true);
-
     if (token && post?.id) {
       const data = {
         token,
@@ -250,8 +230,6 @@ const PostFeedCard = ({
   };
 
   const handlePostUnsave = () => {
-    setIsSavedLoading(true);
-
     if (token && post?.id) {
       const data = {
         token,
@@ -266,26 +244,26 @@ const PostFeedCard = ({
     (postId, updatedPost, isLiked) => {
       const updatedPostId = updatedPost?.id;
       if (updatedPostId === postId) {
-        checkPostLiked(true);
-
         isLiked
           ? dispatch(clearLikedPost(updatedPostId))
           : dispatch(clearUnlikedPost(updatedPostId));
+
         updateLoadedPostEntry(updatedPostId, updatedPost);
       }
     },
-    [checkPostLiked, dispatch, updateLoadedPostEntry]
+    [dispatch, updateLoadedPostEntry]
   );
 
   const updatePostSaved = useCallback(
     (postId, isSaved) => {
-      checkPostSaved(true);
+      setIsSavedStatusUpdated(isSaved === isSavedByUser ? false : true);
 
       isSaved
         ? dispatch(clearSavedPost(postId))
         : dispatch(clearUnsavedPost(postId));
+      setIsSavedByUser(isSaved);
     },
-    [checkPostSaved, dispatch]
+    [dispatch, isSavedByUser]
   );
 
   useEffect(() => {
@@ -319,69 +297,12 @@ const PostFeedCard = ({
   }, [post?.id, postSocial.unsavedPosts, updatePostSaved]);
 
   useEffect(() => {
-    const postId = post?.id;
-    if (postId && postId in postSocial.isLikedByUser) {
-      const isLiked = postSocial.isLikedByUser[postId];
-
-      dispatch(clearIsPostLikedByUser(postId));
-      addPostLikedToCacheMap(postId, postIdPage, isLiked);
-    }
-  }, [
-    addPostLikedToCacheMap,
-    dispatch,
-    post?.id,
-    postIdPage,
-    postSocial.isLikedByUser,
-  ]);
-
-  useEffect(() => {
-    const postId = post?.id;
-    if (postId && postId in postSocial.isSavedByUser) {
-      const isSaved = postSocial.isSavedByUser[postId];
-
-      dispatch(clearIsPostSavedByUser(postId));
-      addPostSavedToCacheMap(postId, postIdPage, isSaved);
-    }
-  }, [
-    addPostSavedToCacheMap,
-    dispatch,
-    post?.id,
-    postIdPage,
-    postSocial.isSavedByUser,
-  ]);
-
-  useEffect(() => {
-    let timer = null;
-    if (isSavedBtnLoaded.current) {
-      isPostSavedCached(post?.id, postIdPage)
-        ? checkPostSaved()
-        : (timer = setTimeout(() => {
-            checkPostSaved(true);
-          }, REQUEST_DELAY_IN_MS));
-    } else {
-      isSavedBtnLoaded.current = true;
-    }
-
-    return () => clearTimeout(timer);
-  }, [checkPostSaved, isPostSavedCached, post?.id, postIdPage]);
-
-  useEffect(() => {
-    let timer = null;
-    if (isLikedBtnLoaded.current) {
-      isPostLikedCached(post?.id, postIdPage)
-        ? checkPostLiked()
-        : (timer = setTimeout(() => {
-            checkPostLiked(true);
-          }, REQUEST_DELAY_IN_MS));
-    } else {
-      isLikedBtnLoaded.current = true;
-    }
-
-    return () => clearTimeout(timer);
-  }, [checkPostLiked, isPostLikedCached, post?.id, postIdPage]);
-
-  useEffect(() => {
-    if (token && post?.id && commentManagement.isCommentCreated) {
+    if (
+      token &&
+      post?.id &&
+      commentManagement.isCommentCreated &&
+      commentManagement.updatedPostId === post?.id
+    ) {
       const data = {
         token,
         postId: post?.id,
@@ -390,10 +311,21 @@ const PostFeedCard = ({
       dispatch(clearCommentManagement());
       dispatch(findPostByIdAction(data));
     }
-  }, [commentManagement.isCommentCreated, dispatch, post?.id, token]);
+  }, [
+    commentManagement.isCommentCreated,
+    commentManagement.updatedPostId,
+    dispatch,
+    post?.id,
+    token,
+  ]);
 
   useEffect(() => {
-    if (token && post?.id && commentManagement.isCommentDeleted) {
+    if (
+      token &&
+      post?.id &&
+      commentManagement.isCommentDeleted &&
+      commentManagement.updatedPostId === post?.id
+    ) {
       const data = {
         token,
         postId: post?.id,
@@ -402,41 +334,48 @@ const PostFeedCard = ({
       dispatch(clearCommentManagement());
       dispatch(findPostByIdAction(data));
     }
-  }, [commentManagement.isCommentDeleted, dispatch, post?.id, token]);
+  }, [
+    commentManagement.isCommentDeleted,
+    commentManagement.updatedPostId,
+    dispatch,
+    post?.id,
+    token,
+  ]);
 
   useEffect(() => {
     const postById = findPostById;
 
-    if (postById) {
+    if (postById && postById?.id === post?.id) {
       dispatch(clearPostById());
       updateLoadedPostEntry(postById?.id, postById);
     }
-  }, [dispatch, findPostById, updateLoadedPostEntry]);
+  }, [dispatch, findPostById, post?.id, updateLoadedPostEntry]);
 
   useEffect(() => {
+    const commentLikeUpdatesSet = likeStatusUpdatedCommentsSet.current;
+
+    // Cleanup function when PostFeedCard is unmounted
+    // Fetch the updated post data before unmounting
     return () => {
-      // Cleanup function when PostFeedCard is unmounted
-      // Fetch the updated post data before unmounting
-      const likeStatusUpdatedComments = likeStatusUpdatedCommentsSet.current;
-
-      if (token && post?.id && likeStatusUpdatedComments.size > 0) {
-        const data = {
-          token,
-          postId: post?.id,
-        };
-
-        dispatch(findPostByIdAction(data));
+      if (
+        !isOpenPostViewModal &&
+        (isSavedStatusUpdated || commentLikeUpdatesSet.size > 0)
+      ) {
+        refetchPost(post?.id);
+        clearCommentLikeUpdates(commentLikeUpdatesSet);
       }
 
-      for (let commentId of likeStatusUpdatedComments) {
-        if (commentId) {
-          dispatch(clearLikedComment(commentId));
-          dispatch(clearUnlikedComment(commentId));
-        }
-      }
-      likeStatusUpdatedCommentsSet.current.clear();
+      commentLikeUpdatesSet.clear();
     };
-  }, [dispatch, post?.id, token]);
+  }, [
+    clearCommentLikeUpdates,
+    dispatch,
+    isOpenPostViewModal,
+    isSavedStatusUpdated,
+    post?.id,
+    refetchPost,
+    token,
+  ]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -460,7 +399,7 @@ const PostFeedCard = ({
     >
       <PostViewModal
         currUser={currUser}
-        post={{ ...post, isLikedByUser, isSavedByUser }}
+        post={{ ...post, isSavedByUser }}
         updateLoadedPostEntry={updateLoadedPostEntry}
         isOpen={isOpenPostViewModal}
         onClose={onClosePostViewModal}
@@ -502,7 +441,7 @@ const PostFeedCard = ({
           <Flex py={1}>
             <PostActionsMenu
               currUser={currUser}
-              post={{ ...post, isLikedByUser, isSavedByUser }}
+              post={{ ...post, isSavedByUser }}
               updateLoadedPostEntry={updateLoadedPostEntry}
               onClose={onClosePostActionsMenu}
               menuIcon={<BsThreeDotsVertical />}
@@ -556,7 +495,7 @@ const PostFeedCard = ({
                 isLoading={
                   post?.id in postSocial.isSavedLoading
                     ? postSocial.isSavedLoading[post?.id]
-                    : isSavedLoading
+                    : false
                 }
                 bg={useColorModeValue("gray.100", "gray.500")}
                 rounded="full"
@@ -574,8 +513,8 @@ const PostFeedCard = ({
               <IconButton
                 icon={<BiExpandAlt />}
                 isDisabled={
-                  isLikedLoading ||
-                  isSavedLoading ||
+                  post?.id in postSocial.isLikedLoading ||
+                  post?.id in postSocial.isSavedLoading ||
                   commentManagement.isCreatingComment ||
                   commentManagement.isDeletingComment
                 }
@@ -603,7 +542,7 @@ const PostFeedCard = ({
                 isLoading={
                   post?.id in postSocial.isLikedLoading
                     ? postSocial.isLikedLoading[post?.id]
-                    : isLikedLoading
+                    : false
                 }
                 rounded="full"
                 colorScheme={isLikedByUser ? "red" : "gray"}
@@ -874,6 +813,7 @@ const PostFeedCard = ({
                   <PostCommentCard
                     key={index}
                     currUser={currUser}
+                    postId={post?.id}
                     comment={comment}
                     changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
                   />
@@ -897,16 +837,16 @@ const PostFeedCard = ({
               rounded="full"
               boxShadow={"md"}
               cursor={
-                isLikedLoading ||
-                isSavedLoading ||
+                post?.id in postSocial.isLikedLoading ||
+                post?.id in postSocial.isSavedLoading ||
                 commentManagement.isCreatingComment ||
                 commentManagement.isDeletingComment
                   ? "not-allowed"
                   : "pointer"
               }
               opacity={
-                isLikedLoading ||
-                isSavedLoading ||
+                post?.id in postSocial.isLikedLoading ||
+                post?.id in postSocial.isSavedLoading ||
                 commentManagement.isCreatingComment ||
                 commentManagement.isDeletingComment
                   ? 0.6
@@ -915,16 +855,16 @@ const PostFeedCard = ({
               _hover={{
                 transition: "transform .3s ease",
                 transform:
-                  isLikedLoading ||
-                  isSavedLoading ||
+                  post?.id in postSocial.isLikedLoading ||
+                  post?.id in postSocial.isSavedLoading ||
                   commentManagement.isCreatingComment ||
                   commentManagement.isDeletingComment
                     ? "scaleX(1)"
                     : "scaleX(1.025) translateX(1.5%)",
               }}
               onClick={
-                isLikedLoading ||
-                isSavedLoading ||
+                post?.id in postSocial.isLikedLoading ||
+                post?.id in postSocial.isSavedLoading ||
                 commentManagement.isCreatingComment ||
                 commentManagement.isDeletingComment
                   ? () => {}

@@ -20,6 +20,8 @@ const PostActionsMenu = ({
   currUser,
   post,
   updateLoadedPostEntry,
+  isModalActionsMenu = false,
+  handleModalClose = () => {},
   onClose,
   menuIcon,
 }) => {
@@ -37,12 +39,14 @@ const PostActionsMenu = ({
 
   const menuLinks = [
     {
-      name: "View Details",
+      name: !isModalActionsMenu ? "View Details" : "Hide Details",
       path: "",
       isLinkEmpty: true,
       hidden: false,
       color: useColorModeValue("blue.500", "blue.300"),
-      handleMenuLinkClick: onOpenPostViewModal,
+      handleMenuLinkClick: !isModalActionsMenu
+        ? onOpenPostViewModal
+        : handleModalClose,
     },
     {
       name: "Delete Post",

@@ -31,7 +31,9 @@ public class PostDTOMapper implements Function<Post, PostDTO> {
                 post.getLikedByUsers().stream()
                         .map(userViewMapper)
                         .collect(Collectors.toCollection(
-                                LinkedHashSet::new))
+                                LinkedHashSet::new)),
+                false,
+                false
         );
     }
 

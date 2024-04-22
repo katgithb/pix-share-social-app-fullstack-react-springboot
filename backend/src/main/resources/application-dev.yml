@@ -8,3 +8,6 @@ spring:
     hibernate:
       ddl-auto: 'validate'
     show-sql: true
+
+cloudinary:
+  upload-folder: ${DEV_CLOUDINARY_UPLOAD_FOLDER}

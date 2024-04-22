@@ -1,5 +1,4 @@
 import { Flex, Grid, GridItem } from "@chakra-ui/react";
-import { Map } from "immutable";
 import _ from "lodash";
 import React, {
   useCallback,
@@ -14,10 +13,6 @@ import BasicProfileCard from "../components/profile/BasicProfileCard";
 import Footer from "../components/shared/Footer";
 import SuggestionsList from "../components/suggestions/SuggestionsList/SuggestionsList";
 import { findAllPostsAction } from "../redux/actions/post/postLookupActions";
-import {
-  isPostLikedByUserAction,
-  isPostSavedByUserAction,
-} from "../redux/actions/post/postSocialActions";
 import { fetchPopularUsersAction } from "../redux/actions/user/userLookupActions";
 import { clearPostManagement } from "../redux/reducers/post/postManagementSlice";
 import {
@@ -26,15 +21,8 @@ import {
   POSTS_SORT_BY,
   POSTS_SORT_DIRECTION,
 } from "../utils/constants/pagination/postPagination";
-import {
-  removePageFromPostAttributeCache,
-  trimPostAttributeCache,
-  updatePostAttributeCache,
-} from "../utils/postUtils";
 
 const Discover = () => {
-  const POST_LIKED_CACHE_MAX_PAGES = 7;
-  const POST_SAVED_CACHE_MAX_PAGES = 7;
   const dispatch = useDispatch();
   const { currUser } = useSelector((store) => store.user.userProfile);
   const { popularUsers } = useSelector((store) => store.user.userLookup);
@@ -43,147 +31,7 @@ const Discover = () => {
   const token = localStorage.getItem("token");
 
   const [postsPage, setPostsPage] = useState({});
-  const [postLikedCacheMap, setPostLikedCacheMap] = useState(Map());
-  const [postSavedCacheMap, setPostSavedCacheMap] = useState(Map());
   const prevCurrUserRef = useRef(null);
-
-  const isPostLikedCached = (postId, postIdPage) => {
-    const postLikedMap = postLikedCacheMap.get(postIdPage) || Map();
-
-    return postLikedMap.has(postId);
-  };
-
-  const fetchPostLiked = useCallback(
-    (postId) => {
-      if (token && postId) {
-        const data = {
-          token,
-          postId,
-        };
-
-        dispatch(isPostLikedByUserAction(data));
-      }
-    },
-    [dispatch, token]
-  );
-
-  const addPostLikedToCacheMap = useCallback(
-    (postId, postIdPage, isLiked) => {
-      const maxCacheSize = POST_LIKED_CACHE_MAX_PAGES;
-      const minPage = postLikedCacheMap.keySeq().min() || 0;
-      const maxPage = postLikedCacheMap.keySeq().max() || 0;
-
-      const trimmedCache = trimPostAttributeCache(
-        postLikedCacheMap,
-        postIdPage,
-        minPage,
-        maxPage,
-        maxCacheSize
-      );
-      const updatedCache = updatePostAttributeCache(
-        trimmedCache,
-        postIdPage,
-        postId,
-        isLiked
-      );
-
-      setPostLikedCacheMap(updatedCache);
-    },
-    [postLikedCacheMap]
-  );
-
-  const isPostSavedCached = (postId, postIdPage) => {
-    const postSavedMap = postSavedCacheMap.get(postIdPage) || Map();
-
-    return postSavedMap.has(postId);
-  };
-
-  const fetchPostSaved = useCallback(
-    (postId) => {
-      if (token && postId) {
-        const data = {
-          token,
-          postId,
-        };
-
-        dispatch(isPostSavedByUserAction(data));
-      }
-    },
-    [dispatch, token]
-  );
-
-  const addPostSavedToCacheMap = useCallback(
-    (postId, postIdPage, isSaved) => {
-      const maxCacheSize = POST_SAVED_CACHE_MAX_PAGES;
-      const minPage = postSavedCacheMap.keySeq().min() || 0;
-      const maxPage = postSavedCacheMap.keySeq().max() || 0;
-
-      const trimmedCache = trimPostAttributeCache(
-        postSavedCacheMap,
-        postIdPage,
-        minPage,
-        maxPage,
-        maxCacheSize
-      );
-      const updatedCache = updatePostAttributeCache(
-        trimmedCache,
-        postIdPage,
-        postId,
-        isSaved
-      );
-
-      setPostSavedCacheMap(updatedCache);
-    },
-    [postSavedCacheMap]
-  );
-
-  const checkPostLikedByCurrUser = useCallback(
-    (postId, postIdPage, skipCache = false) => {
-      const postLikedMap = postLikedCacheMap.get(postIdPage) || Map();
-      // console.log("postLikedCacheMap", postLikedCacheMap.toJS());
-
-      if (postLikedMap.has(postId) && !skipCache) {
-        return postLikedMap.get(postId);
-      }
-
-      fetchPostLiked(postId);
-      return null;
-    },
-    [fetchPostLiked, postLikedCacheMap]
-  );
-
-  const checkPostSavedByCurrUser = useCallback(
-    (postId, postIdPage, skipCache = false) => {
-      const postSavedMap = postSavedCacheMap.get(postIdPage) || Map();
-      // console.log("postSavedCacheMap", postSavedCacheMap.toJS());
-
-      if (postSavedMap.has(postId) && !skipCache) {
-        return postSavedMap.get(postId);
-      }
-
-      fetchPostSaved(postId);
-      return null;
-    },
-    [fetchPostSaved, postSavedCacheMap]
-  );
-
-  const removeCachedPostLikedPage = (postIdPage) => {
-    const updatedCache = removePageFromPostAttributeCache(
-      postLikedCacheMap,
-      postIdPage
-    );
-
-    setPostLikedCacheMap(updatedCache);
-  };
-
-  const removeCachedPostSavedPage = (postIdPage) => {
-    const updatedCache = removePageFromPostAttributeCache(
-      postSavedCacheMap,
-      postIdPage
-    );
-
-    setPostSavedCacheMap(updatedCache);
-  };
 
   useEffect(() => {
     if (token) {
@@ -258,14 +106,6 @@ const Discover = () => {
           posts={postsPage}
           handlePageChange={handlePageChange}
           isHomePageFeed={false}
-          isPostLikedCached={isPostLikedCached}
-          isPostSavedCached={isPostSavedCached}
-          checkPostLikedByCurrUser={checkPostLikedByCurrUser}
-          checkPostSavedByCurrUser={checkPostSavedByCurrUser}
-          addPostLikedToCacheMap={addPostLikedToCacheMap}
-          addPostSavedToCacheMap={addPostSavedToCacheMap}
-          removeCachedPostLikedPage={removeCachedPostLikedPage}
-          removeCachedPostSavedPage={removeCachedPostSavedPage}
         />
       </GridItem>
 

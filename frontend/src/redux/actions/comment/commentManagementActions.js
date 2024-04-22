@@ -21,7 +21,7 @@ export const createCommentAction = (data) => async (dispatch) => {
 
   createCommentRequest(data)
     .then(() => {
-      dispatch(createComment());
+      dispatch(createComment(data.postId));
 
       console.log("Comment Creation Success");
       successToastNotification("Comment is now live", null);
@@ -40,7 +40,7 @@ export const deleteCommentAction = (data) => async (dispatch) => {
     deleteCommentRequest(data)
       .then(() => {
         resolve();
-        dispatch(deleteComment());
+        dispatch(deleteComment(data.postId));
 
         console.log("Comment Deletion Success");
       })

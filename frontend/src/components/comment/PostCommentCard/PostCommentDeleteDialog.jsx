@@ -15,6 +15,7 @@ const PostCommentDeleteDialog = ({
   isOpen,
   onClose,
   cancelRef,
+  postId = null,
   commentId = 0,
 }) => {
   const dispatch = useDispatch();
@@ -25,7 +26,7 @@ const PostCommentDeleteDialog = ({
 
   const handleCommentDelete = () => {
     if (token) {
-      const data = { token, commentId };
+      const data = { token, postId, commentId };
 
       console.log("Deleting comment with commentId: ", commentId);
 

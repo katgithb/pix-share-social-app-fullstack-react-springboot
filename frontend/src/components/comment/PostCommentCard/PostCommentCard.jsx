@@ -31,6 +31,7 @@ import PostCommentDeleteDialog from "./PostCommentDeleteDialog";
 
 const PostCommentCard = ({
   currUser,
+  postId,
   comment,
   changeCommentLikeUpdatesSet = () => {},
   showRelativeTime = false,
@@ -150,6 +151,7 @@ const PostCommentCard = ({
           isOpen={isOpenPostCommentDeleteDialog}
           onClose={onClosePostCommentDeleteDialog}
           cancelRef={postCommentDeleteDialogCancelRef}
+          postId={postId}
           commentId={comment?.id}
         />
       )}

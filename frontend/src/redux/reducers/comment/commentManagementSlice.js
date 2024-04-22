@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   isCommentCreated: false,
   isCommentDeleted: false,
+  updatedPostId: null,
   isCreatingComment: false,
   isDeletingComment: false,
 };
@@ -21,12 +22,14 @@ const commentManagementSlice = createSlice({
   initialState: initialState,
   reducers: {
     ...loadingReducers,
-    createComment: (state) => {
+    createComment: (state, action) => {
       state.isCommentCreated = true;
+      state.updatedPostId = action.payload;
       state.isCreatingComment = false;
     },
-    deleteComment: (state) => {
+    deleteComment: (state, action) => {
       state.isCommentDeleted = true;
+      state.updatedPostId = action.payload;
       state.isDeletingComment = false;
     },
     commentCreationFailure: (state) => {
