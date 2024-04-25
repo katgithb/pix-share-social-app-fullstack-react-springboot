@@ -18,6 +18,8 @@ public interface CommentService {
 
     List<CommentDTO> findCommentsByPostId(Long postId, Long userId) throws ResourceNotFoundException;
 
+    List<CommentDTO> findCommentsByPostIdPublic(Long postId);
+
     CommentDTO likeComment(Long commentId, Long userId) throws ResourceNotFoundException;
 
     CommentDTO unlikeComment(Long commentId, Long userId) throws ResourceNotFoundException;

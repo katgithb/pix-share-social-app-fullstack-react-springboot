@@ -1,5 +1,6 @@
 package com.pixshare.pixshareapi.user;
 
+import jakarta.annotation.Nullable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,11 +35,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
             LEFT JOIN (SELECT s.user.id AS sid, COUNT(*) AS cnt FROM Story s GROUP BY s.user.id) s
             ON u.id = s.sid
             WHERE f.id IS NULL
-            AND u.id <> :userId
+            AND ( :userId IS NULL OR u.id <> :userId )
             ORDER BY (COALESCE(uf.cnt, 0) + COALESCE(s.cnt, 0)) DESC, u.id DESC
             LIMIT 5
             """)
-    List<User> findPopularUsers(@Param("userId") Long userId);
+    List<User> findPopularUsers(@Param("userId") @Nullable Long userId);
 
     @Query("SELECT COUNT(u) > 0 FROM User u JOIN u.follower uf WHERE u.id = :followUserId AND uf.id = :userId")
     Boolean isFollowedByUser(@Param("followUserId") Long followUserId, @Param("userId") Long userId);

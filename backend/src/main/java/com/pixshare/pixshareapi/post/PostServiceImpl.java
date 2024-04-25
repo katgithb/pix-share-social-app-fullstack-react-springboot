@@ -10,9 +10,11 @@ import com.pixshare.pixshareapi.upload.UploadType;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
 import com.pixshare.pixshareapi.user.UserService;
+import com.pixshare.pixshareapi.util.AppConstants;
 import com.pixshare.pixshareapi.util.ImageUtil;
 import com.pixshare.pixshareapi.validation.ValidationUtil;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -241,6 +243,42 @@ public class PostServiceImpl implements PostService {
                 pagedPosts.getTotalElements(),
                 pagedPosts.getTotalPages(),
                 pagedPosts.isLast());
+    }
+
+    @Override
+    public PagedResponse<PostDTO> findAllPostsPublic(PageRequestDTO pageRequest) {
+        int pageLimit = AppConstants.DEFAULT_PAGE_LIMIT;
+
+        // create Pageable instance
+        Pageable pageable = pageRequest.toPageable();
+        int actualPage = Math.min(pageable.getPageNumber(), pageLimit - 1); // Adjust for 0-based indexing
+        Pageable adjustedPageable = PageRequest.of(actualPage, pageable.getPageSize(), pageable.getSort());
+
+        Page<Post> pagedPosts = postRepository.findAllPosts(adjustedPageable);
+        int maxElements = pageLimit * pageable.getPageSize();
+        long totalRecords = Math.min(pagedPosts.getTotalElements(), maxElements);
+        int totalPages = Math.min(pagedPosts.getTotalPages(), pageLimit);
+        boolean isLastPage = (actualPage == pageLimit - 1) || pagedPosts.isLast();
+
+        // get posts content from Page
+        List<PostDTO> content = pagedPosts
+                .getContent()
+                .stream()
+                .map(postDTOMapper)
+                .peek(postDTO -> postDTO.setComments(
+                        commentService.findCommentsByPostIdPublic(postDTO.getId())
+                ))
+                .toList();
+
+
+        return new PagedResponse<>(
+                content,
+                pagedPosts.getNumber(),
+                pagedPosts.getSize(),
+                totalRecords,
+                totalPages,
+                isLastPage
+        );
     }
 
     @Override

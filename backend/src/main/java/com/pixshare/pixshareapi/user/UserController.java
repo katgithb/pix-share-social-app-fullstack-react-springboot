@@ -86,6 +86,13 @@ public class UserController {
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
+    @GetMapping("/public/popular")
+    public ResponseEntity<List<UserDTO>> findPopularUsersPublic() {
+        List<UserDTO> users = userService.findPopularUsersPublic();
+
+        return new ResponseEntity<>(users, HttpStatus.OK);
+    }
+
     @PutMapping("/follow/{userId}")
     public ResponseEntity<MessageResponse> followUser(
             @PathVariable("userId") Long userId,

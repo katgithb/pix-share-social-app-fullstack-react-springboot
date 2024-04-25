@@ -113,6 +113,17 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    public List<CommentDTO> findCommentsByPostIdPublic(Long postId) {
+        List<CommentDTO> comments = commentRepository.findCommentsByPostId(postId,
+                        Sort.by(Sort.Direction.DESC, "createdAt"))
+                .stream()
+                .map(commentDTOMapper)
+                .toList();
+
+        return comments;
+    }
+
+    @Override
     public CommentDTO likeComment(Long commentId, Long userId) throws ResourceNotFoundException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));

@@ -39,6 +39,10 @@ public class SecurityFilterChainConfig {
                         "/api/v1/auth/login")
                 .permitAll()
                 .requestMatchers(HttpMethod.GET,
+                        "/api/v1/users/public/**",
+                        "/api/v1/posts/public/**")
+                .permitAll()
+                .requestMatchers(HttpMethod.GET,
                         "/actuator/**")
                 .permitAll()
                 .anyRequest()
