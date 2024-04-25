@@ -47,6 +47,10 @@ export const getPopularUsers = async (data) => {
   });
 };
 
+export const getPopularUsersPublic = async () => {
+  return await axiosInstance.get("/public/popular");
+};
+
 export const updateFollow = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 

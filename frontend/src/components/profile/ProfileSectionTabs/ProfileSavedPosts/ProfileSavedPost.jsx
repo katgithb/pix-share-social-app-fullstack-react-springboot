@@ -129,7 +129,7 @@ const ProfileSavedPost = ({
     const postById = findPostById;
 
     if (postById && postById?.id === savedPost?.id) {
-      dispatch(clearPostById());
+      dispatch(clearPostById(post?.id));
       updateLoadedSavedPostEntry(postById?.id, postById);
     }
   }, [dispatch, findPostById, savedPost?.id, updateLoadedSavedPostEntry]);

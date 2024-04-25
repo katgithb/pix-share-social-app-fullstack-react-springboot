@@ -30,10 +30,12 @@ import AvatarWithLoader from "../../shared/AvatarWithLoader";
 import PostCommentDeleteDialog from "./PostCommentDeleteDialog";
 
 const PostCommentCard = ({
+  isUserAuthenticated = false,
   currUser,
   postId,
   comment,
   changeCommentLikeUpdatesSet = () => {},
+  handleInformUserFeatureRequiresAuth = () => {},
   showRelativeTime = false,
 }) => {
   const COMMENT_TRUNCATE_CHARS_LIMIT = 100;
@@ -272,7 +274,11 @@ const PostCommentCard = ({
                     variant="link"
                     aria-label="Like"
                     onClick={
-                      isLikedByUser ? handleCommentUnlike : handleCommentLike
+                      isUserAuthenticated
+                        ? isLikedByUser
+                          ? handleCommentUnlike
+                          : handleCommentLike
+                        : handleInformUserFeatureRequiresAuth
                     }
                   />
 

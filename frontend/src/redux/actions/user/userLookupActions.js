@@ -1,5 +1,6 @@
 import {
   getPopularUsers,
+  getPopularUsersPublic,
   getSavedPostsByUserId,
   getUserByUserName,
   getUsersByUserIds,
@@ -94,6 +95,23 @@ export const fetchPopularUsersAction = (data) => async (dispatch) => {
   dispatch(fetchPopularUsersPending());
 
   getPopularUsers(data)
+    .then((response) => {
+      const users = response.data;
+
+      console.log("Popular Users: ", users);
+
+      dispatch(fetchPopularUsers(users));
+    })
+    .catch((error) => {
+      console.log(error);
+      dispatch(userLookupFailure());
+    });
+};
+
+export const fetchPopularUsersPublicAction = () => async (dispatch) => {
+  dispatch(fetchPopularUsersPending());
+
+  getPopularUsersPublic()
     .then((response) => {
       const users = response.data;
 

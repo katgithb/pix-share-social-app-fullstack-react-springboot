@@ -11,10 +11,12 @@ import {
 import React from "react";
 import { useDispatch } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
+import useIsUserAuthenticated from "../../hooks/useIsUserAuthenticated";
 import { signoutAction } from "../../redux/actions/auth/authActions";
 
 const BasicProfileCard = ({ user }) => {
   const dispatch = useDispatch();
+  const isUserAuthenticated = useIsUserAuthenticated();
 
   const handleSignOutClick = () => {
     dispatch(signoutAction());
@@ -31,7 +33,7 @@ const BasicProfileCard = ({ user }) => {
         <Flex alignItems="center" overflow="hidden">
           <Link
             as={RouteLink}
-            to={`/profile/${user?.username}`}
+            to={isUserAuthenticated ? `/profile/${user?.username}` : ""}
             bgGradient={"linear(to-tr, yellow.400, pink.400, purple.600)"}
             p={"1"}
             rounded="full"
@@ -61,9 +63,13 @@ const BasicProfileCard = ({ user }) => {
               wordBreak={"break-word"}
               noOfLines={2}
             >
-              <Link as={RouteLink} to={`/profile/${user?.username}`}>
-                {user?.username}
-              </Link>
+              {isUserAuthenticated ? (
+                <Link as={RouteLink} to={`/profile/${user?.username}`}>
+                  {user?.username}
+                </Link>
+              ) : (
+                <Text>Create Account</Text>
+              )}
             </Text>
             <Text
               fontSize="sm"
@@ -73,30 +79,52 @@ const BasicProfileCard = ({ user }) => {
               wordBreak={"break-word"}
               noOfLines={2}
             >
-              {user?.name}
+              {isUserAuthenticated ? user?.name : "To Unlock All Features"}
             </Text>
           </Box>
         </Flex>
 
         <Flex flex="1" alignItems="center" justifyContent="end">
-          <Link
-            as={RouteLink}
-            href="#"
-            fontSize="xs"
-            color={useColorModeValue("cyan.500", "cyan.400")}
-            fontWeight="bold"
-            cursor="pointer"
-            onClick={handleSignOutClick}
-          >
-            <Button
-              colorScheme="cyan"
-              variant="outline"
-              size="xs"
-              rounded="full"
+          {isUserAuthenticated ? (
+            <Link
+              as={RouteLink}
+              href="#"
+              fontSize="xs"
+              color="cyan.500"
+              fontWeight="bold"
+              cursor="pointer"
+              _dark={{ color: "cyan.400" }}
+              onClick={handleSignOutClick}
             >
-              Sign Out
-            </Button>
-          </Link>
+              <Button
+                colorScheme="cyan"
+                variant="outline"
+                size="xs"
+                rounded="full"
+              >
+                Sign Out
+              </Button>
+            </Link>
+          ) : (
+            <Link
+              as={RouteLink}
+              to="/signup"
+              fontSize="xs"
+              color="cyan.500"
+              fontWeight="bold"
+              cursor="pointer"
+              _dark={{ color: "cyan.400" }}
+            >
+              <Button
+                colorScheme="cyan"
+                variant="outline"
+                size="xs"
+                rounded="full"
+              >
+                Sign Up
+              </Button>
+            </Link>
+          )}
         </Flex>
       </Flex>
     </Card>

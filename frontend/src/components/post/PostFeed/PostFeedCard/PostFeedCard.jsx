@@ -63,7 +63,13 @@ import ImageWithLoader from "../../../shared/ImageWithLoader";
 import PostActionsMenu from "./PostActionsMenu";
 import PostViewModal from "./PostViewModal/PostViewModal";
 
-const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
+const PostFeedCard = ({
+  isUserAuthenticated = false,
+  currUser,
+  post,
+  updateLoadedPostEntry,
+  handleInformUserFeatureRequiresAuth = () => {},
+}) => {
   const MAX_COMMENTS = 2;
   const MAX_LIKED_USER_AVATARS = 3;
   const CAPTION_TRUNCATE_CHARS_LIMIT = 140;
@@ -79,7 +85,9 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
   });
 
   const dispatch = useDispatch();
-  const { findPostById } = useSelector((store) => store.post.postLookup);
+  const { findPostById, isPostByIdLoading } = useSelector(
+    (store) => store.post.postLookup
+  );
   const postSocial = useSelector((store) => store.post.postSocial);
   const commentManagement = useSelector(
     (store) => store.comment.commentManagement
@@ -110,7 +118,6 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
   const [isSavedByUser, setIsSavedByUser] = useState(
     post && !_.isEmpty(post) ? post?.isSavedByAuthUser : false
   );
-  const [isSavedStatusUpdated, setIsSavedStatusUpdated] = useState(false);
   const likeStatusUpdatedCommentsSet = useRef(new Set());
 
   const likedByUsersLength = post?.likedByUsers?.length || 0;
@@ -256,14 +263,14 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
 
   const updatePostSaved = useCallback(
     (postId, isSaved) => {
-      setIsSavedStatusUpdated(isSaved === isSavedByUser ? false : true);
-
       isSaved
         ? dispatch(clearSavedPost(postId))
         : dispatch(clearUnsavedPost(postId));
+
       setIsSavedByUser(isSaved);
+      refetchPost(post?.id);
     },
-    [dispatch, isSavedByUser]
+    [dispatch, post?.id, refetchPost]
   );
 
   useEffect(() => {
@@ -346,7 +353,7 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
     const postById = findPostById;
 
     if (postById && postById?.id === post?.id) {
-      dispatch(clearPostById());
+      dispatch(clearPostById(post?.id));
       updateLoadedPostEntry(postById?.id, postById);
     }
   }, [dispatch, findPostById, post?.id, updateLoadedPostEntry]);
@@ -357,25 +364,14 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
     // Cleanup function when PostFeedCard is unmounted
     // Fetch the updated post data before unmounting
     return () => {
-      if (
-        !isOpenPostViewModal &&
-        (isSavedStatusUpdated || commentLikeUpdatesSet.size > 0)
-      ) {
+      if (!isOpenPostViewModal && commentLikeUpdatesSet.size > 0) {
         refetchPost(post?.id);
         clearCommentLikeUpdates(commentLikeUpdatesSet);
       }
 
       commentLikeUpdatesSet.clear();
     };
-  }, [
-    clearCommentLikeUpdates,
-    dispatch,
-    isOpenPostViewModal,
-    isSavedStatusUpdated,
-    post?.id,
-    refetchPost,
-    token,
-  ]);
+  }, [clearCommentLikeUpdates, isOpenPostViewModal, post?.id, refetchPost]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -397,13 +393,16 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
       boxShadow={"md"}
       _hover={{ boxShadow: "lg" }}
     >
-      <PostViewModal
-        currUser={currUser}
-        post={{ ...post, isSavedByUser }}
-        updateLoadedPostEntry={updateLoadedPostEntry}
-        isOpen={isOpenPostViewModal}
-        onClose={onClosePostViewModal}
-      />
+      {isUserAuthenticated && (
+        <PostViewModal
+          currUser={currUser}
+          post={{ ...post, isSavedByUser }}
+          updateLoadedPostEntry={updateLoadedPostEntry}
+          isOpen={isOpenPostViewModal}
+          onClose={onClosePostViewModal}
+        />
+      )}
+
       <CardHeader>
         <Flex overflow="hidden">
           <Flex flex="1" gap="3" align="center" flexWrap="wrap">
@@ -440,9 +439,20 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
 
           <Flex py={1}>
             <PostActionsMenu
+              isUserAuthenticated={isUserAuthenticated}
               currUser={currUser}
               post={{ ...post, isSavedByUser }}
               updateLoadedPostEntry={updateLoadedPostEntry}
+              handleInformUserFeatureRequiresAuth={
+                handleInformUserFeatureRequiresAuth
+              }
+              isActionsMenuDisabled={
+                post?.id in isPostByIdLoading ||
+                post?.id in postSocial.isLikedLoading ||
+                post?.id in postSocial.isSavedLoading ||
+                commentManagement.isCreatingComment ||
+                commentManagement.isDeletingComment
+              }
               onClose={onClosePostActionsMenu}
               menuIcon={<BsThreeDotsVertical />}
             />
@@ -493,9 +503,10 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
               <IconButton
                 icon={isSavedByUser ? <RiBookmarkFill /> : <RiBookmarkLine />}
                 isLoading={
-                  post?.id in postSocial.isSavedLoading
+                  post?.id in isPostByIdLoading ||
+                  (post?.id in postSocial.isSavedLoading
                     ? postSocial.isSavedLoading[post?.id]
-                    : false
+                    : false)
                 }
                 bg={useColorModeValue("gray.100", "gray.500")}
                 rounded="full"
@@ -507,12 +518,19 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
                 _hover={{
                   bg: useColorModeValue("gray.200", "gray.600"),
                 }}
-                onClick={isSavedByUser ? handlePostUnsave : handlePostSave}
+                onClick={
+                  isUserAuthenticated
+                    ? isSavedByUser
+                      ? handlePostUnsave
+                      : handlePostSave
+                    : handleInformUserFeatureRequiresAuth
+                }
               />
 
               <IconButton
                 icon={<BiExpandAlt />}
                 isDisabled={
+                  post?.id in isPostByIdLoading ||
                   post?.id in postSocial.isLikedLoading ||
                   post?.id in postSocial.isSavedLoading ||
                   commentManagement.isCreatingComment ||
@@ -528,7 +546,11 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
                 _hover={{
                   bg: useColorModeValue("gray.200", "gray.600"),
                 }}
-                onClick={onOpenPostViewModal}
+                onClick={
+                  isUserAuthenticated
+                    ? onOpenPostViewModal
+                    : handleInformUserFeatureRequiresAuth
+                }
               />
             </Flex>
           </Flex>
@@ -540,16 +562,23 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
               <IconButton
                 icon={isLikedByUser ? <FaHeart /> : <FaRegHeart />}
                 isLoading={
-                  post?.id in postSocial.isLikedLoading
+                  post?.id in isPostByIdLoading ||
+                  (post?.id in postSocial.isLikedLoading
                     ? postSocial.isLikedLoading[post?.id]
-                    : false
+                    : false)
                 }
                 rounded="full"
                 colorScheme={isLikedByUser ? "red" : "gray"}
                 fontSize={"24"}
                 variant="ghost"
                 aria-label="Like"
-                onClick={isLikedByUser ? handlePostUnlike : handlePostLike}
+                onClick={
+                  isUserAuthenticated
+                    ? isLikedByUser
+                      ? handlePostUnlike
+                      : handlePostLike
+                    : handleInformUserFeatureRequiresAuth
+                }
               />
 
               {likedByUsersLength > 0 ? (
@@ -812,10 +841,14 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
                 .map((comment, index) => (
                   <PostCommentCard
                     key={index}
+                    isUserAuthenticated={isUserAuthenticated}
                     currUser={currUser}
                     postId={post?.id}
                     comment={comment}
                     changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
+                    handleInformUserFeatureRequiresAuth={
+                      handleInformUserFeatureRequiresAuth
+                    }
                   />
                 ))
             ) : (
@@ -837,6 +870,7 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
               rounded="full"
               boxShadow={"md"}
               cursor={
+                post?.id in isPostByIdLoading ||
                 post?.id in postSocial.isLikedLoading ||
                 post?.id in postSocial.isSavedLoading ||
                 commentManagement.isCreatingComment ||
@@ -845,6 +879,7 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
                   : "pointer"
               }
               opacity={
+                post?.id in isPostByIdLoading ||
                 post?.id in postSocial.isLikedLoading ||
                 post?.id in postSocial.isSavedLoading ||
                 commentManagement.isCreatingComment ||
@@ -855,6 +890,7 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
               _hover={{
                 transition: "transform .3s ease",
                 transform:
+                  post?.id in isPostByIdLoading ||
                   post?.id in postSocial.isLikedLoading ||
                   post?.id in postSocial.isSavedLoading ||
                   commentManagement.isCreatingComment ||
@@ -863,12 +899,15 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
                     : "scaleX(1.025) translateX(1.5%)",
               }}
               onClick={
-                post?.id in postSocial.isLikedLoading ||
-                post?.id in postSocial.isSavedLoading ||
-                commentManagement.isCreatingComment ||
-                commentManagement.isDeletingComment
-                  ? () => {}
-                  : onOpenPostViewModal
+                isUserAuthenticated
+                  ? post?.id in isPostByIdLoading ||
+                    post?.id in postSocial.isLikedLoading ||
+                    post?.id in postSocial.isSavedLoading ||
+                    commentManagement.isCreatingComment ||
+                    commentManagement.isDeletingComment
+                    ? () => {}
+                    : onOpenPostViewModal
+                  : handleInformUserFeatureRequiresAuth
               }
             >
               View all {commentsLength} comments
@@ -890,7 +929,11 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
-            onSubmit={handleCommentFormSubmission}
+            onSubmit={
+              isUserAuthenticated
+                ? handleCommentFormSubmission
+                : handleInformUserFeatureRequiresAuth
+            }
           >
             {({ isValid, isSubmitting }) => (
               <Flex
@@ -925,9 +968,11 @@ const PostFeedCard = ({ currUser, post, updateLoadedPostEntry }) => {
                     <IconButton
                       type={"submit"}
                       isDisabled={
-                        !isValid ||
-                        isSubmitting ||
-                        commentManagement.isDeletingComment
+                        isUserAuthenticated
+                          ? !isValid ||
+                            isSubmitting ||
+                            commentManagement.isDeletingComment
+                          : true
                       }
                       isLoading={commentManagement.isCreatingComment}
                       icon={<AiOutlineSend />}

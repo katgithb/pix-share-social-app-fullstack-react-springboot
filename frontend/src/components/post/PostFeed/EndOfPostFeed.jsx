@@ -10,7 +10,7 @@ import React from "react";
 import { HiOutlineRefresh } from "react-icons/hi";
 import { PiFlagCheckeredFill } from "react-icons/pi";
 
-const EndOfPostFeed = ({ handleRefreshFeed }) => {
+const EndOfPostFeed = ({ isUserAuthenticated = false, handleRefreshFeed }) => {
   return (
     <Flex justify="center" overflow="hidden">
       <Card
@@ -38,7 +38,9 @@ const EndOfPostFeed = ({ handleRefreshFeed }) => {
             opacity="0.6"
             textAlign="center"
           >
-            You're all caught up! No more posts to see.
+            {isUserAuthenticated
+              ? "You're all caught up! No more posts to see."
+              : "You've reached the end of available posts. Sign Up to see more!"}
           </Text>
 
           <IconButton
