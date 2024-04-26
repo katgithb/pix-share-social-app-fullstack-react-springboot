@@ -5,7 +5,7 @@ const initialState = {
   findPostById: null,
   findPostsByUserIds: {},
   findAllPosts: {},
-  isPostByIdLoading: false,
+  isPostByIdLoading: {},
   isLoading: false,
 };
 
@@ -13,8 +13,9 @@ const loadingReducers = {
   findPostsByUserIdPending: (state) => {
     state.isLoading = true;
   },
-  findPostByIdPending: (state) => {
-    state.isPostByIdLoading = true;
+  findPostByIdPending: (state, action) => {
+    const postId = action.payload;
+    state.isPostByIdLoading[postId] = true;
   },
   findPostsByUserIdsPending: (state) => {
     state.isLoading = true;
@@ -34,8 +35,9 @@ const postLookupSlice = createSlice({
       state.isLoading = false;
     },
     findPostById: (state, action) => {
-      state.findPostById = action.payload;
-      state.isPostByIdLoading = false;
+      const { postId, post } = action.payload;
+      state.findPostById = post;
+      state.isPostByIdLoading[postId] = false;
     },
     findPostsByUserIds: (state, action) => {
       state.findPostsByUserIds = action.payload;
@@ -45,11 +47,14 @@ const postLookupSlice = createSlice({
       state.findAllPosts = action.payload;
       state.isLoading = false;
     },
-    clearPostById: (state) => {
+    clearPostById: (state, action) => {
+      const postId = action.payload;
       state.findPostById = null;
+      delete state.isPostByIdLoading[postId];
     },
-    findPostByIdFailure: (state) => {
-      state.isPostByIdLoading = false;
+    findPostByIdFailure: (state, action) => {
+      const postId = action.payload;
+      state.isPostByIdLoading[postId] = false;
     },
     postLookupFailure: (state) => {
       state.isLoading = false;

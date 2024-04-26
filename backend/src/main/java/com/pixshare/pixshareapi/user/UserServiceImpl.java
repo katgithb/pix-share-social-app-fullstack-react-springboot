@@ -394,6 +394,15 @@ public class UserServiceImpl implements UserService {
         return users;
     }
 
+    @Override
+    public List<UserDTO> findPopularUsersPublic() {
+        List<UserDTO> users = userRepository.findPopularUsers(null).stream()
+                .map(userDTOMapper)
+                .toList();
+
+        return users;
+    }
+
     private boolean isFieldValueChanged(Object newValue, Object currentValue) {
         return Optional.ofNullable(newValue)
                 .filter(value -> !value.equals(currentValue))

@@ -17,7 +17,11 @@ import { Link as RouteLink } from "react-router-dom";
 import SuggestionsList from "../suggestions/SuggestionsList/SuggestionsList";
 import CreatePostModal from "./CreatePostModal/CreatePostModal";
 
-const EmptyPostFeed = ({ isHomePageFeed = false, suggestedUsers }) => {
+const EmptyPostFeed = ({
+  isUserAuthenticated = false,
+  isHomePageFeed = false,
+  suggestedUsers,
+}) => {
   const {
     isOpen: isOpenNewPostModal,
     onOpen: onOpenNewPostModal,
@@ -28,10 +32,12 @@ const EmptyPostFeed = ({ isHomePageFeed = false, suggestedUsers }) => {
 
   return (
     <Flex justify="center" overflow="hidden">
-      <CreatePostModal
-        isOpen={isOpenNewPostModal}
-        onClose={onCloseNewPostModal}
-      />
+      {isUserAuthenticated && (
+        <CreatePostModal
+          isOpen={isOpenNewPostModal}
+          onClose={onCloseNewPostModal}
+        />
+      )}
 
       <Card
         flex={1}
@@ -78,9 +84,11 @@ const EmptyPostFeed = ({ isHomePageFeed = false, suggestedUsers }) => {
             opacity="0.6"
             textAlign="center"
           >
-            Your feed is empty right now, but you can easily change that! Feel
+            {isUserAuthenticated
+              ? `Your feed is empty right now, but you can easily change that! Feel
             free to share your thoughts in your first post - it's just a tap
-            away.
+            away.`
+              : "Your feed seems a bit empty! There aren't any posts available just yet. Sign up and share your thoughts - we can't wait to hear from you!"}
             <br />
             {isHomePageFeed
               ? `You can also discover new people or topics you're interested in and
@@ -115,19 +123,40 @@ const EmptyPostFeed = ({ isHomePageFeed = false, suggestedUsers }) => {
               </Link>
             )}
 
-            <Button
-              bg="blue.500"
-              _hover={{ bg: "blue.600" }}
-              color="white"
-              size="sm"
-              fontWeight="bold"
-              py={2}
-              px={4}
-              rounded="lg"
-              onClick={onOpenNewPostModal}
-            >
-              Start Posting
-            </Button>
+            {isUserAuthenticated ? (
+              <Button
+                bg="blue.500"
+                _hover={{ bg: "blue.600" }}
+                color="white"
+                size="sm"
+                fontWeight="bold"
+                py={2}
+                px={4}
+                rounded="lg"
+                onClick={onOpenNewPostModal}
+              >
+                Start Posting
+              </Button>
+            ) : (
+              <Link
+                as={RouteLink}
+                to={"/signup"}
+                style={{ textDecoration: "none" }}
+              >
+                <Button
+                  bg="blue.500"
+                  _hover={{ bg: "blue.600" }}
+                  color="white"
+                  size="sm"
+                  fontWeight="bold"
+                  py={2}
+                  px={4}
+                  rounded="lg"
+                >
+                  Sign Up
+                </Button>
+              </Link>
+            )}
           </Stack>
         </CardBody>
 

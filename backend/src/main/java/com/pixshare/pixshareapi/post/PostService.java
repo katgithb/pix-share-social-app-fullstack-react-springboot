@@ -25,6 +25,8 @@ public interface PostService {
 
     PagedResponse<PostDTO> findAllPosts(Long authUserId, PageRequestDTO pageRequest);
 
+    PagedResponse<PostDTO> findAllPostsPublic(PageRequestDTO pageRequest);
+
     PagedResponse<PostDTO> findSavedPostsByUserId(Long userId, PageRequestDTO pageRequest);
 
     void savePost(Long postId, Long userId) throws ResourceNotFoundException;

@@ -115,7 +115,7 @@ const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
     const postById = findPostById;
 
     if (postById && postById?.id === post?.id) {
-      dispatch(clearPostById());
+      dispatch(clearPostById(post?.id));
       updateLoadedPostEntry(postById?.id, postById);
     }
   }, [dispatch, findPostById, post?.id, updateLoadedPostEntry]);

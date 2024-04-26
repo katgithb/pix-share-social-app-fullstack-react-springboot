@@ -17,10 +17,13 @@ import PostDeleteDialog from "./PostDeleteDialog";
 import PostViewModal from "./PostViewModal/PostViewModal";
 
 const PostActionsMenu = ({
+  isUserAuthenticated = false,
   currUser,
   post,
   updateLoadedPostEntry,
+  handleInformUserFeatureRequiresAuth = () => {},
   isModalActionsMenu = false,
+  isActionsMenuDisabled = false,
   handleModalClose = () => {},
   onClose,
   menuIcon,
@@ -45,7 +48,9 @@ const PostActionsMenu = ({
       hidden: false,
       color: useColorModeValue("blue.500", "blue.300"),
       handleMenuLinkClick: !isModalActionsMenu
-        ? onOpenPostViewModal
+        ? isUserAuthenticated
+          ? onOpenPostViewModal
+          : handleInformUserFeatureRequiresAuth
         : handleModalClose,
     },
     {
@@ -54,7 +59,9 @@ const PostActionsMenu = ({
       isLinkEmpty: true,
       hidden: !isCurrUserPost(currUser?.id, post?.user?.id),
       color: useColorModeValue("red.600", "red.400"),
-      handleMenuLinkClick: onOpenPostDeleteDialog,
+      handleMenuLinkClick: isUserAuthenticated
+        ? onOpenPostDeleteDialog
+        : handleInformUserFeatureRequiresAuth,
     },
     {
       name: "Cancel",
@@ -75,6 +82,7 @@ const PostActionsMenu = ({
           colorScheme="gray"
           aria-label="See menu"
           icon={menuIcon}
+          isDisabled={isActionsMenuDisabled}
         />
         <MenuList minW="auto">
           {menuLinks.map((link, index) => (
@@ -83,19 +91,23 @@ const PostActionsMenu = ({
         </MenuList>
       </Menu>
 
-      <PostViewModal
-        currUser={currUser}
-        post={post}
-        updateLoadedPostEntry={updateLoadedPostEntry}
-        isOpen={isOpenPostViewModal}
-        onClose={onClosePostViewModal}
-      />
-      <PostDeleteDialog
-        isOpen={isOpenPostDeleteDialog}
-        onClose={onClosePostDeleteDialog}
-        cancelRef={postDeleteDialogCancelRef}
-        postId={post?.id}
-      />
+      {isUserAuthenticated && (
+        <>
+          <PostViewModal
+            currUser={currUser}
+            post={post}
+            updateLoadedPostEntry={updateLoadedPostEntry}
+            isOpen={isOpenPostViewModal}
+            onClose={onClosePostViewModal}
+          />
+          <PostDeleteDialog
+            isOpen={isOpenPostDeleteDialog}
+            onClose={onClosePostDeleteDialog}
+            cancelRef={postDeleteDialogCancelRef}
+            postId={post?.id}
+          />
+        </>
+      )}
     </>
   );
 };

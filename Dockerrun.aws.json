@@ -3,7 +3,7 @@
   "containerDefinitions": [
     {
       "name": "pixshare-api",
-      "image": "projcodehub/pixshare-api:20240411.102.122528",
+      "image": "projcodehub/pixshare-api:20240422.113.084950",
       "essential": true,
       "memory": 448,
       "portMappings": [

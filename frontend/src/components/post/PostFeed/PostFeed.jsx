@@ -9,10 +9,12 @@ import React, {
 } from "react";
 import { useSelector } from "react-redux";
 import { Virtuoso } from "react-virtuoso";
+import useIsUserAuthenticated from "../../../hooks/useIsUserAuthenticated";
 import {
   POSTS_DEFAULT_PAGE,
   POSTS_PER_PAGE,
 } from "../../../utils/constants/pagination/postPagination";
+import { infoToastNotification } from "../../../utils/toastNotification";
 import EmptyPostFeed from "../EmptyPostFeed";
 import EndOfPostFeed from "./EndOfPostFeed";
 import PostFeedCard from "./PostFeedCard/PostFeedCard";
@@ -25,6 +27,7 @@ const PostFeed = ({ currUser, posts, handlePageChange, isHomePageFeed }) => {
   const [postIdToPageMap, setPostIdToPageMap] = useState(Map());
   const [loadedPostsMap, setLoadedPostsMap] = useState(OrderedMap());
 
+  const isUserAuthenticated = useIsUserAuthenticated();
   const { popularUsers } = useSelector((store) => store.user.userLookup);
   const { isPostCreated, isPostDeleted, deletedPostId } = useSelector(
     (store) => store.post.postManagement
@@ -54,6 +57,13 @@ const PostFeed = ({ currUser, posts, handlePageChange, isHomePageFeed }) => {
 
     // Reload the page
     window.location.reload();
+  };
+
+  const handleInformUserFeatureRequiresAuth = () => {
+    infoToastNotification(
+      <p>Sign Up or Login to access this feature</p>,
+      "This feature is available for registered users only!"
+    );
   };
 
   const populateInitialPostsPage = useCallback((initialPostsPage) => {
@@ -230,9 +240,13 @@ const PostFeed = ({ currUser, posts, handlePageChange, isHomePageFeed }) => {
       () => (
         <Flex key={post?.id} justifyContent="center">
           <PostFeedCard
+            isUserAuthenticated={isUserAuthenticated}
             currUser={currUser}
             post={post}
             updateLoadedPostEntry={updateLoadedPostEntry}
+            handleInformUserFeatureRequiresAuth={
+              handleInformUserFeatureRequiresAuth
+            }
           />
         </Flex>
       ),
@@ -269,6 +283,7 @@ const PostFeed = ({ currUser, posts, handlePageChange, isHomePageFeed }) => {
     if (loadedPostsPage.totalPages === 0) {
       return (
         <EmptyPostFeed
+          isUserAuthenticated={isUserAuthenticated}
           isHomePageFeed={isHomePageFeed}
           suggestedUsers={popularUsers}
         />
@@ -276,7 +291,12 @@ const PostFeed = ({ currUser, posts, handlePageChange, isHomePageFeed }) => {
     }
 
     if (loadedPostsPage.totalPages > 0 && loadedPostsPage.last) {
-      return <EndOfPostFeed handleRefreshFeed={handleRefreshFeed} />;
+      return (
+        <EndOfPostFeed
+          isUserAuthenticated={isUserAuthenticated}
+          handleRefreshFeed={handleRefreshFeed}
+        />
+      );
     }
 
     return null;

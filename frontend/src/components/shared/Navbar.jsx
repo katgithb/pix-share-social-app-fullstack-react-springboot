@@ -31,6 +31,7 @@ import {
   FaRegCompass,
   FaRegSquarePlus,
   FaRightFromBracket,
+  FaRightToBracket,
   FaUser,
 } from "react-icons/fa6";
 import { FiMoon, FiSettings, FiSun } from "react-icons/fi";
@@ -38,12 +39,15 @@ import { GiHamburgerMenu } from "react-icons/gi";
 import { ImCompass2 } from "react-icons/im";
 import { IoSearch } from "react-icons/io5";
 import { PiHouseBold } from "react-icons/pi";
+import { RiUserAddFill } from "react-icons/ri";
 import { TbLayoutNavbarCollapse, TbLayoutNavbarExpand } from "react-icons/tb";
 import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink, NavLink, useLocation } from "react-router-dom";
 import logo from "../../assets/images/pixshare_logo.png";
 import altLogo from "../../assets/images/pixshare_logo_gray.png";
+import useIsUserAuthenticated from "../../hooks/useIsUserAuthenticated";
 import { signoutAction } from "../../redux/actions/auth/authActions";
+import { infoToastNotification } from "../../utils/toastNotification";
 import CreatePostModal from "../post/CreatePostModal/CreatePostModal";
 import SearchInputBar from "../search/SearchInputBar";
 import SearchResultsListModal from "../search/SearchResultsListModal/SearchResultsListModal";
@@ -51,6 +55,7 @@ import SearchResultsListModal from "../search/SearchResultsListModal/SearchResul
 const Navbar = () => {
   const { colorMode, toggleColorMode } = useColorMode();
   const dispatch = useDispatch();
+  const isUserAuthenticated = useIsUserAuthenticated();
   const {
     isOpen: isOpenNavModal,
     onOpen: onOpenNavModal,
@@ -70,6 +75,13 @@ const Navbar = () => {
   const [showNavBar, setShowNavBar] = useState(false);
   const userProfile = useSelector((store) => store.user.userProfile);
 
+  const handleInformUserFeatureRequiresAuth = () => {
+    infoToastNotification(
+      <p>Sign Up or Login to access this feature</p>,
+      "This feature is available for registered users only!"
+    );
+  };
+
   const menuLinks = [
     {
       name: "Profile",
@@ -85,6 +97,19 @@ const Navbar = () => {
       name: "Settings",
       path: "/account/edit",
       icon: FaGear,
+    },
+  ];
+
+  const menuLinksPublic = [
+    {
+      name: "Sign Up",
+      path: "/signup",
+      icon: RiUserAddFill,
+    },
+    {
+      name: "Login",
+      path: "/login",
+      icon: FaRightToBracket,
     },
   ];
 
@@ -123,6 +148,30 @@ const Navbar = () => {
       isLinkEmpty: false,
       icon: <FiSettings />,
       handleNavLinkClick: onCloseNavModal,
+    },
+  ];
+
+  const navLinksPublic = [
+    {
+      name: "Home",
+      path: "/",
+      isLinkEmpty: false,
+      icon: <PiHouseBold />,
+      handleNavLinkClick: onCloseNavModal,
+    },
+    {
+      name: "Discover",
+      path: "/discover",
+      isLinkEmpty: false,
+      icon: <FaRegCompass />,
+      handleNavLinkClick: onCloseNavModal,
+    },
+    {
+      name: "Create Post",
+      path: "#",
+      isLinkEmpty: true,
+      icon: <FaRegSquarePlus />,
+      handleNavLinkClick: handleInformUserFeatureRequiresAuth,
     },
   ];
 
@@ -171,6 +220,37 @@ const Navbar = () => {
     },
   ];
 
+  const mobileNavLinksPublic = [
+    {
+      name: "Home",
+      path: "/",
+      isLinkEmpty: false,
+      icon: <PiHouseBold />,
+      handleNavLinkClick: onCloseNavModal,
+    },
+    {
+      name: "Discover",
+      path: "/discover",
+      isLinkEmpty: false,
+      icon: <FaRegCompass />,
+      handleNavLinkClick: onCloseNavModal,
+    },
+    {
+      name: "Search",
+      path: "#",
+      isLinkEmpty: true,
+      icon: <IoSearch />,
+      handleNavLinkClick: handleInformUserFeatureRequiresAuth,
+    },
+    {
+      name: "Create Post",
+      path: "#",
+      isLinkEmpty: true,
+      icon: <FaRegSquarePlus />,
+      handleNavLinkClick: handleInformUserFeatureRequiresAuth,
+    },
+  ];
+
   const handleSignOutClick = () => {
     dispatch(signoutAction());
   };
@@ -207,10 +287,12 @@ const Navbar = () => {
         top="0"
         zIndex="sticky"
       >
-        <CreatePostModal
-          isOpen={isOpenNewPostModal}
-          onClose={onCloseNewPostModal}
-        />
+        {isUserAuthenticated && (
+          <CreatePostModal
+            isOpen={isOpenNewPostModal}
+            onClose={onCloseNewPostModal}
+          />
+        )}
 
         <Collapse
           startingHeight={20}
@@ -248,27 +330,41 @@ const Navbar = () => {
                 alignItems="center"
                 justify={"center"}
               >
-                <SearchResultsListModal
-                  isOpen={isOpenSearchResultsListModal}
-                  onClose={onCloseSearchResultsListModal}
-                />
+                {isUserAuthenticated && (
+                  <SearchResultsListModal
+                    isOpen={isOpenSearchResultsListModal}
+                    onClose={onCloseSearchResultsListModal}
+                  />
+                )}
 
                 <SearchInputBar
                   isNavSearchBar={true}
-                  onOpenSearchModal={onOpenSearchResultsListModal}
+                  onOpenSearchModal={
+                    isUserAuthenticated
+                      ? onOpenSearchResultsListModal
+                      : handleInformUserFeatureRequiresAuth
+                  }
                 />
               </HStack>
             </HStack>
 
             <HStack alignItems={"center"}>
               <HStack as="nav" display={{ base: "none", md: "block" }}>
-                {navLinks.map((link, index) => (
-                  <NonMobileNavLink
-                    key={index}
-                    {...link}
-                    onClose={onCloseNavModal}
-                  />
-                ))}
+                {isUserAuthenticated
+                  ? navLinks.map((link, index) => (
+                      <NonMobileNavLink
+                        key={index}
+                        {...link}
+                        onClose={onCloseNavModal}
+                      />
+                    ))
+                  : navLinksPublic.map((link, index) => (
+                      <NonMobileNavLink
+                        key={index}
+                        {...link}
+                        onClose={onCloseNavModal}
+                      />
+                    ))}
                 <Tooltip
                   label={colorMode === "light" ? "Dark Mode" : "Light Mode"}
                   rounded="full"
@@ -293,6 +389,7 @@ const Navbar = () => {
                     size="sm"
                     name={userProfile.currUser?.name}
                     src={userProfile.currUser?.userImage}
+                    boxShadow="sm"
                   />
                 </MenuButton>
                 <MenuList
@@ -301,38 +398,56 @@ const Navbar = () => {
                   borderColor={useColorModeValue("gray.700", "gray.100")}
                   // boxShadow="4px 4px 0"
                 >
-                  <Link
-                    as={RouteLink}
-                    to={`/profile/${userProfile.currUser?.username}`}
-                    _hover={{ textDecoration: "none" }}
-                  >
-                    <MenuItem justifyContent={"center"} alignItems={"center"}>
-                      <VStack>
-                        <Avatar
-                          size="xl"
-                          name={userProfile.currUser?.name}
-                          src={userProfile.currUser?.userImage}
-                          boxShadow="md"
+                  {isUserAuthenticated && (
+                    <Link
+                      as={RouteLink}
+                      to={`/profile/${userProfile.currUser?.username}`}
+                      _hover={{ textDecoration: "none" }}
+                    >
+                      <MenuItem justifyContent={"center"} alignItems={"center"}>
+                        <VStack>
+                          <Avatar
+                            size="xl"
+                            name={userProfile.currUser?.name}
+                            src={userProfile.currUser?.userImage}
+                            boxShadow="md"
+                          />
+                          <Text
+                            size="sm"
+                            color="gray.400"
+                            mt="0 !important"
+                            wordBreak={"break-all"}
+                          >
+                            @{userProfile.currUser?.username}
+                          </Text>
+                          <Text fontWeight="500" wordBreak={"break-word"}>
+                            {userProfile.currUser?.name}
+                          </Text>
+                        </VStack>
+                      </MenuItem>
+                    </Link>
+                  )}
+
+                  {isUserAuthenticated && <MenuDivider />}
+
+                  {isUserAuthenticated
+                    ? menuLinks.map((link, index) => (
+                        <MenuLink
+                          key={index}
+                          {...link}
+                          onClose={onCloseNavModal}
                         />
-                        <Text
-                          size="sm"
-                          color="gray.400"
-                          mt="0 !important"
-                          wordBreak={"break-all"}
-                        >
-                          @{userProfile.currUser?.username}
-                        </Text>
-                        <Text fontWeight="500" wordBreak={"break-word"}>
-                          {userProfile.currUser?.name}
-                        </Text>
-                      </VStack>
-                    </MenuItem>
-                  </Link>
-                  <MenuDivider />
-                  {menuLinks.map((link, index) => (
-                    <MenuLink key={index} {...link} onClose={onCloseNavModal} />
-                  ))}
-                  <MenuDivider />
+                      ))
+                    : menuLinksPublic.map((link, index) => (
+                        <MenuLink
+                          key={index}
+                          {...link}
+                          onClose={onCloseNavModal}
+                        />
+                      ))}
+
+                  {isUserAuthenticated && <MenuDivider />}
+
                   <MenuItem
                     onClick={toggleColorMode}
                     _hover={{
@@ -351,26 +466,30 @@ const Navbar = () => {
                       </Text>
                     </HStack>
                   </MenuItem>
-                  <Link
-                    as={RouteLink}
-                    to="/"
-                    _hover={{
-                      textDecoration: "none",
-                    }}
-                    onClick={() => handleSignOutClick()}
-                  >
-                    <MenuItem
+
+                  {isUserAuthenticated && (
+                    <Link
+                      as={RouteLink}
+                      to="/"
                       _hover={{
-                        color: "blue.400",
-                        bg: useColorModeValue("gray.200", "gray.600"),
+                        textDecoration: "none",
                       }}
+                      onClick={() => handleSignOutClick()}
                     >
-                      <HStack>
-                        <Icon as={FaRightFromBracket} size={17} />
-                        <Text>Sign Out</Text>
-                      </HStack>
-                    </MenuItem>
-                  </Link>
+                      <MenuItem
+                        _hover={{
+                          color: "blue.400",
+                          bg: "gray.200",
+                          _dark: { bg: "gray.600" },
+                        }}
+                      >
+                        <HStack>
+                          <Icon as={FaRightFromBracket} size={17} />
+                          <Text>Sign Out</Text>
+                        </HStack>
+                      </MenuItem>
+                    </Link>
+                  )}
                 </MenuList>
               </Menu>
             </HStack>
@@ -388,13 +507,21 @@ const Navbar = () => {
             }
           >
             <Stack as="nav" spacing={2}>
-              {mobileNavLinks.map((link, index) => (
-                <MobileNavLink
-                  key={index}
-                  {...link}
-                  onClose={onCloseNavModal}
-                />
-              ))}
+              {isUserAuthenticated
+                ? mobileNavLinks.map((link, index) => (
+                    <MobileNavLink
+                      key={index}
+                      {...link}
+                      onClose={onCloseNavModal}
+                    />
+                  ))
+                : mobileNavLinksPublic.map((link, index) => (
+                    <MobileNavLink
+                      key={index}
+                      {...link}
+                      onClose={onCloseNavModal}
+                    />
+                  ))}
             </Stack>
           </Box>
         ) : null}

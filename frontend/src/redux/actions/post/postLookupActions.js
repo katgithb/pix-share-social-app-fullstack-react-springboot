@@ -1,5 +1,6 @@
 import {
   findAllPostsByUserIdsRequest,
+  findAllPostsPublicRequest,
   findAllPostsRequest,
   findPostByIdRequest,
   findPostsByUserIdRequest,
@@ -35,7 +36,7 @@ export const findPostsByUserIdAction = (data) => async (dispatch) => {
 };
 
 export const findPostByIdAction = (data) => async (dispatch) => {
-  dispatch(findPostByIdPending());
+  dispatch(findPostByIdPending(data.postId));
 
   findPostByIdRequest(data)
     .then((response) => {
@@ -43,11 +44,16 @@ export const findPostByIdAction = (data) => async (dispatch) => {
 
       console.log("Post by Id: ", post);
 
-      dispatch(findPostById(post));
+      dispatch(
+        findPostById({
+          postId: post?.id,
+          post,
+        })
+      );
     })
     .catch((error) => {
       console.log(error);
-      dispatch(findPostByIdFailure());
+      dispatch(findPostByIdFailure(data.postId));
     });
 };
 
@@ -72,6 +78,23 @@ export const findAllPostsAction = (data) => async (dispatch) => {
   dispatch(findAllPostsPending());
 
   findAllPostsRequest(data)
+    .then((response) => {
+      const posts = response.data;
+
+      console.log("All Posts: ", posts);
+
+      dispatch(findAllPosts(posts));
+    })
+    .catch((error) => {
+      console.log(error);
+      dispatch(postLookupFailure());
+    });
+};
+
+export const findAllPostsPublicAction = (data) => async (dispatch) => {
+  dispatch(findAllPostsPending());
+
+  findAllPostsPublicRequest(data)
     .then((response) => {
       const posts = response.data;
 

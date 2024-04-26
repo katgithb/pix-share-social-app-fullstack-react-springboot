@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import PagePreloader from "../components/shared/PagePreloader";
+import MainLayout from "../layouts/MainLayout";
+import PublicLanding from "../pages/PublicLanding";
 import { checkAuthState } from "../redux/actions/auth/authActions";
 import { fetchUserProfileAction } from "../redux/actions/user/userProfileActions";
 
@@ -49,10 +51,17 @@ const ProtectedRoute = () => {
   console.log("Authenticated: ", isAuthenticated);
   console.log("Authenticated User: ", userProfile.currUser);
 
-  return isAuthenticated && userProfile.currUser ? (
-    <Outlet />
+  if (isAuthenticated && userProfile.currUser) {
+    return <Outlet />; // Render protected child components
+  }
+
+  return location.pathname === "/" ? (
+    <MainLayout>
+      {/* Render PublicLanding page on "/" for unauthenticated */}
+      <PublicLanding />
+    </MainLayout>
   ) : (
-    <Navigate to="/login" />
+    <Navigate to="/login" /> // Redirect to Login on other routes
   );
 };
 

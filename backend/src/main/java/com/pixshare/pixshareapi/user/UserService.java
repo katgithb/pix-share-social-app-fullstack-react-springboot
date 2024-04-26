@@ -48,4 +48,6 @@ public interface UserService {
 
     List<UserDTO> findPopularUsers(Long userId) throws ResourceNotFoundException;
 
+    List<UserDTO> findPopularUsersPublic();
+
 }

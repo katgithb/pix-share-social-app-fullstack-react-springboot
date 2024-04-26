@@ -84,6 +84,14 @@ public class PostController {
         return new ResponseEntity<>(postResponse, HttpStatus.OK);
     }
 
+    @GetMapping("/public/all")
+    public ResponseEntity<PagedResponse<PostDTO>> findAllPostsPublic(
+            @ModelAttribute PageRequestDTO pageRequest) {
+        PagedResponse<PostDTO> postResponse = postService.findAllPostsPublic(pageRequest);
+
+        return new ResponseEntity<>(postResponse, HttpStatus.OK);
+    }
+
     @DeleteMapping("/delete/{postId}")
     public void deletePost(
             @PathVariable("postId") Long postId,
