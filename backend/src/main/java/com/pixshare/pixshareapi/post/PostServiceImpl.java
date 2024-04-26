@@ -107,7 +107,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
         PostDTO post = findPostById(postId, userId);
-        UserDTO user = userService.findUserById(userId, userId);
+        UserSummaryDTO user = userService.findUserById(userId, userId);
         Long postUserId = post.getUser().getId();
 
         if (!postUserId.equals(user.getId())) {

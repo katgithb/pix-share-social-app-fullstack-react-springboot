@@ -31,64 +31,64 @@ public class UserController {
     }
 
     @GetMapping("/id/{userId}")
-    public ResponseEntity<UserDTO> findUserById(
+    public ResponseEntity<UserSummaryDTO> findUserById(
             @PathVariable("userId") Long userId,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        UserDTO user = userService.findUserById(identity.getId(), userId);
+        UserSummaryDTO user = userService.findUserById(identity.getId(), userId);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @GetMapping("/username/{username}")
-    public ResponseEntity<UserDTO> findUserByUsername(
+    public ResponseEntity<UserSummaryDTO> findUserByUsername(
             @PathVariable("username") String username,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        UserDTO user = userService.findUserByUsername(identity.getId(), username);
+        UserSummaryDTO user = userService.findUserByUsername(identity.getId(), username);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @GetMapping("/m/{userIds}")
-    public ResponseEntity<List<UserDTO>> findUserByIds(
+    public ResponseEntity<List<UserSummaryDTO>> findUserByIds(
             @PathVariable("userIds") List<Long> userIds,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        List<UserDTO> users = userService.findUserByIds(identity.getId(), userIds);
+        List<UserSummaryDTO> users = userService.findUserByIds(identity.getId(), userIds);
 
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
     // /search?q=query
     @GetMapping("/search")
-    public ResponseEntity<PagedResponse<UserDTO>> searchUser(
+    public ResponseEntity<PagedResponse<UserSummaryDTO>> searchUser(
             @RequestParam("q") String query,
             @ModelAttribute PageRequestDTO pageRequest,
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        PagedResponse<UserDTO> userResponse = userService.searchUser(identity.getId(), query, pageRequest);
+        PagedResponse<UserSummaryDTO> userResponse = userService.searchUser(identity.getId(), query, pageRequest);
 
         return new ResponseEntity<>(userResponse, HttpStatus.OK);
     }
 
     @GetMapping("/popular")
-    public ResponseEntity<List<UserDTO>> findPopularUsers(
+    public ResponseEntity<List<UserSummaryDTO>> findPopularUsers(
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        List<UserDTO> users = userService.findPopularUsers(identity.getId());
+        List<UserSummaryDTO> users = userService.findPopularUsers(identity.getId());
 
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
     @GetMapping("/public/popular")
-    public ResponseEntity<List<UserDTO>> findPopularUsersPublic() {
-        List<UserDTO> users = userService.findPopularUsersPublic();
+    public ResponseEntity<List<UserSummaryDTO>> findPopularUsersPublic() {
+        List<UserSummaryDTO> users = userService.findPopularUsersPublic();
 
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
@@ -122,7 +122,7 @@ public class UserController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        UserDTO user = userService.findUserById(identity.getId(), identity.getId());
+        UserDTO user = userService.findUserProfile(identity.getId());
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }

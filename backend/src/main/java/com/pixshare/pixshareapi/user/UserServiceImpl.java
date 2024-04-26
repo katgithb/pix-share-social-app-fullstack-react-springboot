@@ -1,10 +1,7 @@
 package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.comment.CommentRepository;
-import com.pixshare.pixshareapi.dto.PageRequestDTO;
-import com.pixshare.pixshareapi.dto.PagedResponse;
-import com.pixshare.pixshareapi.dto.UserDTO;
-import com.pixshare.pixshareapi.dto.UserDTOMapper;
+import com.pixshare.pixshareapi.dto.*;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
@@ -54,9 +51,11 @@ public class UserServiceImpl implements UserService {
 
     private final UserDTOMapper userDTOMapper;
 
+    private final UserSummaryDTOMapper userSummaryDTOMapper;
+
     public UserServiceImpl(UserRepository userRepository, PostRepository postRepository, CommentRepository commentRepository,
                            StoryRepository storyRepository, StoryService storyService, UploadService uploadService, ImageUtil imageUtil,
-                           PasswordEncoder passwordEncoder, ValidationUtil validationUtil, UserDTOMapper userDTOMapper) {
+                           PasswordEncoder passwordEncoder, ValidationUtil validationUtil, UserDTOMapper userDTOMapper, UserSummaryDTOMapper userSummaryDTOMapper) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
@@ -67,6 +66,7 @@ public class UserServiceImpl implements UserService {
         this.passwordEncoder = passwordEncoder;
         this.validationUtil = validationUtil;
         this.userDTOMapper = userDTOMapper;
+        this.userSummaryDTOMapper = userSummaryDTOMapper;
     }
 
     @Override
@@ -235,9 +235,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO findUserById(Long authUserId, Long userId) throws ResourceNotFoundException {
+    public UserSummaryDTO findUserById(Long authUserId, Long userId) throws ResourceNotFoundException {
         return userRepository.findById(userId)
-                .map(userDTOMapper)
+                .map(userSummaryDTOMapper)
                 .map(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
                             userRepository.isFollowedByUser(userDTO.getId(), authUserId)
@@ -251,9 +251,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO findUserByEmail(Long authUserId, String email) throws ResourceNotFoundException {
-        UserDTO user = userRepository.findByEmail(email)
-                .map(userDTOMapper)
+    public UserSummaryDTO findUserByEmail(Long authUserId, String email) throws ResourceNotFoundException {
+        UserSummaryDTO user = userRepository.findByEmail(email)
+                .map(userSummaryDTOMapper)
                 .map(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
                             userRepository.isFollowedByUser(userDTO.getId(), authUserId)
@@ -269,9 +269,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO findUserByUsername(Long authUserId, String username) throws ResourceNotFoundException {
-        UserDTO user = userRepository.findByUserHandleName(username)
-                .map(userDTOMapper)
+    public UserSummaryDTO findUserByUsername(Long authUserId, String username) throws ResourceNotFoundException {
+        UserSummaryDTO user = userRepository.findByUserHandleName(username)
+                .map(userSummaryDTOMapper)
                 .map(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
                             userRepository.isFollowedByUser(userDTO.getId(), authUserId)
@@ -282,6 +282,21 @@ public class UserServiceImpl implements UserService {
                     return userDTO;
                 })
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        return user;
+    }
+
+    @Override
+    public UserDTO findUserProfile(Long authUserId) throws ResourceNotFoundException {
+        UserDTO user = userRepository.findById(authUserId)
+                .map(userDTOMapper)
+                .map(userDTO -> {
+                    userDTO.setStories(
+                            storyService.findStoriesByUserId(userDTO.getId())
+                    );
+                    return userDTO;
+                })
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(authUserId)));
 
         return user;
     }
@@ -326,9 +341,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> findUserByIds(Long authUserId, List<Long> userIds) throws ResourceNotFoundException {
-        List<UserDTO> users = userRepository.findAllUsersByUserIds(userIds).stream()
-                .map(userDTOMapper)
+    public List<UserSummaryDTO> findUserByIds(Long authUserId, List<Long> userIds) throws ResourceNotFoundException {
+        List<UserSummaryDTO> users = userRepository.findAllUsersByUserIds(userIds).stream()
+                .map(userSummaryDTOMapper)
                 .peek(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
                             userRepository.isFollowedByUser(userDTO.getId(), authUserId)
@@ -347,15 +362,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public PagedResponse<UserDTO> searchUser(Long userId, String searchQuery, PageRequestDTO pageRequest) {
+    public PagedResponse<UserSummaryDTO> searchUser(Long userId, String searchQuery, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
         Page<User> pagedUsers = userRepository.findByQuery(userId, searchQuery, pageable);
 
         // get users content from Page
-        List<UserDTO> content = pagedUsers.getContent()
+        List<UserSummaryDTO> content = pagedUsers.getContent()
                 .stream()
-                .map(userDTOMapper)
+                .map(userSummaryDTOMapper)
                 .peek(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
                             userRepository.isFollowedByUser(userDTO.getId(), userId)
@@ -376,11 +391,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> findPopularUsers(Long userId) throws ResourceNotFoundException {
+    public List<UserSummaryDTO> findPopularUsers(Long userId) throws ResourceNotFoundException {
         User reqUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        List<UserDTO> users = userRepository.findPopularUsers(reqUser.getId()).stream()
-                .map(userDTOMapper)
+        List<UserSummaryDTO> users = userRepository.findPopularUsers(reqUser.getId()).stream()
+                .map(userSummaryDTOMapper)
                 .peek(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
                             userRepository.isFollowedByUser(userDTO.getId(), reqUser.getId())
@@ -395,9 +410,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDTO> findPopularUsersPublic() {
-        List<UserDTO> users = userRepository.findPopularUsers(null).stream()
-                .map(userDTOMapper)
+    public List<UserSummaryDTO> findPopularUsersPublic() {
+        List<UserSummaryDTO> users = userRepository.findPopularUsers(null).stream()
+                .map(userSummaryDTOMapper)
                 .toList();
 
         return users;

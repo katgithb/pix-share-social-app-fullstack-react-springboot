@@ -2,7 +2,7 @@ package com.pixshare.pixshareapi.comment;
 
 import com.pixshare.pixshareapi.dto.CommentDTO;
 import com.pixshare.pixshareapi.dto.CommentDTOMapper;
-import com.pixshare.pixshareapi.dto.UserDTO;
+import com.pixshare.pixshareapi.dto.UserSummaryDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.post.Post;
@@ -69,7 +69,7 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public void deleteComment(Long commentId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
         CommentDTO comment = findCommentById(commentId, userId);
-        UserDTO user = userService.findUserById(userId, userId);
+        UserSummaryDTO user = userService.findUserById(userId, userId);
 
         if (!comment.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedActionException("You can't delete other user's comment");

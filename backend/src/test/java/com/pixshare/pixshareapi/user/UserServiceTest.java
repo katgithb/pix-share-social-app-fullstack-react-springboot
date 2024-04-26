@@ -42,9 +42,9 @@ import static org.mockito.Mockito.*;
 class UserServiceTest {
 
     private final UserViewMapper userViewMapper = new UserViewMapper();
-    //    private final PostDTOMapper postDTOMapper = new PostDTOMapper(userViewMapper);
     private final PostViewMapper postViewMapper = new PostViewMapper(userViewMapper);
     private final UserDTOMapper userDTOMapper = new UserDTOMapper(userViewMapper, postViewMapper);
+    private final UserSummaryDTOMapper userSummaryDTOMapper = new UserSummaryDTOMapper(userViewMapper);
     private UserService userService;
 
     @Mock
@@ -68,7 +68,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, storyService, uploadService, imageUtil, passwordEncoder, validationUtil, userDTOMapper);
+        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, storyService, uploadService, imageUtil, passwordEncoder, validationUtil, userDTOMapper, userSummaryDTOMapper);
     }
 
 
@@ -907,16 +907,16 @@ class UserServiceTest {
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image123", "image.jpg");
-        UserDTO expectedUserDTO = new UserDTO(
-                userId, "john.doe", "john.doe@example.com", "John Doe",
-                "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image123", "image.jpg", new LinkedHashSet<>(),
-                new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"));
+        UserSummaryDTO expectedUserDTO = new UserSummaryDTO(
+                userId, "john.doe", "John Doe",
+                "www.example.com", "Bio",
+                "image123", "image.jpg", new LinkedHashSet<>(),
+                new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"));
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // When
-        UserDTO actualUserDTO = userService.findUserById(authUserId, userId);
+        UserSummaryDTO actualUserDTO = userService.findUserById(authUserId, userId);
 
         // Then
         assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
@@ -949,16 +949,16 @@ class UserServiceTest {
         User user = new User("john_doe", email,
                 "password", "John Doe", Gender.MALE);
         user.setId(1L);
-        UserDTO expectedUserDTO = new UserDTO(
-                1L, "john_doe", email, "John Doe",
-                null, null, null,
-                Gender.MALE, null, null, new LinkedHashSet<>(),
-                new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), new ArrayList<String>(List.of("ROLE_USER")));
+        UserSummaryDTO expectedUserDTO = new UserSummaryDTO(
+                1L, "john_doe", "John Doe",
+                null, null,
+                null, null, new LinkedHashSet<>(),
+                new LinkedHashSet<>(), false, new ArrayList<>(), new ArrayList<String>(List.of("ROLE_USER")));
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
         // When
-        UserDTO actualUserDTO = userService.findUserByEmail(authUserId, email);
+        UserSummaryDTO actualUserDTO = userService.findUserByEmail(authUserId, email);
 
         // Then
         assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
@@ -991,21 +991,63 @@ class UserServiceTest {
         User user = new User(username, "john.doe@example.com",
                 "password", "John Doe", Gender.MALE);
         user.setId(1L);
-        UserDTO expectedUserDTO = new UserDTO(
-                1L, username, "john.doe@example.com", "John Doe",
-                null, null, null,
-                Gender.MALE, null, null, new LinkedHashSet<>(),
-                new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), new ArrayList<String>(List.of("ROLE_USER")));
+        UserSummaryDTO expectedUserDTO = new UserSummaryDTO(
+                1L, username, "John Doe",
+                null, null,
+                null, null, new LinkedHashSet<>(),
+                new LinkedHashSet<>(), false, new ArrayList<>(), new ArrayList<String>(List.of("ROLE_USER")));
 
         when(userRepository.findByUserHandleName(username)).thenReturn(Optional.of(user));
 
         // When
-        UserDTO actualUserDTO = userService.findUserByUsername(authUserId, username);
+        UserSummaryDTO actualUserDTO = userService.findUserByUsername(authUserId, username);
 
         // Then
         assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
         verify(userRepository, times(1)).findByUserHandleName(username);
     }
+
+    @Test
+    @DisplayName("Should throw a ResourceNotFoundException when the user ID is not found")
+    void findUserProfileWhenUserIdNotFoundThenThrowException() {
+        // Given
+        Long authUserId = 2L;
+        when(userRepository.findById(authUserId)).thenReturn(Optional.empty());
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.findUserProfile(authUserId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User with id [%s] not found".formatted(authUserId));
+
+        verify(userRepository, times(1)).findById(authUserId);
+    }
+
+    @Test
+    @DisplayName("Should return the user when the user ID is valid")
+    void findUserProfileWhenUserIdIsValid() {
+        // Given
+        Long authUserId = 2L;
+        User user = new User(
+                authUserId, "john.doe", "john.doe@example.com", "password", "John Doe",
+                "1234567890", "www.example.com", "Bio",
+                Gender.MALE, "image123", "image.jpg");
+        UserDTO expectedUserDTO = new UserDTO(
+                authUserId, "john.doe", "john.doe@example.com", "John Doe", "1234567890",
+                "www.example.com", "Bio", Gender.MALE,
+                "image123", "image.jpg", new LinkedHashSet<>(),
+                new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"));
+
+        when(userRepository.findById(authUserId)).thenReturn(Optional.of(user));
+
+        // When
+        UserDTO actualUserDTO = userService.findUserProfile(authUserId);
+
+        // Then
+        assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
+        verify(userRepository, times(1)).findById(authUserId);
+    }
+
 
     @Test
     @DisplayName("Should throw ResourceNotFoundException when the user to be followed is not found")
@@ -1253,22 +1295,22 @@ class UserServiceTest {
                 new User(3L, "user3", "user3@example.com", "password3", "User 3", null, null, null,
                         Gender.OTHER, null, null)
         );
-        List<UserDTO> expectedUsers = List.of(
-                new UserDTO(1L, "user1", "user1@example.com", "User 1", null, null, null,
-                        Gender.MALE, null, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
-                new UserDTO(2L, "user2", "user2@example.com", "User 2", null, null, null,
-                        Gender.FEMALE, null, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
-                new UserDTO(3L, "user3", "user3@example.com", "User 3", null, null, null,
-                        Gender.OTHER, null, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
+        List<UserSummaryDTO> expectedUsers = List.of(
+                new UserSummaryDTO(1L, "user1", "User 1", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER")),
+                new UserSummaryDTO(2L, "user2", "User 2", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER")),
+                new UserSummaryDTO(3L, "user3", "User 3", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"))
         );
 
         when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(users);
 
         // When
-        List<UserDTO> actualUsers = userService.findUserByIds(authUserId, userIds);
+        List<UserSummaryDTO> actualUsers = userService.findUserByIds(authUserId, userIds);
 
         // Then
         assertThat(actualUsers).isEqualTo(expectedUsers);
@@ -1289,33 +1331,29 @@ class UserServiceTest {
                 new User(2L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
                         Gender.MALE, null, null)
         );
-        List<UserDTO> expectedUsers = List.of(
-                new UserDTO(1L, "john.doe", "john.doe@example.com", "John Doe", null, null, null,
-                        Gender.MALE, null, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
-                new UserDTO(2L, "john.smith", "john.smith@example.com", "John Smith", null, null, null,
-                        Gender.MALE, null, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
+        List<UserSummaryDTO> expectedUsers = List.of(
+                new UserSummaryDTO(1L, "john.doe", "John Doe", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER")),
+                new UserSummaryDTO(2L, "john.smith", "John Smith", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"))
         );
         Page<User> usersPage = new PageImpl<>(users, pageRequest.toPageable(), users.size());
 
         when(userRepository.findByQuery(authUserId, searchQuery, pageRequest.toPageable())).thenReturn(usersPage);
 
         // When
-        PagedResponse<UserDTO> actualUsersPage = userService.searchUser(authUserId, searchQuery, pageRequest);
+        PagedResponse<UserSummaryDTO> actualUsersPage = userService.searchUser(authUserId, searchQuery, pageRequest);
 
         // Then
         assertThat(actualUsersPage.content().size()).isEqualTo(2);
 
         assertThat(actualUsersPage.content().get(0).getUsername()).isEqualTo(expectedUsers.get(0).getUsername());
-        assertThat(actualUsersPage.content().get(0).getEmail()).isEqualTo(expectedUsers.get(0).getEmail());
         assertThat(actualUsersPage.content().get(0).getName()).isEqualTo(expectedUsers.get(0).getName());
-        assertThat(actualUsersPage.content().get(0).getGender()).isEqualTo(expectedUsers.get(0).getGender());
 
         assertThat(actualUsersPage.content().get(1).getUsername()).isEqualTo(expectedUsers.get(1).getUsername());
-        assertThat(actualUsersPage.content().get(1).getEmail()).isEqualTo(expectedUsers.get(1).getEmail());
         assertThat(actualUsersPage.content().get(1).getName()).isEqualTo(expectedUsers.get(1).getName());
-        assertThat(actualUsersPage.content().get(1).getGender()).isEqualTo(expectedUsers.get(1).getGender());
     }
 
     @Test
@@ -1350,20 +1388,20 @@ class UserServiceTest {
                 new User(3L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
                         Gender.MALE, null, null)
         );
-        List<UserDTO> expectedPopularUsers = List.of(
-                new UserDTO(2L, "john.doe", "john.doe@example.com", "John Doe", null, null, null,
-                        Gender.MALE, null, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER")),
-                new UserDTO(3L, "john.smith", "john.smith@example.com", "John Smith", null, null, null,
-                        Gender.MALE, null, null, new LinkedHashSet<>(),
-                        new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"))
+        List<UserSummaryDTO> expectedPopularUsers = List.of(
+                new UserSummaryDTO(2L, "john.doe", "John Doe", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER")),
+                new UserSummaryDTO(3L, "john.smith", "John Smith", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"))
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.findPopularUsers(userId)).thenReturn(popularUsers);
 
         // When
-        List<UserDTO> actualPopularUsers = userService.findPopularUsers(userId);
+        List<UserSummaryDTO> actualPopularUsers = userService.findPopularUsers(userId);
 
         // Then
         assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
@@ -1372,6 +1410,58 @@ class UserServiceTest {
         verify(userRepository, times(1)).findPopularUsers(userId);
         assertThat(actualPopularUsers.get(0).getUsername()).isEqualTo(expectedPopularUsers.get(0).getUsername());
         assertThat(actualPopularUsers.get(1).getUsername()).isEqualTo(expectedPopularUsers.get(1).getUsername());
+    }
+
+    @Test
+    @DisplayName("Should return an empty list when no users exist")
+    void findPopularUsersPublicWhenUsersDoNotExist() {
+        // Given
+        when(userRepository.findPopularUsers(null)).thenReturn(new ArrayList<>());
+
+        // When
+        List<UserSummaryDTO> actualPopularUsers = userService.findPopularUsersPublic();
+
+        // Then
+        assertThat(actualPopularUsers.isEmpty()).isTrue();
+        verify(userRepository, times(1)).findPopularUsers(null);
+    }
+
+    @Test
+    @DisplayName("Should return a list of popular users without excluding any user when users exist")
+    void findPopularUsersPublicWhenUsersExist() {
+        // Given
+        List<User> popularUsers = List.of(
+                new User(1L, "will.smith", "will.smith@example.com", "password", "Will Smith", null, null, null,
+                        Gender.MALE, null, null),
+                new User(2L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
+                        Gender.MALE, null, null),
+                new User(3L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
+                        Gender.MALE, null, null)
+        );
+        List<UserSummaryDTO> expectedPopularUsers = List.of(
+                new UserSummaryDTO(1L, "will.smith", "Will Smith", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER")),
+                new UserSummaryDTO(2L, "john.doe", "John Doe", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER")),
+                new UserSummaryDTO(3L, "john.smith", "John Smith", null, null,
+                        null, null, new LinkedHashSet<>(),
+                        new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"))
+        );
+
+        when(userRepository.findPopularUsers(null)).thenReturn(popularUsers);
+
+        // When
+        List<UserSummaryDTO> actualPopularUsers = userService.findPopularUsersPublic();
+
+        // Then
+        assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
+
+        verify(userRepository, times(1)).findPopularUsers(null);
+        assertThat(actualPopularUsers.get(0).getUsername()).isEqualTo(expectedPopularUsers.get(0).getUsername());
+        assertThat(actualPopularUsers.get(1).getUsername()).isEqualTo(expectedPopularUsers.get(1).getUsername());
+        assertThat(actualPopularUsers.get(2).getUsername()).isEqualTo(expectedPopularUsers.get(2).getUsername());
     }
 
 }
