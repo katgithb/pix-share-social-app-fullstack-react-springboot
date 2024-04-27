@@ -2,7 +2,7 @@ package com.pixshare.pixshareapi.dto;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,6 +14,6 @@ public class StoryDTO {
     private String imageUploadId;
     private String image;
     private String caption;
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
     private UserView user;
 }

@@ -2,7 +2,7 @@ package com.pixshare.pixshareapi.dto;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -17,7 +17,7 @@ public class PostDTO {
     private String imageUploadId;
     private String image;
     private String location;
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
     private UserView user;
     private List<CommentDTO> comments;
     private Set<UserView> likedByUsers;

@@ -7,7 +7,8 @@ export const getDayjsInstance = (customLocale = null) => {
   const locale = customLocale
     ? customLocale
     : RelativeTimeLocale.DEFAULT_LOCALE;
-  return dayjs().locale("en", locale);
+
+  return dayjs.utc().locale("en", locale);
 };
 
 // Format given number in a human-readable representation using numbro

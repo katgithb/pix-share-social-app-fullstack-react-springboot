@@ -15,7 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Service
@@ -51,7 +51,7 @@ public class CommentServiceImpl implements CommentService {
 
         Comment comment = new Comment(
                 commentRequest.content(),
-                LocalDateTime.now(),
+                ZonedDateTime.now(),
                 user,
                 post);
 

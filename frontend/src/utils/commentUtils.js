@@ -1,9 +1,9 @@
 import { RelativeTimeLocale } from "./constants/relativeTimeLocales";
-import { getElapsedTimeInSeconds, getRelativeTime } from "./timeUtils";
+import { getElapsedTimeInSecondsUtc, getRelativeTime } from "./timeUtils";
 
 export const getRelativeCommentTime = (commentTimestamp) => {
   // Calculate the elapsed time between the comment timestamp and the current time
-  const elapsedTime = getElapsedTimeInSeconds(commentTimestamp);
+  const elapsedTime = getElapsedTimeInSecondsUtc(commentTimestamp);
 
   if (elapsedTime < 60) {
     return "just now";

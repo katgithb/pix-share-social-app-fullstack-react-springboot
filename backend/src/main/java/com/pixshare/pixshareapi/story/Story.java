@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Objects;
 
 @AllArgsConstructor
@@ -38,14 +38,14 @@ public class Story {
     @NonNull
     @PastOrPresent
     @Column(name = "timestamp", nullable = false)
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 
     @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    public Story(String imageUploadId, String image, String caption, LocalDateTime timestamp, User user) {
+    public Story(String imageUploadId, String image, String caption, ZonedDateTime timestamp, User user) {
         this.imageUploadId = imageUploadId;
         this.image = image;
         this.caption = caption;

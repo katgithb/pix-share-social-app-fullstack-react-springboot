@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -43,7 +43,7 @@ public class Post {
     @NonNull
     @PastOrPresent
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
@@ -64,7 +64,7 @@ public class Post {
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<User> savedByUsers = new LinkedHashSet<>();
 
-    public Post(String caption, @NonNull String imageUploadId, @NonNull String image, String location, @NonNull LocalDateTime createdAt, @NonNull User user) {
+    public Post(String caption, @NonNull String imageUploadId, @NonNull String image, String location, @NonNull ZonedDateTime createdAt, @NonNull User user) {
         this.caption = caption;
         this.imageUploadId = imageUploadId;
         this.image = image;

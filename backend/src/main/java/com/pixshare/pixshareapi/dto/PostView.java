@@ -2,7 +2,7 @@ package com.pixshare.pixshareapi.dto;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,6 +14,6 @@ public class PostView {
     private String caption;
     private String image;
     private String location;
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
     private UserView user;
 }
