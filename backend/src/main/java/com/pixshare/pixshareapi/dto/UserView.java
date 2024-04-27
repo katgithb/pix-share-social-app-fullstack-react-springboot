@@ -10,7 +10,6 @@ import lombok.*;
 public class UserView {
     private Long id;
     private String username;
-    private String email;
     private String name;
     private String userImage;
 }

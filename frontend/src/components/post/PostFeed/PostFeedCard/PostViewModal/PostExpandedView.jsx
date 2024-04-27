@@ -34,6 +34,7 @@ import { RxTimer } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
 import { Virtuoso } from "react-virtuoso";
 import * as Yup from "yup";
+import useIsUserAuthenticated from "../../../../../hooks/useIsUserAuthenticated";
 import useTruncateText from "../../../../../hooks/useTruncateText";
 import { createCommentAction } from "../../../../../redux/actions/comment/commentManagementActions";
 import {
@@ -50,6 +51,7 @@ import {
 } from "../../../../../redux/reducers/post/postSocialSlice";
 import { getHumanReadableNumberFormat } from "../../../../../utils/commonUtils";
 import { getRelativePostTime } from "../../../../../utils/postUtils";
+import { infoToastNotification } from "../../../../../utils/toastNotification";
 import PostCommentCard from "../../../../comment/PostCommentCard/PostCommentCard";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
 import CustomCommentTextInput from "../../../../shared/customFormElements/CustomCommentTextInput";
@@ -77,6 +79,7 @@ const PostExpandedView = ({
   });
 
   const dispatch = useDispatch();
+  const isUserAuthenticated = useIsUserAuthenticated();
   const postSocial = useSelector((store) => store.post.postSocial);
   const commentManagement = useSelector(
     (store) => store.comment.commentManagement
@@ -113,6 +116,13 @@ const PostExpandedView = ({
 
   const handleModalClose = () => {
     onClose();
+  };
+
+  const handleInformUserFeatureRequiresAuth = () => {
+    infoToastNotification(
+      <p>Sign Up or Login to access this feature</p>,
+      "This feature is available for registered users only!"
+    );
   };
 
   const handleCommentFormSubmission = (values, { setSubmitting }) => {
@@ -245,10 +255,14 @@ const PostExpandedView = ({
       () => (
         <PostCommentCard
           key={comment?.id}
+          isUserAuthenticated={isUserAuthenticated}
           currUser={currUser}
           postId={post?.id}
           comment={comment}
           changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
+          handleInformUserFeatureRequiresAuth={
+            handleInformUserFeatureRequiresAuth
+          }
           showRelativeTime={true}
         />
       ),

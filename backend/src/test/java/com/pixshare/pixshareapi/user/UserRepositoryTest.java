@@ -261,8 +261,20 @@ class UserRepositoryTest extends AbstractTestcontainers {
     }
 
     @Test
-    @DisplayName("Should return an empty list when the user does not exist by given id")
-    void findPopularUsersWhenUserDoesNotExist() {
+    @DisplayName("Should return an empty list when no other users exist and the given user id is null")
+    void findPopularUsersWhenNoOtherUsersExistAndGivenUserIdIsNull() {
+        // Given
+
+        // When
+        List<User> actualPopularUsers = userRepository.findPopularUsers(null);
+
+        // Then
+        assertThat(actualPopularUsers.isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should return an empty list when no other users exist besides the user with given id")
+    void findPopularUsersWhenNoOtherUsersExistAndGivenUserIdIsNotNull() {
         // Given
         Long userId = 1L;
 
@@ -273,9 +285,31 @@ class UserRepositoryTest extends AbstractTestcontainers {
         assertThat(actualPopularUsers.isEmpty()).isTrue();
     }
 
+
     @Test
-    @DisplayName("Should return a list of popular users when the user exists by given id")
-    void findPopularUsersWhenUserExists() {
+    @DisplayName("Should return a list of popular users without excluding any user when the given user id is null")
+    void findPopularUsersWhenGivenUserIdIsNull() {
+        // Given
+        List<User> expectedPopularUsers = List.of(
+                new User(username, email, password, name, Gender.MALE),
+                new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE),
+                new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE),
+                new User("john_doe2", "john.doe2@example.com", password, "John Doe Jr.", Gender.MALE)
+        );
+
+        userRepository.saveAll(expectedPopularUsers);
+
+        // When
+        List<User> actualPopularUsers = userRepository.findPopularUsers(null);
+
+        // Then
+        assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
+        assertThat(actualPopularUsers).containsExactlyInAnyOrderElementsOf(expectedPopularUsers);
+    }
+
+    @Test
+    @DisplayName("Should return a list of popular users excluding the user with given id when the user exists by given id")
+    void findPopularUsersWhenUserExistsByGivenId() {
         // Given
         User user = new User(username, email, password, name, Gender.MALE);
         List<User> expectedPopularUsers = List.of(
@@ -293,6 +327,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
         // Then
         assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
         assertThat(actualPopularUsers).containsExactlyInAnyOrderElementsOf(expectedPopularUsers);
+        assertThat(actualPopularUsers).doesNotContain(user);
     }
 
     @Test

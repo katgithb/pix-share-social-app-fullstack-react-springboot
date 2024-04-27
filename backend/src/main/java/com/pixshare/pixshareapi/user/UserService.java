@@ -3,6 +3,7 @@ package com.pixshare.pixshareapi.user;
 import com.pixshare.pixshareapi.dto.PageRequestDTO;
 import com.pixshare.pixshareapi.dto.PagedResponse;
 import com.pixshare.pixshareapi.dto.UserDTO;
+import com.pixshare.pixshareapi.dto.UserSummaryDTO;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
@@ -32,22 +33,24 @@ public interface UserService {
 
     void deleteUser(Long userId) throws ResourceNotFoundException;
 
-    UserDTO findUserById(Long authUserId, Long userId) throws ResourceNotFoundException;
+    UserSummaryDTO findUserById(Long authUserId, Long userId) throws ResourceNotFoundException;
 
-    UserDTO findUserByEmail(Long authUserId, String email) throws ResourceNotFoundException;
+    UserSummaryDTO findUserByEmail(Long authUserId, String email) throws ResourceNotFoundException;
 
-    UserDTO findUserByUsername(Long authUserId, String username) throws ResourceNotFoundException;
+    UserSummaryDTO findUserByUsername(Long authUserId, String username) throws ResourceNotFoundException;
+
+    UserDTO findUserProfile(Long authUserId) throws ResourceNotFoundException;
 
     String followUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException, RequestValidationException;
 
     String unfollowUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException, RequestValidationException;
 
-    List<UserDTO> findUserByIds(Long authUserId, List<Long> userIds) throws ResourceNotFoundException;
+    List<UserSummaryDTO> findUserByIds(Long authUserId, List<Long> userIds) throws ResourceNotFoundException;
 
-    PagedResponse<UserDTO> searchUser(Long userId, String searchQuery, PageRequestDTO pageRequest);
+    PagedResponse<UserSummaryDTO> searchUser(Long userId, String searchQuery, PageRequestDTO pageRequest);
 
-    List<UserDTO> findPopularUsers(Long userId) throws ResourceNotFoundException;
+    List<UserSummaryDTO> findPopularUsers(Long userId) throws ResourceNotFoundException;
 
-    List<UserDTO> findPopularUsersPublic();
+    List<UserSummaryDTO> findPopularUsersPublic();
 
 }
