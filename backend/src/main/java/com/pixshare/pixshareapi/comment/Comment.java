@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.Hibernate;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -36,7 +36,7 @@ public class Comment {
     @NonNull
     @PastOrPresent
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     @NonNull
     @ManyToOne(fetch = FetchType.LAZY)
@@ -55,7 +55,7 @@ public class Comment {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-    public Comment(String content, LocalDateTime createdAt, User user, Post post) {
+    public Comment(String content, ZonedDateTime createdAt, User user, Post post) {
         this.content = content;
         this.createdAt = createdAt;
         this.user = user;

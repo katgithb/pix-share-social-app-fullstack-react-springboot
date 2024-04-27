@@ -2,7 +2,7 @@ package com.pixshare.pixshareapi.dto;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -13,7 +13,7 @@ import java.util.Set;
 public class CommentDTO {
     private Long id;
     private String content;
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
     private UserView user;
     private Set<UserView> likedByUsers;
     private Boolean isLikedByAuthUser;
