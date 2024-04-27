@@ -1,8 +1,8 @@
-import { getElapsedTimeInSeconds, getRelativeTime } from "./timeUtils";
+import { getElapsedTimeInSecondsUtc, getRelativeTime } from "./timeUtils";
 
 export const getRelativePostTime = (postTimestamp) => {
   // Calculate the elapsed time between the post timestamp and the current time
-  const elapsedTime = getElapsedTimeInSeconds(postTimestamp);
+  const elapsedTime = getElapsedTimeInSecondsUtc(postTimestamp);
 
   if (elapsedTime < 60) {
     return "just now";
