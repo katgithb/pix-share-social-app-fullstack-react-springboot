@@ -15,6 +15,7 @@ import SuggestionsList from "../components/suggestions/SuggestionsList/Suggestio
 import { findAllPostsAction } from "../redux/actions/post/postLookupActions";
 import { fetchPopularUsersAction } from "../redux/actions/user/userLookupActions";
 import { clearPostManagement } from "../redux/reducers/post/postManagementSlice";
+import { getAuthToken } from "../utils/authUtils";
 import {
   POSTS_DEFAULT_PAGE,
   POSTS_PER_PAGE,
@@ -28,7 +29,7 @@ const Discover = () => {
   const { popularUsers } = useSelector((store) => store.user.userLookup);
   const selectPostLookup = useSelector((store) => store.post.postLookup);
   const postLookup = useMemo(() => selectPostLookup, [selectPostLookup]);
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const [postsPage, setPostsPage] = useState({});
   const prevCurrUserRef = useRef(null);

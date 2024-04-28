@@ -20,12 +20,13 @@ import { GiCancel } from "react-icons/gi";
 import { useDispatch, useSelector } from "react-redux";
 import * as Yup from "yup";
 import { deleteUserProfileAction } from "../../../redux/actions/user/userProfileActions";
+import { getAuthToken } from "../../../utils/authUtils";
 import CustomPasswordInput from "../../shared/customFormElements/CustomPasswordInput";
 
 const AccountDeletionDialog = ({ isOpen, onClose, cancelRef }) => {
   const dispatch = useDispatch();
   const userProfile = useSelector((store) => store.user.userProfile);
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const initialValues = {
     currPassword: "",

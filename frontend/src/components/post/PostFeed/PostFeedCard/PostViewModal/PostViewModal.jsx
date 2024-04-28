@@ -19,6 +19,7 @@ import {
   clearLikedComment,
   clearUnlikedComment,
 } from "../../../../../redux/reducers/comment/commentSocialSlice";
+import { getAuthToken } from "../../../../../utils/authUtils";
 import { infoToastNotification } from "../../../../../utils/toastNotification";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
 import CustomizableModal from "../../../../shared/CustomizableModal";
@@ -39,7 +40,7 @@ const PostViewModal = ({
 
   const dispatch = useDispatch();
   const isUserAuthenticated = useIsUserAuthenticated();
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const changeCommentLikeUpdatesSet = useCallback((commentId) => {
     if (!likeStatusUpdatedCommentsSet.current.has(commentId)) {

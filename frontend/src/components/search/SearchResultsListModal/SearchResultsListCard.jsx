@@ -7,6 +7,7 @@ import {
   followUserAction,
   unfollowUserAction,
 } from "../../../redux/actions/user/userSocialActions";
+import { getAuthToken } from "../../../utils/authUtils";
 import AvatarWithLoader from "../../shared/AvatarWithLoader";
 
 const SearchResultsListCard = ({
@@ -14,7 +15,7 @@ const SearchResultsListCard = ({
   changeUserFollowUpdatesSet = () => {},
 }) => {
   const dispatch = useDispatch();
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const userSocial = useSelector((store) => store.user.userSocial);
 
   const [isFollowedByUser, setIsFollowedByUser] = useState(

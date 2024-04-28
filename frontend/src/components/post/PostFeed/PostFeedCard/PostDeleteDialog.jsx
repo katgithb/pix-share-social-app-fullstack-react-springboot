@@ -10,13 +10,14 @@ import {
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { deletePostAction } from "../../../../redux/actions/post/postManagementActions";
+import { getAuthToken } from "../../../../utils/authUtils";
 
 const PostDeleteDialog = ({ isOpen, onClose, cancelRef, postId = 0 }) => {
   const dispatch = useDispatch();
   const { isDeletingPost, isPostDeleted } = useSelector(
     (store) => store.post.postManagement
   );
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const handlePostDelete = () => {
     if (token) {

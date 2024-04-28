@@ -1,6 +1,11 @@
 import jwtDecode from "jwt-decode";
 import { createUser, login } from "../../../services/api/authService";
 import {
+  getAuthToken,
+  removeAuthToken,
+  setAuthToken,
+} from "../../../utils/authUtils";
+import {
   errorToastNotification,
   successToastNotification,
 } from "../../../utils/toastNotification";
@@ -26,7 +31,7 @@ export const signinAction = (data) => async (dispatch) => {
       console.log("User signin: ", token);
 
       //set JWT token to local storage
-      localStorage.setItem("token", token);
+      setAuthToken(token);
 
       dispatch(signIn({ token }));
 
@@ -81,9 +86,9 @@ export const signupAction = (data) => async (dispatch) => {
 };
 
 export const signoutAction = () => (dispatch) => {
-  console.log("Removing token: ", localStorage.getItem("token"));
+  console.log("Removing token: ", getAuthToken());
   // Clear token from local storage
-  localStorage.removeItem("token");
+  removeAuthToken();
 
   // Clear user state
   dispatch(clearUserProfile());
@@ -97,7 +102,7 @@ export const signoutAction = () => (dispatch) => {
 };
 
 export const checkAuthState = () => (dispatch) => {
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   console.log("token: ", token);
 
   if (!token) {

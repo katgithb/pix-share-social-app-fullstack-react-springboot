@@ -34,7 +34,6 @@ import { RxTimer } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
 import { Virtuoso } from "react-virtuoso";
 import * as Yup from "yup";
-import useIsUserAuthenticated from "../../../../../hooks/useIsUserAuthenticated";
 import useTruncateText from "../../../../../hooks/useTruncateText";
 import { createCommentAction } from "../../../../../redux/actions/comment/commentManagementActions";
 import {
@@ -49,9 +48,9 @@ import {
   clearUnlikedPost,
   clearUnsavedPost,
 } from "../../../../../redux/reducers/post/postSocialSlice";
+import { getAuthToken } from "../../../../../utils/authUtils";
 import { getHumanReadableNumberFormat } from "../../../../../utils/commonUtils";
 import { getRelativePostTime } from "../../../../../utils/postUtils";
-import { infoToastNotification } from "../../../../../utils/toastNotification";
 import PostCommentCard from "../../../../comment/PostCommentCard/PostCommentCard";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
 import CustomCommentTextInput from "../../../../shared/customFormElements/CustomCommentTextInput";
@@ -85,7 +84,7 @@ const PostExpandedView = ({
   const commentManagement = useSelector(
     (store) => store.comment.commentManagement
   );
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const [showImageOverlay, setShowImageOverlay] = useState(true);
   const [relativePostTime, setRelativePostTime] = useState(
     getRelativePostTime(post?.createdAt)

@@ -15,6 +15,7 @@ import {
   clearFollowedUser,
   clearUnfollowedUser,
 } from "../../../redux/reducers/user/userSocialSlice";
+import { getAuthToken } from "../../../utils/authUtils";
 import {
   SEARCH_USERS_DEFAULT_PAGE,
   SEARCH_USERS_PER_PAGE,
@@ -31,7 +32,7 @@ const SearchResultsListModal = ({ isOpen, onClose }) => {
   const followStatusUpdatedUsersSet = useRef(new Set());
 
   const dispatch = useDispatch();
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const { searchUsers: selectSearchUsers } = useSelector(
     (store) => store.user.userLookup
   );

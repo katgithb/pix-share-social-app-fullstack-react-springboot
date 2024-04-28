@@ -13,6 +13,7 @@ import ProfileHeader from "../components/profile/ProfileHeader/ProfileHeader";
 import ProfileSectionTabs from "../components/profile/ProfileSectionTabs/ProfileSectionTabs";
 import useCurrUserProfileCheck from "../hooks/useCurrUserProfileCheck";
 import { clearFindUserByUserName } from "../redux/reducers/user/userLookupSlice";
+import { getAuthToken } from "../utils/authUtils";
 
 const Profile = () => {
   const breakpoint = useBreakpointValue({ base: "base", sm: "sm", md: "md" });
@@ -20,7 +21,7 @@ const Profile = () => {
 
   const { username } = useParams();
   const dispatch = useDispatch();
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const [postsPage, setPostsPage] = useState({});
 
   const userProfile = useSelector((store) => store.user.userProfile);

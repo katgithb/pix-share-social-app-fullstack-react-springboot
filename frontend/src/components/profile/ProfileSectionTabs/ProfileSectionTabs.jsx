@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { findPostsByUserIdAction } from "../../../redux/actions/post/postLookupActions";
 import { findSavedPostsByUserIdAction } from "../../../redux/actions/user/userLookupActions";
 import { clearPostManagement } from "../../../redux/reducers/post/postManagementSlice";
+import { getAuthToken } from "../../../utils/authUtils";
 import {
   POSTS_DEFAULT_PAGE,
   POSTS_PER_PAGE,
@@ -41,7 +42,7 @@ const ProfileSectionTabs = ({
   const tabPanelsMaxHeight = `calc(100vh - 90px)`;
 
   const dispatch = useDispatch();
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const [savedPostsPage, setSavedPostsPage] = useState({});
 
   const { findSavedPostsByUserId: selectSavedPostsByUserId } = useSelector(

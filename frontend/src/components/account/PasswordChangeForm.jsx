@@ -4,6 +4,7 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import * as Yup from "yup";
 import { editUserPasswordAction } from "../../redux/actions/user/userProfileActions";
+import { getAuthToken } from "../../utils/authUtils";
 import CustomPasswordInput from "../shared/customFormElements/CustomPasswordInput";
 
 const PasswordChangeForm = () => {
@@ -39,7 +40,7 @@ const PasswordChangeForm = () => {
 
   const dispatch = useDispatch();
   const userProfile = useSelector((store) => store.user.userProfile);
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const handleFormSubmission = (values, { setSubmitting }) => {
     setSubmitting(true);
