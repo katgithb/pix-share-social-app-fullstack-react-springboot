@@ -13,11 +13,13 @@ import React, { useCallback, useRef, useState } from "react";
 import { BsThreeDots } from "react-icons/bs";
 import { useDispatch } from "react-redux";
 import { Link as RouteLink } from "react-router-dom";
+import useIsUserAuthenticated from "../../../../../hooks/useIsUserAuthenticated";
 import { findPostByIdAction } from "../../../../../redux/actions/post/postLookupActions";
 import {
   clearLikedComment,
   clearUnlikedComment,
 } from "../../../../../redux/reducers/comment/commentSocialSlice";
+import { infoToastNotification } from "../../../../../utils/toastNotification";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
 import CustomizableModal from "../../../../shared/CustomizableModal";
 import PostActionsMenu from "../PostActionsMenu";
@@ -36,6 +38,7 @@ const PostViewModal = ({
   const likeStatusUpdatedCommentsSet = useRef(new Set());
 
   const dispatch = useDispatch();
+  const isUserAuthenticated = useIsUserAuthenticated();
   const token = localStorage.getItem("token");
 
   const changeCommentLikeUpdatesSet = useCallback((commentId) => {
@@ -83,6 +86,13 @@ const PostViewModal = ({
     onClose();
   };
 
+  const handleInformUserFeatureRequiresAuth = () => {
+    infoToastNotification(
+      <p>Sign Up or Login to access this feature</p>,
+      "This feature is available for registered users only!"
+    );
+  };
+
   return (
     <CustomizableModal
       isOpen={isOpen}
@@ -91,8 +101,12 @@ const PostViewModal = ({
       header={
         isImageExpanded ? null : (
           <HeaderContent
+            isUserAuthenticated={isUserAuthenticated}
             currUser={currUser}
             post={post}
+            handleInformUserFeatureRequiresAuth={
+              handleInformUserFeatureRequiresAuth
+            }
             handleModalClose={handleModalClose}
           />
         )
@@ -111,10 +125,14 @@ const PostViewModal = ({
       ) : (
         <ScaleFade in initialScale={0.9}>
           <PostExpandedView
+            isUserAuthenticated={isUserAuthenticated}
             currUser={currUser}
             post={post}
             updateLoadedPostEntry={updateLoadedPostEntry}
             changeCommentLikeUpdatesSet={changeCommentLikeUpdatesSet}
+            handleInformUserFeatureRequiresAuth={
+              handleInformUserFeatureRequiresAuth
+            }
             setIsImageExpanded={setIsImageExpanded}
             setIsSavedStatusUpdated={setIsSavedStatusUpdated}
             onClose={handleModalClose}
@@ -125,7 +143,13 @@ const PostViewModal = ({
   );
 };
 
-const HeaderContent = ({ currUser, post, handleModalClose }) => {
+const HeaderContent = ({
+  isUserAuthenticated = false,
+  currUser,
+  post,
+  handleInformUserFeatureRequiresAuth = () => {},
+  handleModalClose,
+}) => {
   const {
     isOpen: isOpenPostActionsMenu,
     onOpen: onOpenPostActionsMenu,
@@ -174,8 +198,12 @@ const HeaderContent = ({ currUser, post, handleModalClose }) => {
           </Flex>
 
           <PostActionsMenu
+            isUserAuthenticated={isUserAuthenticated}
             currUser={currUser}
             post={post}
+            handleInformUserFeatureRequiresAuth={
+              handleInformUserFeatureRequiresAuth
+            }
             isModalActionsMenu
             handleModalClose={handleModalClose}
             onClose={onClosePostActionsMenu}

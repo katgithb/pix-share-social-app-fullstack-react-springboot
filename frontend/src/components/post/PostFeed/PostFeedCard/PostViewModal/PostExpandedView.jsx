@@ -58,10 +58,12 @@ import CustomCommentTextInput from "../../../../shared/customFormElements/Custom
 import ImageWithLoader from "../../../../shared/ImageWithLoader";
 
 const PostExpandedView = ({
+  isUserAuthenticated = false,
   currUser,
   post,
   updateLoadedPostEntry,
   changeCommentLikeUpdatesSet,
+  handleInformUserFeatureRequiresAuth = () => {},
   setIsImageExpanded,
   setIsSavedStatusUpdated,
   onClose,
@@ -79,7 +81,6 @@ const PostExpandedView = ({
   });
 
   const dispatch = useDispatch();
-  const isUserAuthenticated = useIsUserAuthenticated();
   const postSocial = useSelector((store) => store.post.postSocial);
   const commentManagement = useSelector(
     (store) => store.comment.commentManagement
@@ -116,13 +117,6 @@ const PostExpandedView = ({
 
   const handleModalClose = () => {
     onClose();
-  };
-
-  const handleInformUserFeatureRequiresAuth = () => {
-    infoToastNotification(
-      <p>Sign Up or Login to access this feature</p>,
-      "This feature is available for registered users only!"
-    );
   };
 
   const handleCommentFormSubmission = (values, { setSubmitting }) => {
