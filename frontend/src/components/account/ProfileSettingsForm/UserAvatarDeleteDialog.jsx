@@ -10,13 +10,14 @@ import {
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { removeUserImageAction } from "../../../redux/actions/user/userProfileActions";
+import { getAuthToken } from "../../../utils/authUtils";
 
 const UserAvatarDeleteDialog = ({ isOpen, onClose, cancelRef, currUser }) => {
   const dispatch = useDispatch();
   const { isRemovingUserImage, isUserImageRemoved } = useSelector(
     (store) => store.user.userProfile
   );
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const handleUserAvatarDelete = () => {
     if (token) {

@@ -7,6 +7,7 @@ import {
   updateUserImage,
   verifyPassword,
 } from "../../../services/api/userService";
+import { getAuthToken, removeAuthToken } from "../../../utils/authUtils";
 import {
   errorToastNotification,
   successToastNotification,
@@ -83,9 +84,9 @@ export const editUserPersonalInfoAction = (data) => async (dispatch) => {
       successToastNotification("Personal Information updated", null);
 
       if (data.user.email) {
-        console.log("Removing token: ", localStorage.getItem("token"));
+        console.log("Removing token: ", getAuthToken());
         // Clear token from local storage
-        localStorage.removeItem("token");
+        removeAuthToken();
 
         // Clear user state
         dispatch(clearUserProfile());
@@ -124,9 +125,9 @@ export const editUserPasswordAction = (data) => async (dispatch) => {
           successToastNotification("Password updated", null);
 
           timeout = setTimeout(() => {
-            console.log("Removing token: ", localStorage.getItem("token"));
+            console.log("Removing token: ", getAuthToken());
             // Clear token from local storage
-            localStorage.removeItem("token");
+            removeAuthToken();
 
             // Clear user state
             dispatch(clearUserProfile());
@@ -220,9 +221,9 @@ export const deleteUserProfileAction = (data) => async (dispatch) => {
     if (passwordsMatch) {
       deleteUser(data)
         .then(() => {
-          console.log("Removing token: ", localStorage.getItem("token"));
+          console.log("Removing token: ", getAuthToken());
           // Clear token from local storage
-          localStorage.removeItem("token");
+          removeAuthToken();
 
           dispatch(deleteUserProfile());
 

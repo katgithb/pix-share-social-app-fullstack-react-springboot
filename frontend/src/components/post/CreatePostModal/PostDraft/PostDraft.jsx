@@ -17,6 +17,7 @@ import { Link as RouteLink } from "react-router-dom";
 import * as Yup from "yup";
 import { createPostAction } from "../../../../redux/actions/post/postManagementActions";
 import { clearPostManagement } from "../../../../redux/reducers/post/postManagementSlice";
+import { getAuthToken } from "../../../../utils/authUtils";
 import {
   compressAndResizeImage,
   getImageDimensionsFromImageFile,
@@ -49,7 +50,7 @@ const PostDraft = ({
 
   const dispatch = useDispatch();
   const postManagement = useSelector((store) => store.post.postManagement);
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const handleCreatePost = async (caption, location) => {
     const processedImageFile = await compressAndResizeSelectedImage();

@@ -10,6 +10,7 @@ import {
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteCommentAction } from "../../../redux/actions/comment/commentManagementActions";
+import { getAuthToken } from "../../../utils/authUtils";
 
 const PostCommentDeleteDialog = ({
   isOpen,
@@ -22,7 +23,7 @@ const PostCommentDeleteDialog = ({
   const { isDeletingComment, isCommentDeleted } = useSelector(
     (store) => store.comment.commentManagement
   );
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const handleCommentDelete = () => {
     if (token) {

@@ -20,6 +20,7 @@ import {
   signupAction,
 } from "../../../redux/actions/auth/authActions";
 import { fetchUserProfileAction } from "../../../redux/actions/user/userProfileActions";
+import { getAuthToken } from "../../../utils/authUtils";
 import CustomPasswordInput from "../../shared/customFormElements/CustomPasswordInput";
 import CustomSelect from "../../shared/customFormElements/CustomSelect";
 import CustomTextInput from "../../shared/customFormElements/CustomTextInput";
@@ -28,7 +29,7 @@ const SignupForm = ({ initialValues, validationSchema }) => {
   const formLogo = useColorModeValue(logo, altLogo);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const auth = useSelector((store) => store.auth);
   const selectUserProfile = useSelector((store) => store.user.userProfile);

@@ -10,6 +10,7 @@ import {
   editUserPersonalInfoAction,
   fetchUserProfileAction,
 } from "../../redux/actions/user/userProfileActions";
+import { getAuthToken } from "../../utils/authUtils";
 import CustomSelect from "../shared/customFormElements/CustomSelect";
 import CustomTextInput from "../shared/customFormElements/CustomTextInput";
 
@@ -41,7 +42,7 @@ const PersonalDetailsSettingsForm = ({ currUser }) => {
 
   const dispatch = useDispatch();
   const userProfile = useSelector((store) => store.user.userProfile);
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const handleFormSubmission = (values, { setSubmitting }) => {
     setSubmitting(true);

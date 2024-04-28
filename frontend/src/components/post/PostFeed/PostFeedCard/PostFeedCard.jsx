@@ -53,6 +53,7 @@ import {
   clearUnlikedPost,
   clearUnsavedPost,
 } from "../../../../redux/reducers/post/postSocialSlice";
+import { getAuthToken } from "../../../../utils/authUtils";
 import { getHumanReadableNumberFormat } from "../../../../utils/commonUtils";
 import { getRelativePostTime } from "../../../../utils/postUtils";
 import PostCommentCard from "../../../comment/PostCommentCard/PostCommentCard";
@@ -92,7 +93,7 @@ const PostFeedCard = ({
   const commentManagement = useSelector(
     (store) => store.comment.commentManagement
   );
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const {
     isOpen: isOpenPostViewModal,
     onOpen: onOpenPostViewModal,

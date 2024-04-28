@@ -21,6 +21,7 @@ import {
   clearFollowedUser,
   clearUnfollowedUser,
 } from "../../../redux/reducers/user/userSocialSlice";
+import { getAuthToken } from "../../../utils/authUtils";
 import { getHumanReadableNumberFormat } from "../../../utils/commonUtils";
 
 const UserProfileStats = ({
@@ -42,7 +43,7 @@ const UserProfileStats = ({
   const followingText = "following";
 
   const dispatch = useDispatch();
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const userSocial = useSelector((store) => store.user.userSocial);
 
   const [isFollowedByUser, setIsFollowedByUser] = useState(

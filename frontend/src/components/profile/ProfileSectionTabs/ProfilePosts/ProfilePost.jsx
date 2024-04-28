@@ -15,6 +15,7 @@ import { setActivePostIdAction } from "../../../../redux/actions/post/postIntera
 import { findPostByIdAction } from "../../../../redux/actions/post/postLookupActions";
 import { clearCommentManagement } from "../../../../redux/reducers/comment/commentManagementSlice";
 import { clearPostById } from "../../../../redux/reducers/post/postLookupSlice";
+import { getAuthToken } from "../../../../utils/authUtils";
 import { getHumanReadableNumberFormat } from "../../../../utils/commonUtils";
 import PostViewModal from "../../../post/PostFeed/PostFeedCard/PostViewModal/PostViewModal";
 import ImageWithLoader from "../../../shared/ImageWithLoader";
@@ -34,7 +35,7 @@ const ProfilePost = ({ currUser, post, updateLoadedPostEntry }) => {
   const commentManagement = useSelector(
     (store) => store.comment.commentManagement
   );
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const [showOverlay, setShowOverlay] = useState(false);
   const isActivePost = postInteraction.activePostId === post?.id || showOverlay;

@@ -21,6 +21,7 @@ import {
   likeCommentAction,
   unlikeCommentAction,
 } from "../../../redux/actions/comment/commentSocialActions";
+import { getAuthToken } from "../../../utils/authUtils";
 import {
   getRelativeCommentTime,
   isCurrUserComment,
@@ -58,7 +59,7 @@ const PostCommentCard = ({
   const { isCreatingComment, isDeletingComment } = useSelector(
     (store) => store.comment.commentManagement
   );
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
 
   const [isLikedByUser, setIsLikedByUser] = useState(
     comment && !_.isEmpty(comment) ? comment?.isLikedByAuthUser : false

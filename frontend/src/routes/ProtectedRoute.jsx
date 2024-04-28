@@ -6,11 +6,12 @@ import MainLayout from "../layouts/MainLayout";
 import PublicLanding from "../pages/PublicLanding";
 import { checkAuthState } from "../redux/actions/auth/authActions";
 import { fetchUserProfileAction } from "../redux/actions/user/userProfileActions";
+import { getAuthToken } from "../utils/authUtils";
 
 const ProtectedRoute = () => {
   const location = useLocation();
   const dispatch = useDispatch();
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
 
   const isAuthenticated = useSelector((store) => store.auth.isAuthenticated);

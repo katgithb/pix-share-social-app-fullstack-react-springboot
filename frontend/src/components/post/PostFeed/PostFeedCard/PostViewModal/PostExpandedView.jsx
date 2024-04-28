@@ -34,7 +34,6 @@ import { RxTimer } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
 import { Virtuoso } from "react-virtuoso";
 import * as Yup from "yup";
-import useIsUserAuthenticated from "../../../../../hooks/useIsUserAuthenticated";
 import useTruncateText from "../../../../../hooks/useTruncateText";
 import { createCommentAction } from "../../../../../redux/actions/comment/commentManagementActions";
 import {
@@ -49,19 +48,21 @@ import {
   clearUnlikedPost,
   clearUnsavedPost,
 } from "../../../../../redux/reducers/post/postSocialSlice";
+import { getAuthToken } from "../../../../../utils/authUtils";
 import { getHumanReadableNumberFormat } from "../../../../../utils/commonUtils";
 import { getRelativePostTime } from "../../../../../utils/postUtils";
-import { infoToastNotification } from "../../../../../utils/toastNotification";
 import PostCommentCard from "../../../../comment/PostCommentCard/PostCommentCard";
 import AvatarWithLoader from "../../../../shared/AvatarWithLoader";
 import CustomCommentTextInput from "../../../../shared/customFormElements/CustomCommentTextInput";
 import ImageWithLoader from "../../../../shared/ImageWithLoader";
 
 const PostExpandedView = ({
+  isUserAuthenticated = false,
   currUser,
   post,
   updateLoadedPostEntry,
   changeCommentLikeUpdatesSet,
+  handleInformUserFeatureRequiresAuth = () => {},
   setIsImageExpanded,
   setIsSavedStatusUpdated,
   onClose,
@@ -79,12 +80,11 @@ const PostExpandedView = ({
   });
 
   const dispatch = useDispatch();
-  const isUserAuthenticated = useIsUserAuthenticated();
   const postSocial = useSelector((store) => store.post.postSocial);
   const commentManagement = useSelector(
     (store) => store.comment.commentManagement
   );
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   const [showImageOverlay, setShowImageOverlay] = useState(true);
   const [relativePostTime, setRelativePostTime] = useState(
     getRelativePostTime(post?.createdAt)
@@ -116,13 +116,6 @@ const PostExpandedView = ({
 
   const handleModalClose = () => {
     onClose();
-  };
-
-  const handleInformUserFeatureRequiresAuth = () => {
-    infoToastNotification(
-      <p>Sign Up or Login to access this feature</p>,
-      "This feature is available for registered users only!"
-    );
   };
 
   const handleCommentFormSubmission = (values, { setSubmitting }) => {
