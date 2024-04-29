@@ -10,6 +10,7 @@ import {
 import React from "react";
 import * as Yup from "yup";
 import signinBg from "../../../assets/images/pixshare_signin_signup_bg.png";
+import SafeSharingPrivacyAlert from "../../shared/alerts/SafeSharingPrivacyAlert";
 import SigninForm from "./SigninForm";
 
 const initialValues = {
@@ -29,33 +30,36 @@ const validationSchema = Yup.object().shape({
 
 const Signin = () => {
   return (
-    <Stack
-      minH="100vh"
-      direction={{ base: "column-reverse", md: "row" }}
-      gap={0}
-    >
-      <Flex flex={1} display={{ base: "none", md: "inherit" }}>
-        <Image src={signinBg} alt="Cover Image" objectFit="cover" />
-      </Flex>
-      <Flex
-        p={4}
-        flex={1}
-        align="center"
-        justify="center"
-        bg={useColorModeValue("gray.50", "gray.800")}
+    <>
+      <SafeSharingPrivacyAlert />
+      <Stack
+        minH="100vh"
+        direction={{ base: "column-reverse", md: "row" }}
+        gap={0}
       >
-        <Stack spacing={4}>
-          <Stack align="center">
-            <Heading fontSize="2xl">Sign in to your account</Heading>
-          </Stack>
+        <Flex flex={1} display={{ base: "none", md: "inherit" }}>
+          <Image src={signinBg} alt="Cover Image" objectFit="cover" />
+        </Flex>
+        <Flex
+          p={4}
+          flex={1}
+          align="center"
+          justify="center"
+          bg={useColorModeValue("gray.50", "gray.800")}
+        >
+          <Stack spacing={4}>
+            <Stack align="center">
+              <Heading fontSize="2xl">Sign in to your account</Heading>
+            </Stack>
 
-          <SigninForm
-            initialValues={initialValues}
-            validationSchema={validationSchema}
-          />
-        </Stack>
-      </Flex>
-    </Stack>
+            <SigninForm
+              initialValues={initialValues}
+              validationSchema={validationSchema}
+            />
+          </Stack>
+        </Flex>
+      </Stack>
+    </>
   );
 };
 
