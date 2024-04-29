@@ -19,7 +19,7 @@ const SafeSharingPrivacyAlert = () => {
   return (
     <>
       {isOpenSafeSharingPrivacyAlert && (
-        <Alert status="info" fontSize="">
+        <Alert status="info">
           <AlertIcon />
           <Box>
             <AlertTitle>Privacy First! Protect your personal info</AlertTitle>

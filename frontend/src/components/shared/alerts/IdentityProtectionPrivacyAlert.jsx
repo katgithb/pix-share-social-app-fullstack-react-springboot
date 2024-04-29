@@ -19,7 +19,7 @@ const IdentityProtectionPrivacyAlert = () => {
   return (
     <>
       {isOpenIdentityProtectionPrivacyAlert && (
-        <Alert status="info" fontSize="">
+        <Alert status="info">
           <AlertIcon />
           <Box>
             <AlertTitle>Stay Incognito! Strengthen your privacy</AlertTitle>
