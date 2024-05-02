@@ -11,7 +11,7 @@ import userProfileReducer from "./reducers/user/userProfileSlice";
 import userSocialReducer from "./reducers/user/userSocialSlice";
 
 const store = configureStore({
-  devTools: import.meta.env.NODE_ENV !== "production",
+  devTools: import.meta.env.REACT_APP_REDUX_DEVTOOLS === "true",
   reducer: {
     auth: authReducer,
     user: combineReducers({
