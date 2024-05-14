@@ -363,9 +363,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PagedResponse<UserSummaryDTO> searchUser(Long userId, String searchQuery, PageRequestDTO pageRequest) {
+        String searchQueryLowerCase = searchQuery.toLowerCase(); // Convert search query to lowercase
+
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
-        Page<User> pagedUsers = userRepository.findByQuery(userId, searchQuery, pageable);
+        Page<User> pagedUsers = userRepository.findByQuery(userId, searchQueryLowerCase, pageable);
 
         // get users content from Page
         List<UserSummaryDTO> content = pagedUsers.getContent()
