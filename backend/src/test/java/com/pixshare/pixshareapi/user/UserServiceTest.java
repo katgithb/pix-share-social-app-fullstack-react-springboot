@@ -1318,6 +1318,27 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("Should return an empty list when no users match the search query")
+    void searchUserWhenMatchingUsersNotFound() {
+        // Given
+        Long authUserId = 2L;
+        String searchQuery = "NonExistentUser";
+        PageRequestDTO pageRequest = new PageRequestDTO();
+
+        Page<User> usersPage = new PageImpl<>(new ArrayList<>(), pageRequest.toPageable(), 0);
+
+        when(userRepository.findByQuery(authUserId, searchQuery.toLowerCase(), pageRequest.toPageable())).thenReturn(usersPage);
+
+        // When
+        PagedResponse<UserSummaryDTO> actualUsersPage = userService.searchUser(authUserId, searchQuery, pageRequest);
+
+        // Then
+        assertThat(actualUsersPage.content().size()).isEqualTo(0);
+
+        verify(userRepository, times(1)).findByQuery(authUserId, searchQuery.toLowerCase(), pageRequest.toPageable());
+    }
+
+    @Test
     @DisplayName("Should return a list of users matching the search query")
     void searchUserWhenMatchingUsersFound() {
         // Given
@@ -1341,7 +1362,7 @@ class UserServiceTest {
         );
         Page<User> usersPage = new PageImpl<>(users, pageRequest.toPageable(), users.size());
 
-        when(userRepository.findByQuery(authUserId, searchQuery, pageRequest.toPageable())).thenReturn(usersPage);
+        when(userRepository.findByQuery(authUserId, searchQuery.toLowerCase(), pageRequest.toPageable())).thenReturn(usersPage);
 
         // When
         PagedResponse<UserSummaryDTO> actualUsersPage = userService.searchUser(authUserId, searchQuery, pageRequest);
@@ -1354,6 +1375,8 @@ class UserServiceTest {
 
         assertThat(actualUsersPage.content().get(1).getUsername()).isEqualTo(expectedUsers.get(1).getUsername());
         assertThat(actualUsersPage.content().get(1).getName()).isEqualTo(expectedUsers.get(1).getName());
+
+        verify(userRepository, times(1)).findByQuery(authUserId, searchQuery.toLowerCase(), pageRequest.toPageable());
     }
 
     @Test
