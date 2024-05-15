@@ -24,7 +24,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.id IN :users")
     List<User> findAllUsersByUserIds(@Param("users") List<Long> userIds);
 
-    @Query("SELECT DISTINCT u FROM User u WHERE (u.userHandleName LIKE %:query% OR u.email LIKE %:query%) AND u.id <> :userId")
+    @Query("SELECT DISTINCT u FROM User u WHERE (u.userHandleName LIKE %:query% OR LOWER(u.name) LIKE %:query% OR u.email LIKE %:query%) AND u.id <> :userId")
     Page<User> findByQuery(@Param("userId") Long userId, @Param("query") String query, Pageable pageable);
 
     @Query("""
