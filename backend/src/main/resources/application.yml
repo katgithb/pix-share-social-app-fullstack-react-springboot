@@ -32,14 +32,27 @@ management:
       exposure:
         include: "health,info"
 
+app:
+  base-url: ${APP_BASE_URL}
+
 jwt:
   secret-key: ${JWT_SECRET_KEY}
   token-issuer: ${JWT_TOKEN_ISSUER}
   token-expiry-seconds: ${JWT_TOKEN_EXPIRY_SECONDS}
+
+password-reset:
+  token:
+    secret-key: ${PASSWORD_RESET_TOKEN_SECRET_KEY}
+    expiry-seconds: ${PASSWORD_RESET_TOKEN_EXPIRY_SECONDS}
+  attempt-window:
+    max-attempts: ${PASSWORD_RESET_ATTEMPT_WINDOW_MAX_ATTEMPTS}
+    duration-seconds: ${PASSWORD_RESET_ATTEMPT_WINDOW_DURATION_SECONDS}
 
 cloudinary:
   api-env-url: ${CLOUDINARY_URL}
   upload-preset: ${CLOUDINARY_UPLOAD_PRESET}
   upload-folder: ${CLOUDINARY_UPLOAD_FOLDER}
 
-
+brevo:
+  api:
+    key: ${BREVO_API_KEY}
