@@ -1,10 +1,10 @@
 package com.pixshare.pixshareapi.user;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pixshare.pixshareapi.comment.CommentRepository;
 import com.pixshare.pixshareapi.dto.*;
-import com.pixshare.pixshareapi.exception.DuplicateResourceException;
-import com.pixshare.pixshareapi.exception.RequestValidationException;
-import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import com.pixshare.pixshareapi.exception.*;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.post.PostRepository;
 import com.pixshare.pixshareapi.story.Story;
@@ -13,8 +13,12 @@ import com.pixshare.pixshareapi.story.StoryService;
 import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
 import com.pixshare.pixshareapi.upload.UploadType;
+import com.pixshare.pixshareapi.util.BrevoMailSender;
+import com.pixshare.pixshareapi.util.HMACTokenUtil;
 import com.pixshare.pixshareapi.util.ImageUtil;
+import com.pixshare.pixshareapi.validation.UrlValidator;
 import com.pixshare.pixshareapi.validation.ValidationUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,7 +26,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import sendinblue.ApiException;
+import sibApi.TransactionalEmailsApi;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -43,28 +50,47 @@ public class UserServiceImpl implements UserService {
 
     private final UploadService uploadService;
 
+    private final PasswordResetAttemptService passwordResetAttemptService;
+
+    private final BrevoMailSender brevoMailSender;
+
     private final ImageUtil imageUtil;
 
     private final PasswordEncoder passwordEncoder;
 
     private final ValidationUtil validationUtil;
 
+    private final UrlValidator urlValidator;
+
+    private final HMACTokenUtil hmacTokenUtil;
+
     private final UserDTOMapper userDTOMapper;
 
     private final UserSummaryDTOMapper userSummaryDTOMapper;
 
+    @Value("${app.base-url}")
+    private String appBaseUrl;
+    @Value("${password-reset.token.expiry-seconds}")
+    private int PASSWORD_RESET_TOKEN_EXPIRATION_IN_SECONDS;
+    @Value("${password-reset.attempt-window.duration-seconds}")
+    private int PASSWORD_RESET_ATTEMPT_WINDOW_DURATION_IN_SECONDS;
+
     public UserServiceImpl(UserRepository userRepository, PostRepository postRepository, CommentRepository commentRepository,
-                           StoryRepository storyRepository, StoryService storyService, UploadService uploadService, ImageUtil imageUtil,
-                           PasswordEncoder passwordEncoder, ValidationUtil validationUtil, UserDTOMapper userDTOMapper, UserSummaryDTOMapper userSummaryDTOMapper) {
+                           StoryRepository storyRepository, StoryService storyService, UploadService uploadService, PasswordResetAttemptService passwordResetAttemptService, BrevoMailSender brevoMailSender, ImageUtil imageUtil,
+                           PasswordEncoder passwordEncoder, ValidationUtil validationUtil, UrlValidator urlValidator, HMACTokenUtil hmacTokenUtil, UserDTOMapper userDTOMapper, UserSummaryDTOMapper userSummaryDTOMapper) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.storyRepository = storyRepository;
         this.storyService = storyService;
         this.uploadService = uploadService;
+        this.passwordResetAttemptService = passwordResetAttemptService;
+        this.brevoMailSender = brevoMailSender;
         this.imageUtil = imageUtil;
         this.passwordEncoder = passwordEncoder;
         this.validationUtil = validationUtil;
+        this.urlValidator = urlValidator;
+        this.hmacTokenUtil = hmacTokenUtil;
         this.userDTOMapper = userDTOMapper;
         this.userSummaryDTOMapper = userSummaryDTOMapper;
     }
@@ -136,6 +162,80 @@ public class UserServiceImpl implements UserService {
         validationUtil.performValidationOnField(User.class, "password", newPassword);
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    @Override
+    public void initiatePasswordReset(String email) throws RequestValidationException {
+        Date timestamp = new Date();
+        long attemptWindowDurationHours = getDurationInHoursFromSeconds(PASSWORD_RESET_ATTEMPT_WINDOW_DURATION_IN_SECONDS);
+        String formattedDurationHours = String.format("%d %s", attemptWindowDurationHours, attemptWindowDurationHours == 1 ? "hour" : "hours");
+
+        // Check if password reset attempt allowed
+        if (!passwordResetAttemptService.isPasswordResetAttemptAllowed(email, timestamp.getTime())) {
+            throw new RequestValidationException("You have reached the maximum allowed attempts to reset your password. Please wait %s before trying again.".formatted(formattedDurationHours));
+        }
+
+        // Save password reset attempt
+        passwordResetAttemptService.savePasswordResetAttempt(email, timestamp.getTime());
+
+        // Check if user exists with email
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            return;
+        }
+
+        // Get user
+        User user = userOptional.get();
+
+        // Generate HMAC token
+        String passwordResetToken = hmacTokenUtil.generateHMACToken(user.getEmail(), timestamp);
+
+        // Send password reset email
+        sendPasswordResetEmail(appBaseUrl, user.getEmail(), user.getName(), passwordResetToken);
+    }
+
+    @Override
+    public boolean validatePasswordResetToken(String token) throws TokenValidationException {
+        String metadata = hmacTokenUtil.extractMetadataFromToken(token);
+        String identifier = hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata);
+        long timestampMillis = hmacTokenUtil.extractTimestampMillisFromToken(token);
+
+        // Check if password reset attempt has been successful before
+        if (passwordResetAttemptService.isPasswordResetAttemptSuccessful(identifier, timestampMillis)) {
+            throw new TokenValidationException("Password reset token is only valid to be used once. This token has already been used, so you must request a new one.");
+        }
+
+        return hmacTokenUtil.validateToken(identifier, token);
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) throws TokenValidationException {
+        String metadata = hmacTokenUtil.extractMetadataFromToken(token);
+        String email = hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata);
+        long timestampMillis = hmacTokenUtil.extractTimestampMillisFromToken(token);
+
+        boolean isTokenValid = validatePasswordResetToken(token);
+
+        if (!isTokenValid) {
+            throw new TokenValidationException("Invalid password reset token");
+        }
+
+        // Check if user exists with email
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            return;
+        }
+
+        // Get user
+        User user = userOptional.get();
+
+        // Update password
+        validationUtil.performValidationOnField(User.class, "password", newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Mark password reset attempt as successful
+        passwordResetAttemptService.updatePasswordResetAttemptSuccess(email, timestampMillis, true);
     }
 
     @Override
@@ -418,6 +518,65 @@ public class UserServiceImpl implements UserService {
                 .toList();
 
         return users;
+    }
+
+    private void sendPasswordResetEmail(String baseUrl, String email, String name, String passwordResetToken) throws RequestValidationException {
+        long tokenExpirationHours = getDurationInHoursFromSeconds(PASSWORD_RESET_TOKEN_EXPIRATION_IN_SECONDS);
+        String formattedExpirationHours = String.format("%d %s", tokenExpirationHours, tokenExpirationHours == 1 ? "hour" : "hours");
+        baseUrl = baseUrl != null ? baseUrl : "";
+
+        // Validate base url
+        if (!urlValidator.isValidUrl(baseUrl)) {
+            throw new RequestValidationException("Invalid password reset base url");
+        }
+
+        // Construct password reset link with password reset token
+        String passwordResetLink = baseUrl + "/reset-password/confirm?token=" + passwordResetToken;
+
+        String subject = "Password Reset";
+        Properties params = new Properties();
+        params.setProperty("NAME", name);
+        params.setProperty("PASSWORD_RESET_LINK", passwordResetLink);
+        params.setProperty("RESET_LINK_FORMATTED_VALID_PERIOD", formattedExpirationHours);
+
+        TransactionalEmailsApi apiInstance = brevoMailSender.getTransacEmailsApiInstance();
+        // Send Transactional Email with password reset link
+        try {
+            brevoMailSender.sendTransactionalEmail(apiInstance, email, name, subject, params);
+        } catch (ApiException e) {
+            handleBrevoEmailApiException(e);
+        }
+    }
+
+    private void handleBrevoEmailApiException(ApiException e) {
+        String responseBody = e.getResponseBody();
+
+        if (responseBody == null || responseBody.isBlank()) {
+            throw new EmailDeliveryException("There was an unexpected error sending your password reset email. Please try requesting a new password reset link.");
+        }
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, String> responseMap = objectMapper.readValue(responseBody, Map.class); // Parse JSON to Map
+            String code = responseMap.get("code");
+            System.out.println(responseBody);
+
+            // Check for specific codes
+            if (code.equals("not_enough_credits")) {
+                throw new EmailDeliveryException("Daily email limit has been reached, so we are unable to send the password reset email at this time. Please try requesting a new reset link tomorrow.");
+            } else {
+                throw new EmailDeliveryException("There was an unexpected error sending your password reset email. Please try requesting a new password reset link.");
+            }
+        } catch (JsonProcessingException ex) {
+            System.out.println(ex);
+            throw new EmailDeliveryException("There was an unexpected error sending your password reset email. Please try requesting a new password reset link.");
+        }
+    }
+
+    private long getDurationInHoursFromSeconds(int seconds) {
+        Duration duration = Duration.ofSeconds(seconds);
+
+        return duration.toHours();
     }
 
     private boolean isFieldValueChanged(Object newValue, Object currentValue) {
