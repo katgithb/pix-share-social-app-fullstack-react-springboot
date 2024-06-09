@@ -7,6 +7,7 @@ import com.pixshare.pixshareapi.dto.UserSummaryDTO;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import com.pixshare.pixshareapi.exception.TokenValidationException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -24,6 +25,12 @@ public interface UserService {
     boolean verifyPassword(Long userId, String password) throws ResourceNotFoundException;
 
     void updatePassword(Long userId, String newPassword) throws ResourceNotFoundException, RequestValidationException;
+
+    void initiatePasswordReset(String email) throws RequestValidationException;
+
+    boolean validatePasswordResetToken(String token) throws TokenValidationException;
+
+    void resetPassword(String token, String newPassword) throws TokenValidationException;
 
     void updateUserImage(Long userId, MultipartFile imageFile) throws ResourceNotFoundException, RequestValidationException;
 

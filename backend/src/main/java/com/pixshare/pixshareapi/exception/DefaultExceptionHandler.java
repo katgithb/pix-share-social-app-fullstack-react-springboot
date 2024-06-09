@@ -20,6 +20,7 @@ public class DefaultExceptionHandler {
         HttpStatus status = HttpStatus.NOT_FOUND;
         ApiError apiError = new ApiError(request.getRequestURI(),
                 e.getMessage(),
+                "RESOURCE_NOT_FOUND",
                 status.value(),
                 LocalDateTime.now());
         return new ResponseEntity<>(apiError, status);
@@ -31,6 +32,7 @@ public class DefaultExceptionHandler {
         HttpStatus status = HttpStatus.BAD_REQUEST;
         ApiError apiError = new ApiError(request.getRequestURI(),
                 e.getMessage(),
+                "INVALID_REQUEST",
                 status.value(),
                 LocalDateTime.now());
         return new ResponseEntity<>(apiError, status);
@@ -42,6 +44,7 @@ public class DefaultExceptionHandler {
         HttpStatus status = HttpStatus.BAD_REQUEST;
         ApiError apiError = new ApiError(request.getRequestURI(),
                 e.getMessage(),
+                "INVALID_REQUEST_PAYLOAD",
                 status.value(),
                 LocalDateTime.now());
         return new ResponseEntity<>(apiError, status);
@@ -53,6 +56,7 @@ public class DefaultExceptionHandler {
         HttpStatus status = HttpStatus.FORBIDDEN;
         ApiError apiError = new ApiError(request.getRequestURI(),
                 e.getMessage(),
+                "INSUFFICIENT_AUTHENTICATION",
                 status.value(),
                 LocalDateTime.now());
 
@@ -65,6 +69,7 @@ public class DefaultExceptionHandler {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
         ApiError apiError = new ApiError(request.getRequestURI(),
                 e.getMessage(),
+                "INVALID_CREDENTIALS",
                 status.value(),
                 LocalDateTime.now());
 
@@ -77,6 +82,58 @@ public class DefaultExceptionHandler {
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         ApiError apiError = new ApiError(request.getRequestURI(),
                 e.getMessage(),
+                status.value(),
+                LocalDateTime.now());
+
+        return new ResponseEntity<>(apiError, status);
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ApiError> handleDuplicateResourceException(DuplicateResourceException e,
+                                                                     HttpServletRequest request) {
+        HttpStatus status = HttpStatus.CONFLICT;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                e.getMessage(),
+                "DUPLICATE_RESOURCE",
+                status.value(),
+                LocalDateTime.now());
+
+        return new ResponseEntity<>(apiError, status);
+    }
+
+    @ExceptionHandler(TokenValidationException.class)
+    public ResponseEntity<ApiError> handleTokenValidationException(TokenValidationException e,
+                                                                   HttpServletRequest request) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                e.getMessage(),
+                "INVALID_TOKEN",
+                status.value(),
+                LocalDateTime.now());
+
+        return new ResponseEntity<>(apiError, status);
+    }
+
+    @ExceptionHandler(UnauthorizedActionException.class)
+    public ResponseEntity<ApiError> handleUnauthorizedActionException(UnauthorizedActionException e,
+                                                                      HttpServletRequest request) {
+        HttpStatus status = HttpStatus.FORBIDDEN;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                e.getMessage(),
+                "UNAUTHORIZED_ACTION",
+                status.value(),
+                LocalDateTime.now());
+
+        return new ResponseEntity<>(apiError, status);
+    }
+
+    @ExceptionHandler(EmailDeliveryException.class)
+    public ResponseEntity<ApiError> handleEmailDeliveryException(EmailDeliveryException e,
+                                                                 HttpServletRequest request) {
+        HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                e.getMessage(),
+                "EMAIL_DELIVERY_ERROR",
                 status.value(),
                 LocalDateTime.now());
 

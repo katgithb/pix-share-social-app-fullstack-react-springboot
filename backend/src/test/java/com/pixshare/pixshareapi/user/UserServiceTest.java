@@ -5,13 +5,17 @@ import com.pixshare.pixshareapi.dto.*;
 import com.pixshare.pixshareapi.exception.DuplicateResourceException;
 import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
+import com.pixshare.pixshareapi.exception.TokenValidationException;
 import com.pixshare.pixshareapi.post.PostRepository;
 import com.pixshare.pixshareapi.story.StoryRepository;
 import com.pixshare.pixshareapi.story.StoryService;
 import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
 import com.pixshare.pixshareapi.upload.UploadType;
+import com.pixshare.pixshareapi.util.BrevoMailSender;
+import com.pixshare.pixshareapi.util.HMACTokenUtil;
 import com.pixshare.pixshareapi.util.ImageUtil;
+import com.pixshare.pixshareapi.validation.UrlValidator;
 import com.pixshare.pixshareapi.validation.ValidationUtil;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +32,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import sendinblue.ApiException;
+import sibApi.TransactionalEmailsApi;
 
 import java.util.*;
 
@@ -60,15 +66,26 @@ class UserServiceTest {
     @Mock
     private UploadService uploadService;
     @Mock
+    private PasswordResetAttemptService passwordResetAttemptService;
+    @Mock
+    private BrevoMailSender brevoMailSender;
+    @Mock
     private ImageUtil imageUtil;
     @Mock
     private PasswordEncoder passwordEncoder;
     @SpyBean
     private ValidationUtil validationUtil;
+    @Mock
+    private UrlValidator urlValidator;
+    @Mock
+    private HMACTokenUtil hmacTokenUtil;
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository, storyService, uploadService, imageUtil, passwordEncoder, validationUtil, userDTOMapper, userSummaryDTOMapper);
+        userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository,
+                storyService, uploadService, passwordResetAttemptService, brevoMailSender,
+                imageUtil, passwordEncoder, validationUtil, urlValidator, hmacTokenUtil,
+                userDTOMapper, userSummaryDTOMapper);
     }
 
 
@@ -538,6 +555,299 @@ class UserServiceTest {
         verify(userRepository, times(1)).findById(userId);
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(1)).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getPassword()).isEqualTo(newEncodedPassword);
+    }
+
+    @Test
+    @DisplayName("Should throw a RequestValidationException when max password reset attempts reached")
+    void initiatePasswordResetWhenMaxPasswordResetAttemptsReachedThenThrowException() {
+        // Given
+        String email = "test@example.com";
+
+        when(passwordResetAttemptService.isPasswordResetAttemptAllowed(eq(email), anyLong())).thenReturn(false);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.initiatePasswordReset(email))
+                .isInstanceOf(RequestValidationException.class)
+                .hasMessageContaining("You have reached the maximum allowed attempts to reset your password.");
+
+        verify(passwordResetAttemptService, times(1)).isPasswordResetAttemptAllowed(eq(email), anyLong());
+        verify(passwordResetAttemptService, times(0)).savePasswordResetAttempt(eq(email), anyLong());
+        verify(userRepository, times(0)).findByEmail(email);
+        verify(hmacTokenUtil, times(0)).generateHMACToken(eq(email), any(Date.class));
+    }
+
+    @Test
+    @DisplayName("Should not send password reset email when user does not exist with given email")
+    void initiatePasswordResetWhenUserDoesNotExistThenDoNotSendPasswordResetEmail() throws ApiException {
+        // Given
+        String email = "invalid_email@example.com";
+
+        when(passwordResetAttemptService.isPasswordResetAttemptAllowed(eq(email), anyLong())).thenReturn(true);
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // When
+        userService.initiatePasswordReset(email);
+
+        // Then
+        verify(passwordResetAttemptService, times(1)).isPasswordResetAttemptAllowed(eq(email), anyLong());
+        verify(passwordResetAttemptService, times(1)).savePasswordResetAttempt(eq(email), anyLong());
+        verify(userRepository, times(1)).findByEmail(email);
+        verify(hmacTokenUtil, times(0)).generateHMACToken(eq(email), any(Date.class));
+
+        verify(brevoMailSender, times(0)).getTransacEmailsApiInstance();
+        verify(brevoMailSender, times(0)).sendTransactionalEmail(any(TransactionalEmailsApi.class), anyString(), anyString(), anyString(), any(Properties.class));
+    }
+
+    @Test
+    @DisplayName("Should initiate password reset when user exists with given email and password reset attempts are allowed")
+    void initiatePasswordResetWhenUserExistsAndPasswordResetAttemptsAreAllowed() throws ApiException {
+        // Given
+        Long userId = 1L;
+        String email = "john.doe@example.com";
+        String generatedToken = "Z9wMSQbpr7UK8W02GTOdyfjLZW-a8gVZGW8CnbfDMF4";
+        TransactionalEmailsApi apiInstance = new TransactionalEmailsApi();
+        User user = new User(userId, "john_doe", email, "password1234!", "John Doe",
+                null, null, null,
+                Gender.MALE, null, null);
+
+        when(passwordResetAttemptService.isPasswordResetAttemptAllowed(eq(email), anyLong())).thenReturn(true);
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(hmacTokenUtil.generateHMACToken(eq(email), any(Date.class))).thenReturn(generatedToken);
+        when(urlValidator.isValidUrl(anyString())).thenReturn(true);
+        when(brevoMailSender.getTransacEmailsApiInstance()).thenReturn(apiInstance);
+
+        // When
+        userService.initiatePasswordReset(email);
+
+        // Then
+        verify(passwordResetAttemptService, times(1)).isPasswordResetAttemptAllowed(eq(email), anyLong());
+        verify(passwordResetAttemptService, times(1)).savePasswordResetAttempt(eq(email), anyLong());
+        verify(userRepository, times(1)).findByEmail(email);
+        verify(hmacTokenUtil, times(1)).generateHMACToken(eq(email), any(Date.class));
+        verify(urlValidator, times(1)).isValidUrl(anyString());
+
+        verify(brevoMailSender, times(1)).getTransacEmailsApiInstance();
+        verify(brevoMailSender, times(1)).sendTransactionalEmail(any(TransactionalEmailsApi.class), eq(email), eq(user.getName()), anyString(), any(Properties.class));
+    }
+
+    @Test
+    @DisplayName("Should throw a TokenValidationException when token has already been used once")
+    void validatePasswordResetTokenWhenTokenHasAlreadyBeenUsedOnceThenThrowException() {
+        // Given
+        String token = "Z9wMSQbpr7UK8W02GTOdyfjLZW-a8gVZGW8CnbfDMF4";
+        String metadata = "metadata";
+        String identifier = "test@example.com";
+        long timestampMillis = System.currentTimeMillis();
+
+        when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
+        when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(identifier);
+        when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
+        when(passwordResetAttemptService.isPasswordResetAttemptSuccessful(identifier, timestampMillis)).thenReturn(true);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.validatePasswordResetToken(token))
+                .isInstanceOf(TokenValidationException.class)
+                .hasMessage("Password reset token is only valid to be used once. This token has already been used, so you must request a new one.");
+
+        verify(hmacTokenUtil, times(1)).extractMetadataFromToken(token);
+        verify(hmacTokenUtil, times(1)).extractIdentifierFromTokenMetadata(metadata);
+        verify(hmacTokenUtil, times(1)).extractTimestampMillisFromToken(token);
+        verify(passwordResetAttemptService, times(1)).isPasswordResetAttemptSuccessful(identifier, timestampMillis);//
+        verify(hmacTokenUtil, times(0)).validateToken(identifier, token);
+    }
+
+    @Test
+    @DisplayName("Should return false when token has not been used before and is invalid")
+    void validatePasswordResetTokenWhenTokenHasNotBeenUsedBeforeAndIsInvalidThenReturnsFalse() {
+        // Given
+        String token = "invalidToken";
+        String metadata = "metadata";
+        String identifier = "test@example.com";
+        long timestampMillis = System.currentTimeMillis();
+
+        when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
+        when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(identifier);
+        when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
+        when(passwordResetAttemptService.isPasswordResetAttemptSuccessful(identifier, timestampMillis)).thenReturn(false);
+        when(hmacTokenUtil.validateToken(identifier, token)).thenReturn(false);
+
+        // When
+        boolean result = userService.validatePasswordResetToken(token);
+
+        // Then
+        verify(hmacTokenUtil, times(1)).extractMetadataFromToken(token);
+        verify(hmacTokenUtil, times(1)).extractIdentifierFromTokenMetadata(metadata);
+        verify(hmacTokenUtil, times(1)).extractTimestampMillisFromToken(token);
+        verify(passwordResetAttemptService, times(1)).isPasswordResetAttemptSuccessful(identifier, timestampMillis);//
+        verify(hmacTokenUtil, times(1)).validateToken(identifier, token);
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should return true when token has not been used before and is valid")
+    void validatePasswordResetTokenWhenTokenHasNotBeenUsedBeforeAndIsValidThenReturnsTrue() {
+        // Given
+        String token = "Z9wMSQbpr7UK8W02GTOdyfjLZW-a8gVZGW8CnbfDMF4";
+        String metadata = "metadata";
+        String identifier = "test@example.com";
+        long timestampMillis = System.currentTimeMillis();
+
+        when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
+        when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(identifier);
+        when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
+        when(passwordResetAttemptService.isPasswordResetAttemptSuccessful(identifier, timestampMillis)).thenReturn(false);
+        when(hmacTokenUtil.validateToken(identifier, token)).thenReturn(true);
+
+        // When
+        boolean result = userService.validatePasswordResetToken(token);
+
+        // Then
+        verify(hmacTokenUtil, times(1)).extractMetadataFromToken(token);
+        verify(hmacTokenUtil, times(1)).extractIdentifierFromTokenMetadata(metadata);
+        verify(hmacTokenUtil, times(1)).extractTimestampMillisFromToken(token);
+        verify(passwordResetAttemptService, times(1)).isPasswordResetAttemptSuccessful(identifier, timestampMillis);//
+        verify(hmacTokenUtil, times(1)).validateToken(identifier, token);
+
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should throw a TokenValidationException when token is invalid")
+    void resetPasswordWhenTokenIsInvalidThenThrowException() {
+        // Given
+        String token = "invalidToken";
+        String metadata = "metadata";
+        String email = "user1@example.com";
+        long timestampMillis = System.currentTimeMillis();
+        String newPassword = "newValidPassword1234!";
+
+        when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
+        when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
+        when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
+        when(userService.validatePasswordResetToken(token)).thenReturn(false);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.resetPassword(token, newPassword))
+                .isInstanceOf(TokenValidationException.class)
+                .hasMessage("Invalid password reset token");
+
+        verify(hmacTokenUtil, atLeastOnce()).extractMetadataFromToken(token);
+        verify(hmacTokenUtil, atLeastOnce()).extractIdentifierFromTokenMetadata(metadata);
+        verify(hmacTokenUtil, atLeastOnce()).extractTimestampMillisFromToken(token);
+
+        verify(userRepository, times(0)).findByEmail(email);
+        verify(validationUtil, times(0)).performValidationOnField(User.class, "password", newPassword);
+        verify(userRepository, times(0)).save(any(User.class));
+        verify(passwordResetAttemptService, times(0)).updatePasswordResetAttemptSuccess(email, timestampMillis, true);
+    }
+
+    @Test
+    @DisplayName("Should throw a ConstraintViolationException when new password is invalid")
+    void resetPasswordWhenNewPasswordIsInvalidThenThrowException() {
+        // Given
+        Long userId = 1L;
+        String token = "Z9wMSQbpr7UK8W02GTOdyfjLZW-a8gVZGW8CnbfDMF4";
+        String metadata = "metadata";
+        String email = "john.doe@example.com";
+        long timestampMillis = System.currentTimeMillis();
+        String newPassword = "newInvalidPassword";
+        User user = new User(userId, "john_doe", email, "password1234!", "John Doe",
+                null, null, null,
+                Gender.MALE, null, null);
+
+        when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
+        when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
+        when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
+        when(userService.validatePasswordResetToken(token)).thenReturn(true);
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        // When
+        // Then
+        assertThatThrownBy(() -> userService.resetPassword(token, newPassword))
+                .isInstanceOf(ConstraintViolationException.class);
+
+        verify(hmacTokenUtil, atLeastOnce()).extractMetadataFromToken(token);
+        verify(hmacTokenUtil, atLeastOnce()).extractIdentifierFromTokenMetadata(metadata);
+        verify(hmacTokenUtil, atLeastOnce()).extractTimestampMillisFromToken(token);
+
+        verify(userRepository, times(1)).findByEmail(email);
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", newPassword);
+        verify(userRepository, times(0)).save(any(User.class));
+        verify(passwordResetAttemptService, times(0)).updatePasswordResetAttemptSuccess(email, timestampMillis, true);
+    }
+
+    @Test
+    @DisplayName("Should not reset password when user does not exist with given email")
+    void resetPasswordWhenUserDoesNotExistThenDoNotResetPassword() {
+        // Given
+        String token = "Z9wMSQbpr7UK8W02GTOdyfjLZW-a8gVZGW8CnbfDMF4";
+        String metadata = "metadata";
+        String email = "user1@example.com";
+        long timestampMillis = System.currentTimeMillis();
+        String newPassword = "newValidPassword1234!";
+
+        when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
+        when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
+        when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
+        when(userService.validatePasswordResetToken(token)).thenReturn(true);
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // When
+        userService.resetPassword(token, newPassword);
+
+        // Then
+        verify(hmacTokenUtil, atLeastOnce()).extractMetadataFromToken(token);
+        verify(hmacTokenUtil, atLeastOnce()).extractIdentifierFromTokenMetadata(metadata);
+        verify(hmacTokenUtil, atLeastOnce()).extractTimestampMillisFromToken(token);
+
+        verify(userRepository, times(1)).findByEmail(email);
+        verify(validationUtil, times(0)).performValidationOnField(User.class, "password", newPassword);
+        verify(userRepository, times(0)).save(any(User.class));
+        verify(passwordResetAttemptService, times(0)).updatePasswordResetAttemptSuccess(email, timestampMillis, true);
+    }
+
+    @Test
+    @DisplayName("Should reset password when user exists with given email and token and new password are valid")
+    void resetPasswordWhenUserExistsAndTokenAndNewPasswordAreValid() {
+        // Given
+        Long userId = 1L;
+        String token = "Z9wMSQbpr7UK8W02GTOdyfjLZW-a8gVZGW8CnbfDMF4";
+        String metadata = "metadata";
+        String email = "john.doe@example.com";
+        long timestampMillis = System.currentTimeMillis();
+        String newPassword = "newValidPassword1234!";
+        String newEncodedPassword = "newEncodedPassword1234!";
+        User user = new User(userId, "john_doe", email, "password1234!", "John Doe",
+                null, null, null,
+                Gender.MALE, null, null);
+
+        when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
+        when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
+        when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
+        when(userService.validatePasswordResetToken(token)).thenReturn(true);
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(newPassword)).thenReturn(newEncodedPassword);
+
+        // When
+        userService.resetPassword(token, newPassword);
+
+        // Then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(hmacTokenUtil, atLeastOnce()).extractMetadataFromToken(token);
+        verify(hmacTokenUtil, atLeastOnce()).extractIdentifierFromTokenMetadata(metadata);
+        verify(hmacTokenUtil, atLeastOnce()).extractTimestampMillisFromToken(token);
+
+        verify(userRepository, times(1)).findByEmail(email);
+        verify(validationUtil, times(1)).performValidationOnField(User.class, "password", newPassword);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+        verify(passwordResetAttemptService, times(1)).updatePasswordResetAttemptSuccess(email, timestampMillis, true);
 
         User savedUser = userCaptor.getValue();
         assertThat(savedUser.getPassword()).isEqualTo(newEncodedPassword);

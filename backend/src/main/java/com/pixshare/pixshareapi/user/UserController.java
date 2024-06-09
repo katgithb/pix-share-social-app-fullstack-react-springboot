@@ -159,6 +159,28 @@ public class UserController {
         userService.updatePassword(identity.getId(), passwordRequest.newPassword());
     }
 
+    @PostMapping("/account/password/reset/request")
+    public void initiatePasswordReset(
+            @RequestBody UserPasswordResetRequest passwordResetRequest) {
+
+        userService.initiatePasswordReset(passwordResetRequest.email());
+    }
+
+    @GetMapping("/account/password/reset/validate/{token}")
+    public ResponseEntity<Boolean> validatePasswordResetToken(
+            @PathVariable("token") String token) {
+        boolean isPasswordResetTokenValid = userService.validatePasswordResetToken(token);
+
+        return new ResponseEntity<>(isPasswordResetTokenValid, HttpStatus.OK);
+    }
+
+    @PutMapping("/account/password/reset")
+    public void resetPassword(
+            @RequestBody UserPasswordResetRequest passwordResetRequest) {
+
+        userService.resetPassword(passwordResetRequest.token(), passwordResetRequest.newPassword());
+    }
+
     @PutMapping("/account/profile/image/update")
     public void updateUserImage(
             @RequestHeader("Authorization") String authHeader,
