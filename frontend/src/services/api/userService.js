@@ -98,6 +98,20 @@ export const updatePassword = async (data) => {
   );
 };
 
+export const initiatePasswordReset = async (data) => {
+  return await axiosInstance.post("/account/password/reset/request", data);
+};
+
+export const validatePasswordResetToken = async (data) => {
+  return await axiosInstance.get(
+    `/account/password/reset/validate/${data.passwordResetToken}`
+  );
+};
+
+export const resetPassword = async (data) => {
+  return await axiosInstance.put("/account/password/reset", data);
+};
+
 export const updateUserImage = async (data) => {
   const headers = { Authorization: `Bearer ${data.token}` };
 

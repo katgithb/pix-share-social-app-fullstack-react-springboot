@@ -7,6 +7,7 @@ import postLookupReducer from "./reducers/post/postLookupSlice";
 import postManagementReducer from "./reducers/post/postManagementSlice";
 import postSocialReducer from "./reducers/post/postSocialSlice";
 import userLookupReducer from "./reducers/user/userLookupSlice";
+import userPasswordResetReducer from "./reducers/user/userPasswordResetSlice";
 import userProfileReducer from "./reducers/user/userProfileSlice";
 import userSocialReducer from "./reducers/user/userSocialSlice";
 
@@ -16,6 +17,7 @@ const store = configureStore({
     auth: authReducer,
     user: combineReducers({
       userProfile: userProfileReducer,
+      userPasswordReset: userPasswordResetReducer,
       userLookup: userLookupReducer,
       userSocial: userSocialReducer,
     }),
