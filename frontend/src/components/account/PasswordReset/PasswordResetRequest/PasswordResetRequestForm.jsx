@@ -1,10 +1,8 @@
 import {
   Button,
-  Checkbox,
   HStack,
   Image,
   Link,
-  Stack,
   Text,
   useColorModeValue,
   VStack,
@@ -13,18 +11,15 @@ import { Form, Formik } from "formik";
 import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link as RouteLink, useNavigate } from "react-router-dom";
-import logo from "../../../assets/images/pixshare_logo.png";
-import altLogo from "../../../assets/images/pixshare_logo_gray.png";
-import {
-  checkAuthState,
-  signinAction,
-} from "../../../redux/actions/auth/authActions";
-import { fetchUserProfileAction } from "../../../redux/actions/user/userProfileActions";
-import { getAuthToken } from "../../../utils/authUtils";
-import CustomPasswordInput from "../../shared/customFormElements/CustomPasswordInput";
-import CustomTextInput from "../../shared/customFormElements/CustomTextInput";
+import logo from "../../../../assets/images/pixshare_logo.png";
+import altLogo from "../../../../assets/images/pixshare_logo_gray.png";
+import { checkAuthState } from "../../../../redux/actions/auth/authActions";
+import { initiatePasswordResetAction } from "../../../../redux/actions/user/userPasswordResetActions";
+import { fetchUserProfileAction } from "../../../../redux/actions/user/userProfileActions";
+import { getAuthToken } from "../../../../utils/authUtils";
+import CustomTextInput from "../../../shared/customFormElements/CustomTextInput";
 
-const SigninForm = ({ initialValues, validationSchema }) => {
+const PasswordResetRequestForm = ({ initialValues, validationSchema }) => {
   const formLogo = useColorModeValue(logo, altLogo);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -33,11 +28,13 @@ const SigninForm = ({ initialValues, validationSchema }) => {
   const { isAuthenticated, isLoading } = useSelector((store) => store.auth);
   const selectUserProfile = useSelector((store) => store.user.userProfile);
   const userProfile = useMemo(() => selectUserProfile, [selectUserProfile]);
+  const { isInitiatingUserPasswordReset, isValidatingPasswordResetToken } =
+    useSelector((store) => store.user.userPasswordReset);
 
   const handleFormSubmission = (values, { setSubmitting }) => {
     setSubmitting(true);
     console.log("Form Values: ", values);
-    dispatch(signinAction(values));
+    dispatch(initiatePasswordResetAction(values));
     setSubmitting(false);
   };
 
@@ -87,42 +84,32 @@ const SigninForm = ({ initialValues, validationSchema }) => {
 
           <VStack spacing={5} w="full">
             <VStack spacing={4} w="full">
+              <Text fontSize={"sm"}>
+                Enter the email address you used when you joined and we will
+                send you instructions to reset your password.
+              </Text>
+
               <CustomTextInput
                 label={"Email"}
-                id={"username"}
-                name={"username"}
+                id={"email"}
+                name={"email"}
                 type={"email"}
                 placeholder={"johndoe@example.com"}
               />
-
-              <CustomPasswordInput
-                label={"Password"}
-                id={"password"}
-                name={"password"}
-                placeholder={"Type your password"}
-              />
             </VStack>
             <VStack w="full">
-              <Stack direction="row" justify="space-between" w="full">
-                <Checkbox colorScheme="blue" size="md">
-                  Remember me
-                </Checkbox>
-                <Link
-                  as={RouteLink}
-                  to="/reset-password/new"
-                  fontSize={{ base: "md", sm: "md" }}
-                  color={"blue.500"}
-                  _dark={{ color: "blue.300" }}
-                  style={{ textDecoration: "none" }}
-                >
-                  Forgot password?
-                </Link>
-              </Stack>
               <Button
                 type={"submit"}
                 isDisabled={!isValid || isSubmitting}
-                isLoading={isLoading || userProfile.isLoading}
-                loadingText="Signing In..."
+                isLoading={
+                  isLoading ||
+                  userProfile.isLoading ||
+                  isInitiatingUserPasswordReset ||
+                  isValidatingPasswordResetToken
+                }
+                loadingText={
+                  isInitiatingUserPasswordReset ? "Submitting..." : ""
+                }
                 bg="blue.400"
                 color="white"
                 _hover={{
@@ -131,7 +118,7 @@ const SigninForm = ({ initialValues, validationSchema }) => {
                 rounded="md"
                 w="full"
               >
-                Sign In
+                Submit
               </Button>
             </VStack>
           </VStack>
@@ -144,15 +131,15 @@ const SigninForm = ({ initialValues, validationSchema }) => {
             w="full"
           >
             <Text fontSize="md">
-              Don't have an account?
-              <Link as={RouteLink} to="/signup">
+              Don't want to reset? Return to
+              <Link as={RouteLink} to="/login">
                 <Text
                   as="span"
                   pl={1}
                   color={"blue.500"}
                   _dark={{ color: "blue.300" }}
                 >
-                  Sign Up
+                  Login
                 </Text>
               </Link>
             </Text>
@@ -163,4 +150,4 @@ const SigninForm = ({ initialValues, validationSchema }) => {
   );
 };
 
-export default SigninForm;
+export default PasswordResetRequestForm;
