@@ -56,4 +56,5 @@ jobs:
           CLOUDINARY_URL: ${{ vars.TEST_CLOUDINARY_URL }}
           CLOUDINARY_UPLOAD_PRESET: ${{ vars.TEST_CLOUDINARY_UPLOAD_PRESET }}
           CLOUDINARY_UPLOAD_FOLDER: ${{ vars.TEST_CLOUDINARY_UPLOAD_FOLDER }}
+          BREVO_API_KEY: ${{ secrets.TEST_BREVO_API_KEY }}
         run: mvn -B -ntp verify -Djib.skip=true
