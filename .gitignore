@@ -39,13 +39,16 @@ build/
 ### Local Environment Configuration ###
 **/*.env*
 
+# Allow the example env file for reference
+!**/*.env.example
+
 
 ### --- JavaScript --- ###
 
 ### NodeJS ###
 **/node_modules/
 
-# Logs
+### Logs ###
 logs
 *.log
 npm-debug.log*
@@ -58,7 +61,7 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
+### Editor directories and files ###
 .DS_Store
 *.suo
 *.ntvs*
