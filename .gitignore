@@ -41,6 +41,8 @@ build/
 
 # Allow the example env file for reference
 !**/*.env.example
+# Allow the spring-dotenv configuration file to override defaults
+!**/*.env.properties
 
 
 ### --- JavaScript --- ###
