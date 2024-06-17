@@ -1,5 +1,5 @@
 import terser from "@rollup/plugin-terser";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 import { defineConfig, splitVendorChunkPlugin } from "vite";
 
