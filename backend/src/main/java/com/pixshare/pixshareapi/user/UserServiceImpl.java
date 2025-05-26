@@ -46,6 +46,8 @@ public class UserServiceImpl implements UserService {
 
     private final StoryRepository storyRepository;
 
+    private final RoleService roleService;
+
     private final StoryService storyService;
 
     private final UploadService uploadService;
@@ -76,12 +78,13 @@ public class UserServiceImpl implements UserService {
     private int PASSWORD_RESET_ATTEMPT_WINDOW_DURATION_IN_SECONDS;
 
     public UserServiceImpl(UserRepository userRepository, PostRepository postRepository, CommentRepository commentRepository,
-                           StoryRepository storyRepository, StoryService storyService, UploadService uploadService, PasswordResetAttemptService passwordResetAttemptService, BrevoMailSender brevoMailSender, ImageUtil imageUtil,
+                           StoryRepository storyRepository, RoleService roleService, StoryService storyService, UploadService uploadService, PasswordResetAttemptService passwordResetAttemptService, BrevoMailSender brevoMailSender, ImageUtil imageUtil,
                            PasswordEncoder passwordEncoder, ValidationUtil validationUtil, UrlValidator urlValidator, HMACTokenUtil hmacTokenUtil, UserDTOMapper userDTOMapper, UserSummaryDTOMapper userSummaryDTOMapper) {
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.commentRepository = commentRepository;
         this.storyRepository = storyRepository;
+        this.roleService = roleService;
         this.storyService = storyService;
         this.uploadService = uploadService;
         this.passwordResetAttemptService = passwordResetAttemptService;
@@ -124,6 +127,9 @@ public class UserServiceImpl implements UserService {
             throw new DuplicateResourceException("This username is already taken");
         }
 
+        // Get default user role
+        Role userRole = roleService.getRoleByName(RoleName.USER.name());
+
         // save
         validationUtil.performValidationOnField(User.class, "password", registrationRequest.password());
 
@@ -131,7 +137,8 @@ public class UserServiceImpl implements UserService {
                 registrationRequest.email(),
                 passwordEncoder.encode(registrationRequest.password()),
                 registrationRequest.name(),
-                registrationRequest.gender());
+                registrationRequest.gender(),
+                userRole);
 
         List<String> omittedFields = Collections.singletonList("password");
         validationUtil.performValidation(user, omittedFields);

@@ -89,6 +89,11 @@ public class User implements UserDetails {
     @Column(name = "user_image")
     private String userImage;
 
+    @NonNull
+    @ManyToOne
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
+
     @ToString.Exclude
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name = "user_follower",
@@ -104,7 +109,7 @@ public class User implements UserDetails {
     @BatchSize(size = 10)
     private Set<Post> savedPosts = new LinkedHashSet<>();
 
-    public User(Long id, @NonNull String userHandleName, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImageUploadId, String userImage) {
+    public User(Long id, @NonNull String userHandleName, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImageUploadId, String userImage, @NonNull Role role) {
         this.id = id;
         this.userHandleName = userHandleName;
         this.email = email;
@@ -116,6 +121,7 @@ public class User implements UserDetails {
         this.gender = gender;
         this.userImageUploadId = userImageUploadId;
         this.userImage = userImage;
+        this.role = role;
     }
 
     public void addSavedPost(Post post) {
@@ -154,7 +160,13 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        final String ROLE_PREFIX = "ROLE_";
+
+        return List.of(new SimpleGrantedAuthority(
+                ROLE_PREFIX + Optional.ofNullable(role)
+                        .map(Role::getRoleName)
+                        .orElse(RoleName.USER.name())
+        ));
     }
 
     @Override

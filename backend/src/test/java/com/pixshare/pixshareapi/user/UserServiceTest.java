@@ -62,6 +62,8 @@ class UserServiceTest {
     @Mock
     private StoryRepository storyRepository;
     @Mock
+    private RoleService roleService;
+    @Mock
     private StoryService storyService;
     @Mock
     private UploadService uploadService;
@@ -80,12 +82,18 @@ class UserServiceTest {
     @Mock
     private HMACTokenUtil hmacTokenUtil;
 
+    private Role userRole;
+
     @BeforeEach
     void setUp() {
         userService = new UserServiceImpl(userRepository, postRepository, commentRepository, storyRepository,
-                storyService, uploadService, passwordResetAttemptService, brevoMailSender,
+                roleService, storyService, uploadService, passwordResetAttemptService, brevoMailSender,
                 imageUtil, passwordEncoder, validationUtil, urlValidator, hmacTokenUtil,
                 userDTOMapper, userSummaryDTOMapper);
+
+        Short userRoleId = 1;
+        userRole = Role.of(RoleName.USER);
+        userRole.setId(userRoleId);
     }
 
 
@@ -196,6 +204,7 @@ class UserServiceTest {
                 .hasMessage("This email is already taken");
 
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(roleService, times(0)).getRoleByName(RoleName.USER.name());
         verify(validationUtil, times(0)).performValidationOnField(User.class, "password", registrationRequest.password());
         verify(validationUtil, times(0)).performValidation(any(User.class), anyList());
         verify(userRepository, times(0)).save(any(User.class));
@@ -212,6 +221,7 @@ class UserServiceTest {
                 "password123#", Gender.MALE);
 
         when(userRepository.existsUserByEmail(email)).thenReturn(false);
+        when(roleService.getRoleByName(RoleName.USER.name())).thenReturn(userRole);
         when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
 
         // When
@@ -220,6 +230,7 @@ class UserServiceTest {
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
+        verify(roleService, times(1)).getRoleByName(RoleName.USER.name());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
         verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
         verify(userRepository, times(1)).save(userCaptor.capture());
@@ -230,6 +241,7 @@ class UserServiceTest {
         assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
         assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
         assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
+        assertThat(savedUser.getRole()).isEqualTo(userRole);
     }
 
     @Test
@@ -249,6 +261,7 @@ class UserServiceTest {
                 .hasMessage("This username is already taken");
 
         verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(roleService, times(0)).getRoleByName(RoleName.USER.name());
         verify(validationUtil, times(0)).performValidationOnField(User.class, "password", registrationRequest.password());
         verify(validationUtil, times(0)).performValidation(any(User.class), anyList());
         verify(userRepository, times(0)).save(any(User.class));
@@ -265,6 +278,7 @@ class UserServiceTest {
                 "password123#", Gender.MALE);
 
         when(userRepository.existsUserByUserHandleName(userHandleName)).thenReturn(false);
+        when(roleService.getRoleByName(RoleName.USER.name())).thenReturn(userRole);
         when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
 
         // When
@@ -273,6 +287,7 @@ class UserServiceTest {
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(roleService, times(1)).getRoleByName(RoleName.USER.name());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
         verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
         verify(userRepository, times(1)).save(userCaptor.capture());
@@ -283,6 +298,7 @@ class UserServiceTest {
         assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
         assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
         assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
+        assertThat(savedUser.getRole()).isEqualTo(userRole);
     }
 
     @Test
@@ -296,6 +312,7 @@ class UserServiceTest {
 
         when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
         when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(false);
+        when(roleService.getRoleByName(RoleName.USER.name())).thenReturn(userRole);
 
         // When
         // Then
@@ -304,6 +321,7 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
         verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(roleService, times(1)).getRoleByName(RoleName.USER.name());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
         verify(validationUtil, times(0)).performValidation(any(User.class), anyList());
         verify(userRepository, times(0)).save(any(User.class));
@@ -321,6 +339,7 @@ class UserServiceTest {
 
         when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
         when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(false);
+        when(roleService.getRoleByName(RoleName.USER.name())).thenReturn(userRole);
         when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
 
         // When
@@ -330,6 +349,7 @@ class UserServiceTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
         verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(roleService, times(1)).getRoleByName(RoleName.USER.name());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
         verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
         verify(userRepository, times(1)).save(userCaptor.capture());
@@ -340,6 +360,7 @@ class UserServiceTest {
         assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
         assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
         assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
+        assertThat(savedUser.getRole()).isEqualTo(userRole);
     }
 
     @Test
@@ -354,6 +375,7 @@ class UserServiceTest {
 
         when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
         when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(false);
+        when(roleService.getRoleByName(RoleName.USER.name())).thenReturn(userRole);
         when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
 
         // When
@@ -363,6 +385,7 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
         verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(roleService, times(1)).getRoleByName(RoleName.USER.name());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
         verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
         verify(userRepository, times(0)).save(any(User.class));
@@ -380,6 +403,7 @@ class UserServiceTest {
 
         when(userRepository.existsUserByEmail(registrationRequest.email())).thenReturn(false);
         when(userRepository.existsUserByUserHandleName(registrationRequest.username())).thenReturn(false);
+        when(roleService.getRoleByName(RoleName.USER.name())).thenReturn(userRole);
         when(passwordEncoder.encode(registrationRequest.password())).thenReturn(passwordHash);
 
         // When
@@ -389,6 +413,7 @@ class UserServiceTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(1)).existsUserByEmail(registrationRequest.email());
         verify(userRepository, times(1)).existsUserByUserHandleName(registrationRequest.username());
+        verify(roleService, times(1)).getRoleByName(RoleName.USER.name());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", registrationRequest.password());
         verify(validationUtil, times(1)).performValidation(any(User.class), anyList());
         verify(userRepository, times(1)).save(userCaptor.capture());
@@ -399,6 +424,7 @@ class UserServiceTest {
         assertThat(savedUser.getPassword()).isEqualTo(passwordHash);
         assertThat(savedUser.getName()).isEqualTo(registrationRequest.name());
         assertThat(savedUser.getGender()).isEqualTo(registrationRequest.gender());
+        assertThat(savedUser.getRole()).isEqualTo(userRole);
     }
 
     @Test
@@ -612,7 +638,7 @@ class UserServiceTest {
         TransactionalEmailsApi apiInstance = new TransactionalEmailsApi();
         User user = new User(userId, "john_doe", email, "password1234!", "John Doe",
                 null, null, null,
-                Gender.MALE, null, null);
+                Gender.MALE, null, null, userRole);
 
         when(passwordResetAttemptService.isPasswordResetAttemptAllowed(eq(email), anyLong())).thenReturn(true);
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
@@ -760,7 +786,7 @@ class UserServiceTest {
         String newPassword = "newInvalidPassword";
         User user = new User(userId, "john_doe", email, "password1234!", "John Doe",
                 null, null, null,
-                Gender.MALE, null, null);
+                Gender.MALE, null, null, userRole);
 
         when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
         when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
@@ -826,7 +852,7 @@ class UserServiceTest {
         String newEncodedPassword = "newEncodedPassword1234!";
         User user = new User(userId, "john_doe", email, "password1234!", "John Doe",
                 null, null, null,
-                Gender.MALE, null, null);
+                Gender.MALE, null, null, userRole);
 
         when(hmacTokenUtil.extractMetadataFromToken(token)).thenReturn(metadata);
         when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
@@ -928,7 +954,7 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         User user = new User(userId, "username", "email@test.com", "password", "name",
-                null, null, null, Gender.MALE, "imageUploadId", "imageUrl");
+                null, null, null, Gender.MALE, "imageUploadId", "imageUrl", userRole);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -979,7 +1005,7 @@ class UserServiceTest {
         User user = new User(
                 userId, "Username", "existingEmail@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImageUploadId", "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage", userRole);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(true);
@@ -1007,7 +1033,7 @@ class UserServiceTest {
         User user = new User(
                 userId, "existingUsername", "Email@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImageUploadId", "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage", userRole);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsUserByUserHandleName(updateRequest.username())).thenReturn(true);
@@ -1035,7 +1061,7 @@ class UserServiceTest {
         User user = new User(
                 userId, "Username", "existingEmail@example.com", "Password",
                 "Name", "Mobile", "Website", "Bio",
-                Gender.MALE, "UserImageUploadId", "UserImage");
+                Gender.MALE, "UserImageUploadId", "UserImage", userRole);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(false);
@@ -1076,7 +1102,8 @@ class UserServiceTest {
                 "Bio",
                 Gender.MALE,
                 "UserImageUploadId",
-                "UserImage"
+                "UserImage",
+                userRole
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -1127,7 +1154,8 @@ class UserServiceTest {
                 "Bio",
                 Gender.MALE,
                 "UserImageUploadId",
-                "UserImage"
+                "UserImage",
+                userRole
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -1178,7 +1206,7 @@ class UserServiceTest {
         User user = new User(
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image123", "image.jpg");
+                Gender.MALE, "image123", "image.jpg", userRole);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -1216,7 +1244,7 @@ class UserServiceTest {
         User user = new User(
                 userId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image123", "image.jpg");
+                Gender.MALE, "image123", "image.jpg", userRole);
         UserSummaryDTO expectedUserDTO = new UserSummaryDTO(
                 userId, "john.doe", "John Doe",
                 "www.example.com", "Bio",
@@ -1257,7 +1285,7 @@ class UserServiceTest {
         Long authUserId = 2L;
         String email = "john.doe@example.com";
         User user = new User("john_doe", email,
-                "password", "John Doe", Gender.MALE);
+                "password", "John Doe", Gender.MALE, userRole);
         user.setId(1L);
         UserSummaryDTO expectedUserDTO = new UserSummaryDTO(
                 1L, "john_doe", "John Doe",
@@ -1299,7 +1327,7 @@ class UserServiceTest {
         Long authUserId = 2L;
         String username = "john_doe";
         User user = new User(username, "john.doe@example.com",
-                "password", "John Doe", Gender.MALE);
+                "password", "John Doe", Gender.MALE, userRole);
         user.setId(1L);
         UserSummaryDTO expectedUserDTO = new UserSummaryDTO(
                 1L, username, "John Doe",
@@ -1341,7 +1369,7 @@ class UserServiceTest {
         User user = new User(
                 authUserId, "john.doe", "john.doe@example.com", "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image123", "image.jpg");
+                Gender.MALE, "image123", "image.jpg", userRole);
         UserDTO expectedUserDTO = new UserDTO(
                 authUserId, "john.doe", "john.doe@example.com", "John Doe", "1234567890",
                 "www.example.com", "Bio", Gender.MALE,
@@ -1369,7 +1397,7 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image123", "image.jpg");
+                Gender.MALE, "image123", "image.jpg", userRole);
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.empty());
@@ -1438,12 +1466,12 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image123", "image.jpg");
+                Gender.MALE, "image123", "image.jpg", userRole);
         User followUser = new User(
                 followUserId, "jane.doe", "jane.doe@example.com",
                 "password", "Jane Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.FEMALE, "image123", "image.jpg");
+                Gender.FEMALE, "image123", "image.jpg", userRole);
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.of(followUser));
@@ -1469,7 +1497,7 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image123", "image.jpg");
+                Gender.MALE, "image123", "image.jpg", userRole);
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.empty());
@@ -1538,12 +1566,12 @@ class UserServiceTest {
                 reqUserId, "john.doe", "john.doe@example.com",
                 "password", "John Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.MALE, "image123", "image.jpg");
+                Gender.MALE, "image123", "image.jpg", userRole);
         User followUser = new User(
                 followUserId, "jane.doe", "jane.doe@example.com",
                 "password", "Jane Doe",
                 "1234567890", "www.example.com", "Bio",
-                Gender.FEMALE, "image123", "image.jpg");
+                Gender.FEMALE, "image123", "image.jpg", userRole);
 
         when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
         when(userRepository.findById(followUserId)).thenReturn(Optional.of(followUser));
@@ -1599,11 +1627,11 @@ class UserServiceTest {
         Long authUserId = 5L;
         List<Long> userIds = List.of(1L, 2L, 3L);
         List<User> users = List.of(
-                new User(1L, "user1", "user1@example.com", "password1", "User 1", null, null, null, Gender.MALE, null, null),
+                new User(1L, "user1", "user1@example.com", "password1", "User 1", null, null, null, Gender.MALE, null, null, userRole),
                 new User(2L, "user2", "user2@example.com", "password2", "User 2", null, null, null,
-                        Gender.FEMALE, null, null),
+                        Gender.FEMALE, null, null, userRole),
                 new User(3L, "user3", "user3@example.com", "password3", "User 3", null, null, null,
-                        Gender.OTHER, null, null)
+                        Gender.OTHER, null, null, userRole)
         );
         List<UserSummaryDTO> expectedUsers = List.of(
                 new UserSummaryDTO(1L, "user1", "User 1", null, null,
@@ -1658,9 +1686,9 @@ class UserServiceTest {
 
         List<User> users = List.of(
                 new User(1L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
-                        Gender.MALE, null, null),
+                        Gender.MALE, null, null, userRole),
                 new User(2L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
-                        Gender.MALE, null, null)
+                        Gender.MALE, null, null, userRole)
         );
         List<UserSummaryDTO> expectedUsers = List.of(
                 new UserSummaryDTO(1L, "john.doe", "John Doe", null, null,
@@ -1713,13 +1741,13 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         User user = new User(1L, "will.smith", "will.smith@example.com", "password", "Will Smith", null, null, null,
-                Gender.MALE, null, null);
+                Gender.MALE, null, null, userRole);
 
         List<User> popularUsers = List.of(
                 new User(2L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
-                        Gender.MALE, null, null),
+                        Gender.MALE, null, null, userRole),
                 new User(3L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
-                        Gender.MALE, null, null)
+                        Gender.MALE, null, null, userRole)
         );
         List<UserSummaryDTO> expectedPopularUsers = List.of(
                 new UserSummaryDTO(2L, "john.doe", "John Doe", null, null,
@@ -1765,11 +1793,11 @@ class UserServiceTest {
         // Given
         List<User> popularUsers = List.of(
                 new User(1L, "will.smith", "will.smith@example.com", "password", "Will Smith", null, null, null,
-                        Gender.MALE, null, null),
+                        Gender.MALE, null, null, userRole),
                 new User(2L, "john.doe", "john.doe@example.com", "password", "John Doe", null, null, null,
-                        Gender.MALE, null, null),
+                        Gender.MALE, null, null, userRole),
                 new User(3L, "john.smith", "john.smith@example.com", "password", "John Smith", null, null, null,
-                        Gender.MALE, null, null)
+                        Gender.MALE, null, null, userRole)
         );
         List<UserSummaryDTO> expectedPopularUsers = List.of(
                 new UserSummaryDTO(1L, "will.smith", "Will Smith", null, null,

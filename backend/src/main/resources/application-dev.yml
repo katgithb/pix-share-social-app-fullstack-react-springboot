@@ -11,3 +11,9 @@ spring:
 
 cloudinary:
   upload-folder: ${DEV_CLOUDINARY_UPLOAD_FOLDER}
+
+app:
+  # Admin user configuration for development
+  admin:
+    email: ${APP_DEV_ADMIN_EMAIL:admin-dev@localhost.dev}
+    password: ${APP_DEV_ADMIN_PASSWORD:$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG} # Default: "password"

@@ -19,6 +19,10 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: false
+  flyway:
+    placeholders:
+      admin.email: ${app.admin.email}
+      admin.password: ${app.admin.password}
 
 cors:
   allowed-origins: "*"
@@ -34,6 +38,10 @@ management:
 
 app:
   base-url: ${APP_BASE_URL}
+  # Admin user configuration
+  admin:
+    email: ${APP_ADMIN_EMAIL}
+    password: ${APP_ADMIN_PASSWORD}
 
 jwt:
   secret-key: ${JWT_SECRET_KEY}

@@ -22,15 +22,21 @@ class UserRepositoryTest extends AbstractTestcontainers {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private RoleRepository roleRepository;
 
     private String username;
     private String name;
     private String email;
     private String password;
+    private Role userRole;
 
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
+
+        userRole = roleRepository.findByRoleName(RoleName.USER.name())
+                .orElseGet(() -> roleRepository.save(Role.of(RoleName.USER)));
 
         String firstName = FAKER.name().firstName();
         String lastName = FAKER.name().lastName();
@@ -57,7 +63,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return true when a user with the given email exists")
     void existsUserByEmailWhenUserExists() {
         // Given
-        User user = new User(username, email, password, name, Gender.MALE);
+        User user = new User(username, email, password, name, Gender.MALE, userRole);
         userRepository.save(user);
 
         // When
@@ -84,7 +90,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return true when the user with given handle name exists")
     void existsUserByUserHandleNameWhenUserExists() {
         // Given
-        User user = new User(username, email, password, name, Gender.MALE);
+        User user = new User(username, email, password, name, Gender.MALE, userRole);
         userRepository.save(user);
 
         // When
@@ -111,7 +117,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return true when user exists by given id")
     void existsUserByIdWhenUserExists() {
         // Given
-        User user = new User(username, email, password, name, Gender.MALE);
+        User user = new User(username, email, password, name, Gender.MALE, userRole);
         User savedUser = userRepository.save(user);
 
         // When
@@ -138,7 +144,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return an Optional containing the user when the email exists")
     void findByEmailWhenEmailExists() {
         // Given
-        User user = new User(username, email, password, name, Gender.MALE);
+        User user = new User(username, email, password, name, Gender.MALE, userRole);
         userRepository.save(user);
 
         // When
@@ -166,7 +172,7 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return an Optional of User when the username exists")
     void findByUserHandleNameWhenUsernameExists() {
         // Given
-        User user = new User(username, email, password, name, Gender.MALE);
+        User user = new User(username, email, password, name, Gender.MALE, userRole);
         userRepository.save(user);
 
         // When
@@ -207,9 +213,9 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return all users with the given user IDs")
     void findAllUsersByUserIdsWithValidUserIds() {
         // Given
-        User user1 = new User(username + 1, email + 1, password, name + " one", Gender.MALE);
-        User user2 = new User(username + 2, email + 2, password, name + " two", Gender.FEMALE);
-        User user3 = new User(username + 3, email + 3, password, name + " three", Gender.OTHER);
+        User user1 = new User(username + 1, email + 1, password, name + " one", Gender.MALE, userRole);
+        User user2 = new User(username + 2, email + 2, password, name + " two", Gender.FEMALE, userRole);
+        User user3 = new User(username + 3, email + 3, password, name + " three", Gender.OTHER, userRole);
 
         List<User> users = List.of(user1, user2, user3);
         userRepository.saveAll(users);
@@ -244,9 +250,9 @@ class UserRepositoryTest extends AbstractTestcontainers {
         // Given
         Long userId = 5L;
         String query = "john";
-        User user1 = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE);
-        User user2 = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE);
-        User user3 = new User("john_doe2", "john.doe2@example.com", password, "John Doe Jr.", Gender.MALE);
+        User user1 = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE, userRole);
+        User user2 = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE, userRole);
+        User user3 = new User("john_doe2", "john.doe2@example.com", password, "John Doe Jr.", Gender.MALE, userRole);
 
         List<User> users = List.of(user1, user2, user3);
         userRepository.saveAll(users);
@@ -291,10 +297,10 @@ class UserRepositoryTest extends AbstractTestcontainers {
     void findPopularUsersWhenGivenUserIdIsNull() {
         // Given
         List<User> expectedPopularUsers = List.of(
-                new User(username, email, password, name, Gender.MALE),
-                new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE),
-                new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE),
-                new User("john_doe2", "john.doe2@example.com", password, "John Doe Jr.", Gender.MALE)
+                new User(username, email, password, name, Gender.MALE, userRole),
+                new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE, userRole),
+                new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE, userRole),
+                new User("john_doe2", "john.doe2@example.com", password, "John Doe Jr.", Gender.MALE, userRole)
         );
 
         userRepository.saveAll(expectedPopularUsers);
@@ -311,11 +317,11 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return a list of popular users excluding the user with given id when the user exists by given id")
     void findPopularUsersWhenUserExistsByGivenId() {
         // Given
-        User user = new User(username, email, password, name, Gender.MALE);
+        User user = new User(username, email, password, name, Gender.MALE, userRole);
         List<User> expectedPopularUsers = List.of(
-                new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE),
-                new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE),
-                new User("john_doe2", "john.doe2@example.com", password, "John Doe Jr.", Gender.MALE)
+                new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE, userRole),
+                new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE, userRole),
+                new User("john_doe2", "john.doe2@example.com", password, "John Doe Jr.", Gender.MALE, userRole)
         );
 
         userRepository.save(user);
@@ -334,8 +340,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return false when follow user is not followed by the given user")
     void isFollowedByUserWhenNotFollowedByGivenUser() {
         // Given
-        User followUser = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE);
-        User user = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE);
+        User followUser = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE, userRole);
+        User user = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE, userRole);
         userRepository.save(followUser);
         userRepository.save(user);
 
@@ -350,8 +356,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
     @DisplayName("Should return true when follow user is followed by the given user")
     void isFollowedByUserWhenFollowedByGivenUser() {
         // Given
-        User followUser = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE);
-        User user = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE);
+        User followUser = new User("john_doe", "john.doe@example.com", password, "John Doe", Gender.MALE, userRole);
+        User user = new User("jane_smith", "jane.smith@example.com", password, "Jane Smith", Gender.FEMALE, userRole);
         followUser.addFollower(user);
         userRepository.save(followUser);
         userRepository.save(user);

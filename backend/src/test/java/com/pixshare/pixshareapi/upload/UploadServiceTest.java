@@ -7,9 +7,7 @@ import com.pixshare.pixshareapi.exception.RequestValidationException;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.post.PostRepository;
 import com.pixshare.pixshareapi.story.StoryRepository;
-import com.pixshare.pixshareapi.user.Gender;
-import com.pixshare.pixshareapi.user.User;
-import com.pixshare.pixshareapi.user.UserRepository;
+import com.pixshare.pixshareapi.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,9 +43,15 @@ public class UploadServiceTest {
     @SpyBean
     private Cloudinary cloudinary;
 
+    private Role userRole;
+
     @BeforeEach
     public void setUp() {
         uploadService = new UploadServiceImpl(userRepository, postRepository, storyRepository, cloudinary);
+
+        Short userRoleId = 1;
+        userRole = Role.of(RoleName.USER);
+        userRole.setId(userRoleId);
     }
 
     @Test
@@ -72,7 +76,7 @@ public class UploadServiceTest {
         // Arrange
         Long userId = 1L;
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, null);
-        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null);
+        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null, userRole);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // Act & Assert
@@ -90,7 +94,7 @@ public class UploadServiceTest {
         Long userId = 1L;
         String invalidUploadType = "invalid";
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, invalidUploadType);
-        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null);
+        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null, userRole);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // Act & Assert
@@ -107,7 +111,7 @@ public class UploadServiceTest {
         // Arrange
         Long userId = 1L;
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, "POST");
-        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null);
+        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null, userRole);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // Act & Assert
@@ -125,7 +129,7 @@ public class UploadServiceTest {
         Long userId = 1L;
         String existingUserImageUploadId = "existingImageUploadId";
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, "AVATAR");
-        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, existingUserImageUploadId, "imageUrl");
+        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, existingUserImageUploadId, "imageUrl", userRole);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.getReferenceById(userId)).thenReturn(user);
 
@@ -147,7 +151,7 @@ public class UploadServiceTest {
         // Arrange
         Long userId = 1L;
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, "AVATAR");
-        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null);
+        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null, userRole);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.getReferenceById(userId)).thenReturn(user);
 
@@ -169,7 +173,7 @@ public class UploadServiceTest {
         // Arrange
         Long userId = 1L;
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, "AVATAR");
-        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null);
+        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null, userRole);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.getReferenceById(userId)).thenReturn(user);
 
@@ -194,7 +198,7 @@ public class UploadServiceTest {
         Long userId = 1L;
         byte[] imageBytes = new byte[]{};
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, "AVATAR");
-        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null);
+        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null, userRole);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.getReferenceById(userId)).thenReturn(user);
         doThrow(IOException.class).when(uploader).upload(any(byte[].class), anyMap());
@@ -216,7 +220,7 @@ public class UploadServiceTest {
         Long userId = 1L;
         byte[] imageBytes = new byte[10];
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, "AVATAR");
-        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null);
+        User user = new User(userId, "user1", "user1@gmail.com", "password", "User1", null, null, null, Gender.MALE, null, null, userRole);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.getReferenceById(userId)).thenReturn(user);
 
