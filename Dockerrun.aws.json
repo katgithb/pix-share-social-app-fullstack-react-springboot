@@ -1,31 +1,14 @@
 {
-  "AWSEBDockerrunVersion": 2,
-  "containerDefinitions": [
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "projcodehub/pixshare-api:20240617.169.052647",
+    "Update": "true"
+  },
+  "Ports": [
     {
-      "name": "pixshare-api",
-      "image": "projcodehub/pixshare-api:20240617.169.052647",
-      "essential": true,
-      "memory": 448,
-      "portMappings": [
-        {
-          "hostPort": 80,
-          "containerPort": 8080
-        }
-      ],
-      "environment": [
-        {
-          "name": "SPRING_DATASOURCE_URL",
-          "value": "jdbc:postgresql://awseb-e-k2xbfm6m2f-stack-awsebrdsdatabase-j1u5fpuqutq8.clc8m84260m9.eu-central-1.rds.amazonaws.com:5432/ebdb"
-        },
-        {
-          "name": "SERVER_TOMCAT_MAX_CONNECTIONS",
-          "value": 150
-        },
-        {
-          "name": "SERVER_TOMCAT_THREADS_MAX",
-          "value": 30
-        }
-      ]
+      "ContainerPort": "8080",
+      "HostPort": "80"
     }
-  ]
+  ],
+  "Volumes": []
 }
