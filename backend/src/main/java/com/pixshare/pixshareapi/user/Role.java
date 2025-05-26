@@ -35,8 +35,8 @@ public class Role {
         this.roleName = roleName;
     }
 
-    public static Role of(String roleName) {
-        return new Role(roleName);
+    public static Role of(RoleName roleName) {
+        return new Role(roleName.name());
     }
 
     @Override
