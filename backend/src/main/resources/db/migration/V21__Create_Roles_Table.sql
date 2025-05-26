@@ -1,0 +1,5 @@
+CREATE TABLE roles (
+    id SMALLSERIAL NOT NULL,
+    role_name VARCHAR(50) NOT NULL,
+    CONSTRAINT pk_roles PRIMARY KEY (id)
+);
