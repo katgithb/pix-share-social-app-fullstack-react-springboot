@@ -43,4 +43,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) > 0 FROM User u JOIN u.follower uf WHERE u.id = :followUserId AND uf.id = :userId")
     Boolean isFollowedByUser(@Param("followUserId") Long followUserId, @Param("userId") Long userId);
+
+    Long countByRole_RoleName(String roleName);
+
 }
