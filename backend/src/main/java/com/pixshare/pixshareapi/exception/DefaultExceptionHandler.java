@@ -53,7 +53,7 @@ public class DefaultExceptionHandler {
     @ExceptionHandler(InsufficientAuthenticationException.class)
     public ResponseEntity<ApiError> handleInsufficientAuthenticationException(InsufficientAuthenticationException e,
                                                                               HttpServletRequest request) {
-        HttpStatus status = HttpStatus.FORBIDDEN;
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
         ApiError apiError = new ApiError(request.getRequestURI(),
                 e.getMessage(),
                 "INSUFFICIENT_AUTHENTICATION",
@@ -68,7 +68,7 @@ public class DefaultExceptionHandler {
                                                                   HttpServletRequest request) {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
         ApiError apiError = new ApiError(request.getRequestURI(),
-                e.getMessage(),
+                "Invalid credentials. Please try again.",
                 "INVALID_CREDENTIALS",
                 status.value(),
                 LocalDateTime.now());
