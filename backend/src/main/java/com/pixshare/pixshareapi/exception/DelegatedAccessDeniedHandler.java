@@ -7,19 +7,19 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Component
-public class DelegatedAuthEntryPoint implements AuthenticationEntryPoint {
+public class DelegatedAccessDeniedHandler implements AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
 
-    public DelegatedAuthEntryPoint() {
+    public DelegatedAccessDeniedHandler() {
         this.objectMapper = new ObjectMapper();
 
         // Register module for Java 8 Date/Time API
@@ -29,18 +29,19 @@ public class DelegatedAuthEntryPoint implements AuthenticationEntryPoint {
     }
 
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response,
-                         AuthenticationException e) throws IOException, ServletException {
+    public void handle(HttpServletRequest request, HttpServletResponse response,
+                       AccessDeniedException e) throws IOException, ServletException {
 
-        HttpStatus status = HttpStatus.UNAUTHORIZED;
+        HttpStatus status = HttpStatus.FORBIDDEN;
         response.setStatus(status.value());
         response.setContentType("application/json");
 
         ApiError apiError = new ApiError(request.getRequestURI(),
-                e.getMessage(),
-                "INSUFFICIENT_AUTHENTICATION",
+                "Access denied. Insufficient permissions to access this resource.",
+                "ACCESS_DENIED",
                 status.value(),
-                LocalDateTime.now());
+                LocalDateTime.now()
+        );
 
         String jsonResponse = objectMapper.writeValueAsString(apiError);
         response.getWriter().write(jsonResponse);
