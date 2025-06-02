@@ -1,6 +1,7 @@
 package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.post.Post;
+import com.pixshare.pixshareapi.util.AppConstants;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -26,8 +27,6 @@ import java.util.*;
         }
 )
 public class User implements UserDetails {
-    private static final String ROLE_PREFIX = "ROLE_";
-
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_identity_id_seq")
     @SequenceGenerator(name = "user_identity_id_seq", allocationSize = 1)
@@ -217,7 +216,7 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(
-                ROLE_PREFIX + role.getRoleName()
+                AppConstants.ROLE_PREFIX + role.getRoleName()
         ));
     }
 
