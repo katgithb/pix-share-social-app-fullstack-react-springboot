@@ -43,6 +43,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         );
 
         User principal = (User) authentication.getPrincipal();
+
+        // Record the login date and time of the authenticated user
+        principal.recordLogin();
+        userRepository.save(principal);
+
         UserDTO userDTO = userDTOMapper.apply(principal);
         String token = jwtUtil.issueToken(userDTO.getEmail(), userDTO.getRoles());
 
