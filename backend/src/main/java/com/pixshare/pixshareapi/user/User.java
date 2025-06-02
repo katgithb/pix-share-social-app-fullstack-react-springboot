@@ -2,10 +2,7 @@ package com.pixshare.pixshareapi.user;
 
 import com.pixshare.pixshareapi.post.Post;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
 import org.hibernate.Hibernate;
 import org.hibernate.annotations.BatchSize;
@@ -13,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @AllArgsConstructor
@@ -28,6 +26,8 @@ import java.util.*;
         }
 )
 public class User implements UserDetails {
+    private static final String ROLE_PREFIX = "ROLE_";
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_identity_id_seq")
     @SequenceGenerator(name = "user_identity_id_seq", allocationSize = 1)
@@ -94,6 +94,23 @@ public class User implements UserDetails {
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
+    @NonNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private UserStatus status = UserStatus.ACTIVE;
+
+    @PastOrPresent
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @PastOrPresent
+    @Column(name = "last_login_at")
+    private OffsetDateTime lastLoginAt;
+
+    @PastOrPresent
+    @Column(name = "status_changed_at")
+    private OffsetDateTime statusChangedAt;
+
     @ToString.Exclude
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name = "user_follower",
@@ -109,7 +126,10 @@ public class User implements UserDetails {
     @BatchSize(size = 10)
     private Set<Post> savedPosts = new LinkedHashSet<>();
 
-    public User(Long id, @NonNull String userHandleName, @NonNull String email, @NonNull String password, @NonNull String name, String mobile, String website, String bio, @NonNull Gender gender, String userImageUploadId, String userImage, @NonNull Role role) {
+    public User(Long id, @NonNull String userHandleName, @NonNull String email, @NonNull String password, @NonNull String name,
+                String mobile, String website, String bio, @NonNull Gender gender, String userImageUploadId, String userImage,
+                @NonNull Role role, @NonNull UserStatus status, OffsetDateTime createdAt, OffsetDateTime lastLoginAt,
+                OffsetDateTime statusChangedAt) {
         this.id = id;
         this.userHandleName = userHandleName;
         this.email = email;
@@ -122,6 +142,17 @@ public class User implements UserDetails {
         this.userImageUploadId = userImageUploadId;
         this.userImage = userImage;
         this.role = role;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.lastLoginAt = lastLoginAt;
+        this.statusChangedAt = statusChangedAt;
+    }
+
+    public User(Long id, @NonNull String userHandleName, @NonNull String email, @NonNull String password, @NonNull String name,
+                String mobile, String website, String bio, @NonNull Gender gender, String userImageUploadId, String userImage,
+                @NonNull Role role) {
+        this(id, userHandleName, email, password, name, mobile, website, bio, gender, userImageUploadId, userImage, role,
+                UserStatus.ACTIVE, OffsetDateTime.now(), null, null);
     }
 
     public void addSavedPost(Post post) {
@@ -144,6 +175,31 @@ public class User implements UserDetails {
         user.getFollowing().remove(this);
     }
 
+    /**
+     * Updates the user status and records the time of the status change.
+     */
+    public void updateStatus(UserStatus newStatus) {
+        if (this.status != newStatus) {
+            this.status = newStatus;
+            this.statusChangedAt = OffsetDateTime.now();
+        }
+    }
+
+    /**
+     * Records the current login time when a user logs in.
+     */
+    public void recordLogin() {
+        this.lastLoginAt = OffsetDateTime.now();
+    }
+
+    /**
+     * Sets the creation timestamp before persisting a new user entity.
+     */
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = OffsetDateTime.now();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -160,12 +216,8 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        final String ROLE_PREFIX = "ROLE_";
-
         return List.of(new SimpleGrantedAuthority(
-                ROLE_PREFIX + Optional.ofNullable(role)
-                        .map(Role::getRoleName)
-                        .orElse(RoleName.USER.name())
+                ROLE_PREFIX + role.getRoleName()
         ));
     }
 
@@ -181,12 +233,12 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true;
+        return status != UserStatus.EXPIRED;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return status != UserStatus.BLOCKED;
     }
 
     @Override
@@ -196,6 +248,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return status != UserStatus.INACTIVE;
     }
+
 }
