@@ -46,4 +46,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Long countByRole_RoleName(String roleName);
 
+    Page<User> findAllByRole_RoleNameNot(String roleName, Pageable pageable);
+
+    Page<User> findAllByStatusAndRole_RoleNameNot(UserStatus status, String roleName, Pageable pageable);
+
+    @Query("SELECT DISTINCT u FROM User u WHERE (u.userHandleName LIKE %:query% OR LOWER(u.name) LIKE %:query% OR u.email LIKE %:query%) AND u.role.roleName <> :roleName")
+    Page<User> searchUserAndRole_RoleNameNot(@Param("query") String query, @Param("roleName") String roleName, Pageable pageable);
 }

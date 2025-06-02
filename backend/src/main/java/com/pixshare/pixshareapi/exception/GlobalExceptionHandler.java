@@ -4,15 +4,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.authentication.*;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.LocalDateTime;
 
 @ControllerAdvice
-public class DefaultExceptionHandler {
+public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleResourceNotFoundException(ResourceNotFoundException e,
@@ -70,6 +69,47 @@ public class DefaultExceptionHandler {
         ApiError apiError = new ApiError(request.getRequestURI(),
                 "Invalid credentials. Please try again.",
                 "INVALID_CREDENTIALS",
+                status.value(),
+                LocalDateTime.now());
+
+        return new ResponseEntity<>(apiError, status);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiError> handleDisabledException(DisabledException e,
+                                                            HttpServletRequest request) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                "Account is currently inactive",
+//                "To reactivate it, please visit the account reactivation page.",
+                "ACCOUNT_INACTIVE",
+                status.value(),
+                LocalDateTime.now());
+
+        return new ResponseEntity<>(apiError, status);
+    }
+
+    @ExceptionHandler(AccountExpiredException.class)
+    public ResponseEntity<ApiError> handleAccountExpiredException(AccountExpiredException e,
+                                                                  HttpServletRequest request) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                "Account has expired due to prolonged inactivity",
+//                "To restore access, please visit the account reactivation page.",
+                "ACCOUNT_EXPIRED",
+                status.value(),
+                LocalDateTime.now());
+
+        return new ResponseEntity<>(apiError, status);
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ApiError> handleLockedException(LockedException e,
+                                                          HttpServletRequest request) {
+        HttpStatus status = HttpStatus.UNAUTHORIZED;
+        ApiError apiError = new ApiError(request.getRequestURI(),
+                "Account has been blocked. This may be due to security concerns or policy violations.",
+                "ACCOUNT_LOCKED",
                 status.value(),
                 LocalDateTime.now());
 

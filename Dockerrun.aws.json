@@ -1,7 +1,7 @@
 {
   "AWSEBDockerrunVersion": "1",
   "Image": {
-    "Name": "projcodehub/pixshare-api:20250530.150.133953",
+    "Name": "projcodehub/pixshare-api:20250530.150.140830",
     "Update": "true"
   },
   "Ports": [
