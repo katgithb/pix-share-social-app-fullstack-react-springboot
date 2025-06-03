@@ -75,7 +75,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
             startDate = endDate = LocalDate.now();
         }
 
-        validateDateRange(startDate, endDate);
+        DateUtils.validateDateRange(startDate, endDate);
 
         DateRange dateRange = new DateRange(startDate, endDate);
         GranularityType effectiveGranularity = DateUtils.getEffectiveGranularity(dateRange, granularity);
@@ -125,24 +125,6 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
         if (specifiedPeriods > 1) {
             throw new RequestValidationException("Only one of period, month, quarter, or half can be specified");
-        }
-    }
-
-    /**
-     * Validate date range for post creation analytics
-     */
-    private void validateDateRange(LocalDate startDate, LocalDate endDate) {
-        if (startDate == null || endDate == null) {
-            throw new RequestValidationException("Start date and end date are required");
-        }
-
-        if (startDate.isAfter(endDate)) {
-            throw new RequestValidationException("Start date must be before or equal to end date");
-        }
-
-        // Limit the date range to prevent performance issues
-        if (startDate.plusYears(2).isBefore(endDate) || endDate.getYear() > Year.now().getValue()) {
-            throw new RequestValidationException("Date range must be within the last 2 years");
         }
     }
 
