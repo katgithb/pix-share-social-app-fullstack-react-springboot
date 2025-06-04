@@ -190,4 +190,22 @@ public final class DateUtils {
         }
     }
 
+    /**
+     * Validate date range parameters
+     */
+    public static void validateDateRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new RequestValidationException("Start date and end date are required");
+        }
+
+        if (startDate.isAfter(endDate)) {
+            throw new RequestValidationException("Start date must be before or equal to end date");
+        }
+
+        // Limit the date range to prevent performance issues
+        if (startDate.plusYears(2).isBefore(endDate) || endDate.getYear() > Year.now().getValue()) {
+            throw new RequestValidationException("Date range must be within the last 2 years");
+        }
+    }
+
 }

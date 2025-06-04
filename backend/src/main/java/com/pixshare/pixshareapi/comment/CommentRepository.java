@@ -33,4 +33,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     void deleteByUserId(Long userId);
 
+    Long countByPost_IdAndUser_Role_RoleNameNot(Long postId, String roleName);
+
 }
