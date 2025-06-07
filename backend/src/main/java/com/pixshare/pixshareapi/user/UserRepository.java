@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,4 +53,33 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT DISTINCT u FROM User u WHERE (u.userHandleName LIKE %:query% OR LOWER(u.name) LIKE %:query% OR u.email LIKE %:query%) AND u.role.roleName <> :roleName")
     Page<User> searchUserAndRole_RoleNameNot(@Param("query") String query, @Param("roleName") String roleName, Pageable pageable);
+
+    /**
+     * Find users with ACTIVE status whose last login date is before the specified threshold.
+     * Used to identify users who should be marked as INACTIVE due to inactivity.
+     */
+    @Query("""
+            SELECT u FROM User u
+            WHERE u.status = 'ACTIVE'
+            AND u.lastLoginAt < :lastLoginThreshold
+            AND u.role.roleName <> :roleName
+            """)
+    List<User> findInactiveCandidatesExcludingRole(
+            @Param("lastLoginThreshold") OffsetDateTime lastLoginThreshold,
+            @Param("roleName") String roleName);
+
+    /**
+     * Find users with INACTIVE status whose status change date is before the specified threshold.
+     * Used to identify users who should be marked as EXPIRED due to prolonged inactivity.
+     */
+    @Query("""
+            SELECT u FROM User u
+            WHERE u.status = 'INACTIVE'
+            AND u.statusChangedAt < :statusChangedThreshold
+            AND u.role.roleName <> :roleName
+            """)
+    List<User> findExpiredCandidatesExcludingRole(
+            @Param("statusChangedThreshold") OffsetDateTime statusChangedThreshold,
+            @Param("roleName") String roleName);
+
 }
