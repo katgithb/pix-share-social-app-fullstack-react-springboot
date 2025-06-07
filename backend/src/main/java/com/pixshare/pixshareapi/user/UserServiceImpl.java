@@ -527,6 +527,40 @@ public class UserServiceImpl implements UserService {
         return users;
     }
 
+    @Override
+    @Transactional
+    public void cleanupExpiredUserData(Long userId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+
+        // Check if user exists
+        if (userOptional.isEmpty()) {
+            return;
+        }
+
+        // Get user
+        User user = userOptional.get();
+
+        removeUserFromLikedComments(user);
+        removeUserFromLikedPosts(user);
+
+        removeSavedPostsByUser(user);
+        removeUserFromFollowers(user);
+
+        removeStoryImageResourcesByUser(user);
+        // Delete the stories associated with the user
+        storyRepository.deleteByUserId(user.getId());
+
+        deleteCommentsFromUserPosts(user);
+        // Delete the comments associated with the user
+        commentRepository.deleteByUserId(user.getId());
+
+        removePostImageResourcesByUser(user);
+        // Delete the posts associated with the user
+        postRepository.deleteByUserId(user.getId());
+
+        removeUserImageResource(user.getUserImageUploadId());
+    }
+
     private void sendPasswordResetEmail(String baseUrl, String email, String name, String passwordResetToken) throws RequestValidationException {
         long tokenExpirationHours = getDurationInHoursFromSeconds(PASSWORD_RESET_TOKEN_EXPIRATION_IN_SECONDS);
         String formattedExpirationHours = String.format("%d %s", tokenExpirationHours, tokenExpirationHours == 1 ? "hour" : "hours");

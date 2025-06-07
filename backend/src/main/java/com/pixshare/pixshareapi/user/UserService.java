@@ -60,4 +60,6 @@ public interface UserService {
 
     List<UserSummaryDTO> findPopularUsersPublic();
 
+    void cleanupExpiredUserData(Long userId);
+
 }
