@@ -1,10 +1,8 @@
 package com.pixshare.pixshareapi.admin;
 
-import com.pixshare.pixshareapi.dto.AdminUserDTO;
-import com.pixshare.pixshareapi.dto.AdminUserSummaryDTO;
-import com.pixshare.pixshareapi.dto.PageRequestDTO;
-import com.pixshare.pixshareapi.dto.PagedResponse;
+import com.pixshare.pixshareapi.dto.*;
 import com.pixshare.pixshareapi.user.MessageResponse;
+import com.pixshare.pixshareapi.user.ReactivationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 public class AdminUserManagementController {
 
     private final AdminUserManagementService adminUserManagementService;
+
+    private final ReactivationService reactivationService;
 
     /**
      * Lists all users with pagination.
@@ -79,6 +79,44 @@ public class AdminUserManagementController {
             @RequestBody UserStatusUpdateRequest request) {
 
         MessageResponse response = adminUserManagementService.updateUserStatus(userId, request.status());
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    /**
+     * Lists all reactivation requests with pagination and optional status filtering.
+     */
+    @GetMapping("/account/reactivation/requests")
+    public ResponseEntity<PagedResponse<ReactivationRequestDTO>> getReactivationRequests(
+            @RequestParam(required = false) String status,
+            @ModelAttribute PageRequestDTO pageRequest) {
+
+        PagedResponse<ReactivationRequestDTO> reactivationResponse = reactivationService.getReactivationRequests(status, pageRequest);
+
+        return new ResponseEntity<>(reactivationResponse, HttpStatus.OK);
+    }
+
+    /**
+     * Gets a specific reactivation request by ID.
+     */
+    @GetMapping("/account/reactivation/requests/{requestId}")
+    public ResponseEntity<ReactivationRequestDTO> getReactivationRequestById(
+            @PathVariable("requestId") Long requestId) {
+
+        ReactivationRequestDTO reactivationRequest = reactivationService.getReactivationRequestById(requestId);
+
+        return new ResponseEntity<>(reactivationRequest, HttpStatus.OK);
+    }
+
+    /**
+     * Reviews a reactivation request, approving or rejecting it.
+     */
+    @PutMapping("/account/reactivation/review/{requestId}")
+    public ResponseEntity<MessageResponse> reviewReactivationRequest(
+            @PathVariable("requestId") Long requestId,
+            @RequestBody ReactivationStatusUpdateRequest request) {
+
+        MessageResponse response = reactivationService.reviewReactivationRequest(requestId, request.status());
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

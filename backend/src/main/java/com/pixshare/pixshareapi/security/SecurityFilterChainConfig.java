@@ -49,6 +49,7 @@ public class SecurityFilterChainConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/account/password/reset/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/account/password/reset/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/users/account/password/reset").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users/account/reactivation/request").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole(RoleName.ADMIN.name())
                         .anyRequest().authenticated()

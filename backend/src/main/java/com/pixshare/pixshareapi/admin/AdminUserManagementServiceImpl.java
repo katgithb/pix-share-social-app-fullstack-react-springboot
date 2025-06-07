@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
@@ -76,6 +77,10 @@ public class AdminUserManagementServiceImpl implements AdminUserManagementServic
         // Check if the user is an ADMIN user
         if (RoleName.ADMIN.matches(roleName)) {
             throw new UnauthorizedActionException("You can't change the account status of an ADMIN user");
+        }
+
+        if (userStatus == UserStatus.ACTIVE) {
+            user.setLastLoginAt(OffsetDateTime.now());
         }
 
         // Update the user status
