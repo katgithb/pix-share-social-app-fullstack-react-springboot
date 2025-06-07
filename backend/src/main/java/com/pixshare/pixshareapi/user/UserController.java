@@ -23,11 +23,14 @@ public class UserController {
 
     private final StoryService storyService;
 
-    public UserController(UserService userService, PostService postService, AuthenticationService authenticationService, StoryService storyService) {
+    private final ReactivationService reactivationService;
+
+    public UserController(UserService userService, PostService postService, AuthenticationService authenticationService, StoryService storyService, ReactivationService reactivationService) {
         this.userService = userService;
         this.postService = postService;
         this.authenticationService = authenticationService;
         this.storyService = storyService;
+        this.reactivationService = reactivationService;
     }
 
     @GetMapping("/id/{userId}")
@@ -179,6 +182,14 @@ public class UserController {
             @RequestBody UserPasswordResetRequest passwordResetRequest) {
 
         userService.resetPassword(passwordResetRequest.token(), passwordResetRequest.newPassword());
+    }
+
+    @PostMapping("/account/reactivation/request")
+    public ResponseEntity<MessageResponse> requestAccountReactivation(
+            @RequestBody UserReactivationRequest reactivationRequest) {
+        MessageResponse response = reactivationService.createReactivationRequest(reactivationRequest.email());
+        
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PutMapping("/account/profile/image/update")
