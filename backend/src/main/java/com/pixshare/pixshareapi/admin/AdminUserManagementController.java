@@ -3,6 +3,7 @@ package com.pixshare.pixshareapi.admin;
 import com.pixshare.pixshareapi.dto.*;
 import com.pixshare.pixshareapi.user.MessageResponse;
 import com.pixshare.pixshareapi.user.ReactivationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/admin/users")
+@Tag(name = "Admin User Management", description = "Endpoints for user management by admin")
 @RequiredArgsConstructor
 public class AdminUserManagementController {
 

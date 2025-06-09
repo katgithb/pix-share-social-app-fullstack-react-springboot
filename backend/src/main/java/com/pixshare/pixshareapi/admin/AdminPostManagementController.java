@@ -5,6 +5,7 @@ import com.pixshare.pixshareapi.dto.AdminPostSummaryDTO;
 import com.pixshare.pixshareapi.dto.PageRequestDTO;
 import com.pixshare.pixshareapi.dto.PagedResponse;
 import com.pixshare.pixshareapi.user.MessageResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import java.time.LocalDate;
  */
 @RestController
 @RequestMapping("/api/v1/admin/posts")
+@Tag(name = "Admin Post Management", description = "Endpoints for post management by admin")
 @RequiredArgsConstructor
 public class AdminPostManagementController {
 
@@ -99,5 +101,5 @@ public class AdminPostManagementController {
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
-    
+
 }
