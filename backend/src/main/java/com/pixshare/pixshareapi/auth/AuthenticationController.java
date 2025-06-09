@@ -3,6 +3,7 @@ package com.pixshare.pixshareapi.auth;
 import com.pixshare.pixshareapi.jwt.JWTUtil;
 import com.pixshare.pixshareapi.user.UserRegistrationRequest;
 import com.pixshare.pixshareapi.user.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Authentication", description = "Endpoints for managing authentication")
 public class AuthenticationController {
 
     private final AuthenticationServiceImpl authenticationService;

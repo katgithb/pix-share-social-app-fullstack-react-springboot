@@ -3,6 +3,8 @@ package com.pixshare.pixshareapi.story;
 import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.dto.StoryDTO;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +13,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/stories")
+@Hidden
+@Tag(name = "Stories", description = "Endpoints for managing stories")
 public class StoryController {
 
     private final StoryService storyService;

@@ -40,6 +40,10 @@ public class SecurityFilterChainConfig {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
+                        // Allow swagger-ui resources
+                        .requestMatchers("/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/auth/signup",
                                 "/api/v1/auth/login").permitAll()

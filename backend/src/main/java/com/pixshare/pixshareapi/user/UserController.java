@@ -4,6 +4,7 @@ import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.dto.*;
 import com.pixshare.pixshareapi.post.PostService;
 import com.pixshare.pixshareapi.story.StoryService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@Tag(name = "Users", description = "Endpoints to manage users")
 public class UserController {
 
     private final UserService userService;
@@ -188,7 +190,7 @@ public class UserController {
     public ResponseEntity<MessageResponse> requestAccountReactivation(
             @RequestBody UserReactivationRequest reactivationRequest) {
         MessageResponse response = reactivationService.createReactivationRequest(reactivationRequest.email());
-        
+
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
