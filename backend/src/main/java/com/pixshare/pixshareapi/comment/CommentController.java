@@ -3,6 +3,7 @@ package com.pixshare.pixshareapi.comment;
 import com.pixshare.pixshareapi.auth.AuthenticationService;
 import com.pixshare.pixshareapi.dto.CommentDTO;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/comments")
+@Tag(name = "Comments", description = "Endpoints for managing comments")
 public class CommentController {
 
     private final CommentService commentService;
@@ -61,7 +63,7 @@ public class CommentController {
             @RequestHeader("Authorization") String authHeader) {
         UserTokenIdentity identity = authenticationService
                 .getUserIdentityFromToken(authHeader);
-        
+
         commentService.deleteComment(commentId, identity.getId());
     }
 
