@@ -6,6 +6,7 @@ import com.pixshare.pixshareapi.dto.PageRequestDTO;
 import com.pixshare.pixshareapi.dto.PagedResponse;
 import com.pixshare.pixshareapi.dto.PostDTO;
 import com.pixshare.pixshareapi.dto.UserTokenIdentity;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/posts")
+@Tag(name = "Posts", description = "Endpoints for managing posts")
 public class PostController {
 
     private final PostService postService;
