@@ -1,12 +1,16 @@
 package com.pixshare.pixshareapi.post;
 
 import com.pixshare.pixshareapi.comment.CommentService;
-import com.pixshare.pixshareapi.dto.*;
+import com.pixshare.pixshareapi.dto.PageRequestDTO;
+import com.pixshare.pixshareapi.dto.PagedResponse;
+import com.pixshare.pixshareapi.dto.PostDTO;
+import com.pixshare.pixshareapi.dto.PostDTOMapper;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.upload.UploadService;
 import com.pixshare.pixshareapi.upload.UploadSignatureRequest;
 import com.pixshare.pixshareapi.upload.UploadType;
+import com.pixshare.pixshareapi.user.RoleName;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
 import com.pixshare.pixshareapi.user.UserService;
@@ -58,7 +62,7 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void createPost(PostRequest postRequest, Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         // Create post
@@ -79,7 +83,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public void updatePostImage(Long postId, Long userId, MultipartFile imageFile) throws ResourceNotFoundException, UnauthorizedActionException {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
         Long postUserId = post.getUser().getId();
 
@@ -106,8 +110,10 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void deletePost(Long postId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
-        PostDTO post = findPostById(postId, userId);
-        UserSummaryDTO user = userService.findUserById(userId, userId);
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         Long postUserId = post.getUser().getId();
 
         if (!postUserId.equals(user.getId())) {
@@ -124,9 +130,9 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public PostDTO findPostById(Long postId, Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        PostDTO post = postRepository.findById(postId)
+        PostDTO post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .map(postDTOMapper)
                 .map(postDTO -> {
                     postDTO.setComments(
@@ -149,7 +155,8 @@ public class PostServiceImpl implements PostService {
     public PagedResponse<PostDTO> findPostsByUserId(Long authUserId, Long userId, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
-        Page<Post> pagedPosts = postRepository.findPostsByUserId(userId, pageable);
+        Page<Post> pagedPosts = postRepository.findAllPostsByUserIdAndUser_Role(
+                userId, RoleName.USER.name(), pageable);
 
         // get posts content from Page
         List<PostDTO> content = pagedPosts
@@ -183,7 +190,8 @@ public class PostServiceImpl implements PostService {
     public PagedResponse<PostDTO> findAllPostsByUserIds(Long authUserId, List<Long> userIds, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
-        Page<Post> pagedPosts = postRepository.findAllPostsByUserIds(userIds, pageable);
+        Page<Post> pagedPosts = postRepository.findAllPostsByUserIdsAndUser_Role(
+                userIds, RoleName.USER.name(), pageable);
 
         // get posts content from Page
         List<PostDTO> content = pagedPosts
@@ -216,7 +224,8 @@ public class PostServiceImpl implements PostService {
     public PagedResponse<PostDTO> findAllPosts(Long authUserId, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
-        Page<Post> pagedPosts = postRepository.findAllPosts(pageable);
+        Page<Post> pagedPosts = postRepository.findAllPostsByUser_Role(
+                RoleName.USER.name(), pageable);
 
         // get posts content from Page
         List<PostDTO> content = pagedPosts
@@ -254,7 +263,7 @@ public class PostServiceImpl implements PostService {
         int actualPage = Math.min(pageable.getPageNumber(), pageLimit - 1); // Adjust for 0-based indexing
         Pageable adjustedPageable = PageRequest.of(actualPage, pageable.getPageSize(), pageable.getSort());
 
-        Page<Post> pagedPosts = postRepository.findAllPosts(adjustedPageable);
+        Page<Post> pagedPosts = postRepository.findAllPostsByUser_Role(RoleName.USER.name(), adjustedPageable); // Adjust for 0-based indexing(adjustedPageable);
         int maxElements = pageLimit * pageable.getPageSize();
         long totalRecords = Math.min(pagedPosts.getTotalElements(), maxElements);
         int totalPages = Math.min(pagedPosts.getTotalPages(), pageLimit);
@@ -285,7 +294,8 @@ public class PostServiceImpl implements PostService {
     public PagedResponse<PostDTO> findSavedPostsByUserId(Long userId, PageRequestDTO pageRequest) {
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
-        Page<Post> pagedSavedPosts = postRepository.findSavedPostsByUserId(userId, pageable);
+        Page<Post> pagedSavedPosts = postRepository.findSavedPostsByUserIdAndUser_Role(
+                userId, RoleName.USER.name(), pageable);
 
         // get saved posts content from Page
         List<PostDTO> content = pagedSavedPosts
@@ -318,11 +328,12 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public void savePost(Long postId, Long userId) throws ResourceNotFoundException {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        Boolean isPostSaved = postRepository.isPostSavedByUser(post.getId(), user.getId());
+        Boolean isPostSaved = postRepository.isPostSavedByUserAndUser_Role(
+                post.getId(), user.getId(), RoleName.USER.name());
 
         if (!isPostSaved) {
             user.addSavedPost(post);
@@ -332,11 +343,12 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public void unsavePost(Long postId, Long userId) throws ResourceNotFoundException {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        Boolean isPostSaved = postRepository.isPostSavedByUser(post.getId(), user.getId());
+        Boolean isPostSaved = postRepository.isPostSavedByUserAndUser_Role(
+                post.getId(), user.getId(), RoleName.USER.name());
 
         if (isPostSaved) {
             user.removeSavedPost(post);
@@ -346,12 +358,14 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public PostDTO likePost(Long postId, Long userId) throws ResourceNotFoundException {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        Boolean isPostLiked = postRepository.isPostLikedByUser(post.getId(), user.getId());
-        Boolean isPostSaved = postRepository.isPostSavedByUser(post.getId(), user.getId());
+        Boolean isPostLiked = postRepository.isPostLikedByUserAndUser_Role(
+                post.getId(), user.getId(), RoleName.USER.name());
+        Boolean isPostSaved = postRepository.isPostSavedByUserAndUser_Role(
+                post.getId(), user.getId(), RoleName.USER.name());
 
         if (!isPostLiked) {
             post.getLikedByUsers().add(user);
@@ -368,12 +382,14 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public PostDTO unlikePost(Long postId, Long userId) throws ResourceNotFoundException {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        Boolean isPostLiked = postRepository.isPostLikedByUser(post.getId(), user.getId());
-        Boolean isPostSaved = postRepository.isPostSavedByUser(post.getId(), user.getId());
+        Boolean isPostLiked = postRepository.isPostLikedByUserAndUser_Role(
+                post.getId(), user.getId(), RoleName.USER.name());
+        Boolean isPostSaved = postRepository.isPostSavedByUserAndUser_Role(
+                post.getId(), user.getId(), RoleName.USER.name());
 
         if (isPostLiked) {
             post.getLikedByUsers().remove(user);
@@ -390,22 +406,24 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public Boolean isPostLikedByUser(Long postId, Long userId) throws ResourceNotFoundException {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        return postRepository.isPostLikedByUser(post.getId(), user.getId());
+        return postRepository.isPostLikedByUserAndUser_Role(
+                post.getId(), user.getId(), RoleName.USER.name());
     }
 
     @Override
     public Boolean isPostSavedByUser(Long postId, Long userId) throws ResourceNotFoundException {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
-        return postRepository.isPostSavedByUser(post.getId(), user.getId());
+        return postRepository.isPostSavedByUserAndUser_Role(
+                post.getId(), user.getId(), RoleName.USER.name());
     }
 
     private void removePostImageResource(String postImageUploadId) {

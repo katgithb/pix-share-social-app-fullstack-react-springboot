@@ -434,7 +434,7 @@ class UserServiceTest {
         Long userId = 1L;
         String password = "password123#";
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -442,7 +442,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
     }
 
     @Test
@@ -456,14 +456,14 @@ class UserServiceTest {
         user.setId(userId);
         user.setPassword(password);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(wrongPassword, user.getPassword())).thenReturn(false);
 
         // When
         boolean result = userService.verifyPassword(userId, wrongPassword);
 
         // Then
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         assertThat(result).isFalse();
     }
 
@@ -477,14 +477,14 @@ class UserServiceTest {
         user.setId(userId);
         user.setPassword(password);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(password, user.getPassword())).thenReturn(true);
 
         // When
         boolean result = userService.verifyPassword(userId, password);
 
         // Then
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         assertThat(result).isTrue();
     }
 
@@ -495,7 +495,7 @@ class UserServiceTest {
         Long userId = 1L;
         String newPassword = "newPassword123#";
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -503,7 +503,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(validationUtil, times(0)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(0)).save(any(User.class));
     }
@@ -519,7 +519,7 @@ class UserServiceTest {
         user.setId(userId);
         user.setPassword(password);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(newPassword, user.getPassword())).thenReturn(true);
 
         // When
@@ -528,7 +528,7 @@ class UserServiceTest {
                 .isInstanceOf(RequestValidationException.class)
                 .hasMessage("New password must not be the same as the current password");
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(validationUtil, times(0)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(0)).save(any(User.class));
     }
@@ -544,7 +544,7 @@ class UserServiceTest {
         user.setId(userId);
         user.setPassword(password);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(invalidNewPassword, user.getPassword())).thenReturn(false);
 
         // When
@@ -552,7 +552,7 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.updatePassword(userId, invalidNewPassword))
                 .isInstanceOf(ConstraintViolationException.class);
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", invalidNewPassword);
         verify(userRepository, times(0)).save(any(User.class));
     }
@@ -569,7 +569,7 @@ class UserServiceTest {
         user.setId(userId);
         user.setPassword(password);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(newPassword, user.getPassword())).thenReturn(false);
         when(passwordEncoder.encode(newPassword)).thenReturn(newEncodedPassword);
 
@@ -578,7 +578,7 @@ class UserServiceTest {
 
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(1)).save(userCaptor.capture());
 
@@ -613,7 +613,7 @@ class UserServiceTest {
         String email = "invalid_email@example.com";
 
         when(passwordResetAttemptService.isPasswordResetAttemptAllowed(eq(email), anyLong())).thenReturn(true);
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(userRepository.findByEmailAndRole_RoleName(email, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         userService.initiatePasswordReset(email);
@@ -621,7 +621,7 @@ class UserServiceTest {
         // Then
         verify(passwordResetAttemptService, times(1)).isPasswordResetAttemptAllowed(eq(email), anyLong());
         verify(passwordResetAttemptService, times(1)).savePasswordResetAttempt(eq(email), anyLong());
-        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).findByEmailAndRole_RoleName(email, userRole.getRoleName());
         verify(hmacTokenUtil, times(0)).generateHMACToken(eq(email), any(Date.class));
 
         verify(brevoMailSender, times(0)).getTransacEmailsApiInstance();
@@ -641,7 +641,7 @@ class UserServiceTest {
                 Gender.MALE, null, null, userRole);
 
         when(passwordResetAttemptService.isPasswordResetAttemptAllowed(eq(email), anyLong())).thenReturn(true);
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailAndRole_RoleName(email, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(hmacTokenUtil.generateHMACToken(eq(email), any(Date.class))).thenReturn(generatedToken);
         when(urlValidator.isValidUrl(anyString())).thenReturn(true);
         when(brevoMailSender.getTransacEmailsApiInstance()).thenReturn(apiInstance);
@@ -652,7 +652,7 @@ class UserServiceTest {
         // Then
         verify(passwordResetAttemptService, times(1)).isPasswordResetAttemptAllowed(eq(email), anyLong());
         verify(passwordResetAttemptService, times(1)).savePasswordResetAttempt(eq(email), anyLong());
-        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).findByEmailAndRole_RoleName(email, userRole.getRoleName());
         verify(hmacTokenUtil, times(1)).generateHMACToken(eq(email), any(Date.class));
         verify(urlValidator, times(1)).isValidUrl(anyString());
 
@@ -792,7 +792,7 @@ class UserServiceTest {
         when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
         when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
         when(userService.validatePasswordResetToken(token)).thenReturn(true);
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailAndRole_RoleName(email, userRole.getRoleName())).thenReturn(Optional.of(user));
 
         // When
         // Then
@@ -803,7 +803,7 @@ class UserServiceTest {
         verify(hmacTokenUtil, atLeastOnce()).extractIdentifierFromTokenMetadata(metadata);
         verify(hmacTokenUtil, atLeastOnce()).extractTimestampMillisFromToken(token);
 
-        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).findByEmailAndRole_RoleName(email, userRole.getRoleName());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(0)).save(any(User.class));
         verify(passwordResetAttemptService, times(0)).updatePasswordResetAttemptSuccess(email, timestampMillis, true);
@@ -823,7 +823,7 @@ class UserServiceTest {
         when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
         when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
         when(userService.validatePasswordResetToken(token)).thenReturn(true);
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(userRepository.findByEmailAndRole_RoleName(email, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         userService.resetPassword(token, newPassword);
@@ -833,7 +833,7 @@ class UserServiceTest {
         verify(hmacTokenUtil, atLeastOnce()).extractIdentifierFromTokenMetadata(metadata);
         verify(hmacTokenUtil, atLeastOnce()).extractTimestampMillisFromToken(token);
 
-        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).findByEmailAndRole_RoleName(email, userRole.getRoleName());
         verify(validationUtil, times(0)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(0)).save(any(User.class));
         verify(passwordResetAttemptService, times(0)).updatePasswordResetAttemptSuccess(email, timestampMillis, true);
@@ -858,7 +858,7 @@ class UserServiceTest {
         when(hmacTokenUtil.extractIdentifierFromTokenMetadata(metadata)).thenReturn(email);
         when(hmacTokenUtil.extractTimestampMillisFromToken(token)).thenReturn(timestampMillis);
         when(userService.validatePasswordResetToken(token)).thenReturn(true);
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailAndRole_RoleName(email, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(passwordEncoder.encode(newPassword)).thenReturn(newEncodedPassword);
 
         // When
@@ -870,7 +870,7 @@ class UserServiceTest {
         verify(hmacTokenUtil, atLeastOnce()).extractIdentifierFromTokenMetadata(metadata);
         verify(hmacTokenUtil, atLeastOnce()).extractTimestampMillisFromToken(token);
 
-        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).findByEmailAndRole_RoleName(email, userRole.getRoleName());
         verify(validationUtil, times(1)).performValidationOnField(User.class, "password", newPassword);
         verify(userRepository, times(1)).save(userCaptor.capture());
         verify(passwordResetAttemptService, times(1)).updatePasswordResetAttemptSuccess(email, timestampMillis, true);
@@ -886,7 +886,7 @@ class UserServiceTest {
         Long userId = 1L;
         MockMultipartFile imageFile = new MockMultipartFile("imageFile", "hello.jpg", "image/jpeg", new byte[]{});
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -894,7 +894,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(imageUtil, times(0)).getImageBytesFromMultipartFile(imageFile);
         verify(uploadService, times(0)).uploadImageResourceToCloudinary(anyLong(), any(byte[].class), any(UploadSignatureRequest.class));
         verify(userRepository, times(0)).save(any(User.class));
@@ -912,7 +912,7 @@ class UserServiceTest {
         UploadSignatureRequest signatureRequest = new UploadSignatureRequest(null, UploadType.AVATAR.name());
         Map<String, String> uploadedImageResult = Map.of("publicId", "publicId", "secureUrl", "secureUrl");
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(imageUtil.getImageBytesFromMultipartFile(imageFile)).thenReturn(imageBytes);
         when(uploadService.uploadImageResourceToCloudinary(userId, imageBytes, signatureRequest)).thenReturn(uploadedImageResult);
 
@@ -920,7 +920,7 @@ class UserServiceTest {
         userService.updateUserImage(userId, imageFile);
 
         // Then
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(imageUtil, times(1)).getImageBytesFromMultipartFile(imageFile);
         verify(uploadService, times(1)).uploadImageResourceToCloudinary(userId, new byte[]{}, signatureRequest);
 
@@ -981,7 +981,7 @@ class UserServiceTest {
                 "newName", "newMobile", "newWebsite", "newBio",
                 Gender.MALE);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -989,7 +989,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -1007,7 +1007,7 @@ class UserServiceTest {
                 "Name", "Mobile", "Website", "Bio",
                 Gender.MALE, "UserImageUploadId", "UserImage", userRole);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(true);
 
         // When
@@ -1016,7 +1016,7 @@ class UserServiceTest {
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("This email is already taken");
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(userRepository, times(1)).existsUserByEmail(updateRequest.email());
         verify(userRepository, times(0)).save(any(User.class));
     }
@@ -1035,7 +1035,7 @@ class UserServiceTest {
                 "Name", "Mobile", "Website", "Bio",
                 Gender.MALE, "UserImageUploadId", "UserImage", userRole);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(userRepository.existsUserByUserHandleName(updateRequest.username())).thenReturn(true);
 
         // When
@@ -1044,7 +1044,7 @@ class UserServiceTest {
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("This username is already taken");
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(userRepository, times(1)).existsUserByUserHandleName(updateRequest.username());
         verify(userRepository, times(0)).save(any(User.class));
     }
@@ -1063,7 +1063,7 @@ class UserServiceTest {
                 "Name", "Mobile", "Website", "Bio",
                 Gender.MALE, "UserImageUploadId", "UserImage", userRole);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(false);
 
         // When
@@ -1072,7 +1072,7 @@ class UserServiceTest {
                 .isInstanceOf(RequestValidationException.class)
                 .hasMessage("No changes found");
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(userRepository, times(1)).existsUserByEmail(updateRequest.email());
         verify(userRepository, times(0)).save(any(User.class));
     }
@@ -1106,7 +1106,7 @@ class UserServiceTest {
                 userRole
         );
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(userRepository.existsUserByEmail(updateRequest.email())).thenReturn(false);
 
         // When
@@ -1114,7 +1114,7 @@ class UserServiceTest {
 
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(userRepository, times(1)).existsUserByEmail(updateRequest.email());
         verify(userRepository, times(1)).save(userCaptor.capture());
 
@@ -1158,7 +1158,7 @@ class UserServiceTest {
                 userRole
         );
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
         when(userRepository.existsUserByUserHandleName(updateRequest.username())).thenReturn(false);
 
         // When
@@ -1166,7 +1166,7 @@ class UserServiceTest {
 
         // Then
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(userRepository, times(1)).existsUserByUserHandleName(updateRequest.username());
         verify(userRepository, times(1)).save(userCaptor.capture());
 
@@ -1186,7 +1186,7 @@ class UserServiceTest {
     void deleteUserByIdWhenUserDoesNotExistThenThrowException() {
         // Given
         Long userId = 1L;
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1194,7 +1194,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(userRepository, times(0)).deleteById(userId);
     }
 
@@ -1208,13 +1208,13 @@ class UserServiceTest {
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image123", "image.jpg", userRole);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
 
         // When
         userService.deleteUser(userId);
 
         // Then
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
         verify(userRepository, times(1)).deleteById(userId);
     }
 
@@ -1224,7 +1224,7 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
         Long authUserId = 2L;
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1232,7 +1232,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
     }
 
     @Test
@@ -1251,14 +1251,14 @@ class UserServiceTest {
                 "image123", "image.jpg", new LinkedHashSet<>(),
                 new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"));
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
 
         // When
         UserSummaryDTO actualUserDTO = userService.findUserById(authUserId, userId);
 
         // Then
         assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
-        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
     }
 
     @Test
@@ -1267,7 +1267,7 @@ class UserServiceTest {
         // Given
         Long authUserId = 2L;
         String email = "nonexistentuser@example.com";
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(userRepository.findByEmailAndRole_RoleName(email, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1275,7 +1275,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User not found with email: " + email);
 
-        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).findByEmailAndRole_RoleName(email, userRole.getRoleName());
     }
 
     @Test
@@ -1293,14 +1293,14 @@ class UserServiceTest {
                 null, null, new LinkedHashSet<>(),
                 new LinkedHashSet<>(), false, new ArrayList<>(), new ArrayList<String>(List.of("ROLE_USER")));
 
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailAndRole_RoleName(email, userRole.getRoleName())).thenReturn(Optional.of(user));
 
         // When
         UserSummaryDTO actualUserDTO = userService.findUserByEmail(authUserId, email);
 
         // Then
         assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
-        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).findByEmailAndRole_RoleName(email, userRole.getRoleName());
     }
 
     @Test
@@ -1309,7 +1309,8 @@ class UserServiceTest {
         // Given
         Long authUserId = 2L;
         String username = "nonexistentuser";
-        when(userRepository.findByUserHandleName(username)).thenReturn(Optional.empty());
+        when(userRepository.findByUserHandleNameAndRole_RoleName(
+                username, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1317,7 +1318,8 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User not found with username: " + username);
 
-        verify(userRepository, times(1)).findByUserHandleName(username);
+        verify(userRepository, times(1)).findByUserHandleNameAndRole_RoleName(
+                username, userRole.getRoleName());
     }
 
     @Test
@@ -1335,14 +1337,16 @@ class UserServiceTest {
                 null, null, new LinkedHashSet<>(),
                 new LinkedHashSet<>(), false, new ArrayList<>(), new ArrayList<String>(List.of("ROLE_USER")));
 
-        when(userRepository.findByUserHandleName(username)).thenReturn(Optional.of(user));
+        when(userRepository.findByUserHandleNameAndRole_RoleName(
+                username, userRole.getRoleName())).thenReturn(Optional.of(user));
 
         // When
         UserSummaryDTO actualUserDTO = userService.findUserByUsername(authUserId, username);
 
         // Then
         assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
-        verify(userRepository, times(1)).findByUserHandleName(username);
+        verify(userRepository, times(1)).findByUserHandleNameAndRole_RoleName(
+                username, userRole.getRoleName());
     }
 
     @Test
@@ -1350,7 +1354,7 @@ class UserServiceTest {
     void findUserProfileWhenUserIdNotFoundThenThrowException() {
         // Given
         Long authUserId = 2L;
-        when(userRepository.findById(authUserId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(authUserId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1358,7 +1362,7 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(authUserId));
 
-        verify(userRepository, times(1)).findById(authUserId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(authUserId, userRole.getRoleName());
     }
 
     @Test
@@ -1376,14 +1380,14 @@ class UserServiceTest {
                 "image123", "image.jpg", new LinkedHashSet<>(),
                 new LinkedHashSet<>(), false, new ArrayList<>(), new LinkedHashSet<>(), List.of("ROLE_USER"));
 
-        when(userRepository.findById(authUserId)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndRole_RoleName(authUserId, userRole.getRoleName())).thenReturn(Optional.of(user));
 
         // When
         UserDTO actualUserDTO = userService.findUserProfile(authUserId);
 
         // Then
         assertThat(actualUserDTO).isEqualTo(expectedUserDTO);
-        verify(userRepository, times(1)).findById(authUserId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(authUserId, userRole.getRoleName());
     }
 
 
@@ -1399,8 +1403,8 @@ class UserServiceTest {
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image123", "image.jpg", userRole);
 
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
-        when(userRepository.findById(followUserId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName())).thenReturn(Optional.of(reqUser));
+        when(userRepository.findByIdAndRole_RoleName(followUserId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1408,8 +1412,8 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(followUserId));
 
-        verify(userRepository, times(1)).findById(reqUserId);
-        verify(userRepository, times(1)).findById(followUserId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(reqUserId, userRole.getRoleName());
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(followUserId, userRole.getRoleName());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -1420,7 +1424,7 @@ class UserServiceTest {
         Long reqUserId = 1L;
         Long followUserId = 2L;
 
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1428,8 +1432,8 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(reqUserId));
 
-        verify(userRepository, times(1)).findById(reqUserId);
-        verify(userRepository, times(0)).findById(followUserId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(reqUserId, userRole.getRoleName());
+        verify(userRepository, times(0)).findByIdAndRole_RoleName(followUserId, userRole.getRoleName());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -1443,8 +1447,8 @@ class UserServiceTest {
         User followUser = new User();
         followUser.setId(reqUserId);
 
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(followUser));
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName())).thenReturn(Optional.of(reqUser));
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName())).thenReturn(Optional.of(followUser));
 
         // When
         // Then
@@ -1452,7 +1456,7 @@ class UserServiceTest {
                 .isInstanceOf(RequestValidationException.class)
                 .hasMessage("Invalid Request: You cannot follow your own profile.");
 
-        verify(userRepository, times(2)).findById(reqUserId);
+        verify(userRepository, times(2)).findByIdAndRole_RoleName(reqUserId, userRole.getRoleName());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -1473,16 +1477,16 @@ class UserServiceTest {
                 "1234567890", "www.example.com", "Bio",
                 Gender.FEMALE, "image123", "image.jpg", userRole);
 
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
-        when(userRepository.findById(followUserId)).thenReturn(Optional.of(followUser));
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName())).thenReturn(Optional.of(reqUser));
+        when(userRepository.findByIdAndRole_RoleName(followUserId, userRole.getRoleName())).thenReturn(Optional.of(followUser));
 
         // When
         String actual = userService.followUser(reqUserId, followUserId);
 
         // Then
         assertThat(actual).isEqualTo("You are following " + followUser.getUserHandleName());
-        verify(userRepository, times(1)).findById(reqUserId);
-        verify(userRepository, times(1)).findById(followUserId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(reqUserId, userRole.getRoleName());
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(followUserId, userRole.getRoleName());
         verify(userRepository, times(1)).save(reqUser);
         verify(userRepository, times(1)).save(followUser);
     }
@@ -1499,8 +1503,10 @@ class UserServiceTest {
                 "1234567890", "www.example.com", "Bio",
                 Gender.MALE, "image123", "image.jpg", userRole);
 
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
-        when(userRepository.findById(followUserId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName()))
+                .thenReturn(Optional.of(reqUser));
+        when(userRepository.findByIdAndRole_RoleName(followUserId, userRole.getRoleName()))
+                .thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1508,8 +1514,8 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(followUserId));
 
-        verify(userRepository, times(1)).findById(reqUserId);
-        verify(userRepository, times(1)).findById(followUserId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(reqUserId, userRole.getRoleName());
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(followUserId, userRole.getRoleName());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -1520,7 +1526,8 @@ class UserServiceTest {
         Long reqUserId = 1L;
         Long followUserId = 2L;
 
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName()))
+                .thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1528,8 +1535,8 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(reqUserId));
 
-        verify(userRepository, times(1)).findById(reqUserId);
-        verify(userRepository, times(0)).findById(followUserId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(reqUserId, userRole.getRoleName());
+        verify(userRepository, times(0)).findByIdAndRole_RoleName(followUserId, userRole.getRoleName());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -1543,8 +1550,9 @@ class UserServiceTest {
         User followUser = new User();
         followUser.setId(reqUserId);
 
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(followUser));
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName())).thenReturn(Optional.of(reqUser));
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName())).thenReturn(Optional.of(followUser));
+
 
         // When
         // Then
@@ -1552,7 +1560,7 @@ class UserServiceTest {
                 .isInstanceOf(RequestValidationException.class)
                 .hasMessage("Invalid Request: You cannot unfollow your own profile.");
 
-        verify(userRepository, times(2)).findById(reqUserId);
+        verify(userRepository, times(2)).findByIdAndRole_RoleName(reqUserId, userRole.getRoleName());
         verify(userRepository, times(0)).save(any(User.class));
     }
 
@@ -1573,16 +1581,16 @@ class UserServiceTest {
                 "1234567890", "www.example.com", "Bio",
                 Gender.FEMALE, "image123", "image.jpg", userRole);
 
-        when(userRepository.findById(reqUserId)).thenReturn(Optional.of(reqUser));
-        when(userRepository.findById(followUserId)).thenReturn(Optional.of(followUser));
+        when(userRepository.findByIdAndRole_RoleName(reqUserId, userRole.getRoleName())).thenReturn(Optional.of(reqUser));
+        when(userRepository.findByIdAndRole_RoleName(followUserId, userRole.getRoleName())).thenReturn(Optional.of(followUser));
 
         // When
         String actual = userService.unfollowUser(reqUserId, followUserId);
 
         // Then
         assertThat(actual).isEqualTo("You have unfollowed " + followUser.getUserHandleName());
-        verify(userRepository, times(1)).findById(reqUserId);
-        verify(userRepository, times(1)).findById(followUserId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(reqUserId, userRole.getRoleName());
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(followUserId, userRole.getRoleName());
         verify(userRepository, times(1)).save(reqUser);
         verify(userRepository, times(1)).save(followUser);
     }
@@ -1600,7 +1608,8 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("No users found with the provided ID(s)");
 
-        verify(userRepository, times(1)).findAllUsersByUserIds(userIds);
+        verify(userRepository, times(1)).findAllUsersByUserIdsAndRole_RoleName(
+                userIds, userRole.getRoleName());
     }
 
     @Test
@@ -1609,7 +1618,8 @@ class UserServiceTest {
         // Given
         Long authUserId = 5L;
         List<Long> userIds = List.of(1L, 2L, 3L);
-        when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(new ArrayList<>());
+        when(userRepository.findAllUsersByUserIdsAndRole_RoleName(
+                userIds, userRole.getRoleName())).thenReturn(new ArrayList<>());
 
         // When
         // Then
@@ -1617,7 +1627,8 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("No users found with the provided ID(s)");
 
-        verify(userRepository, times(1)).findAllUsersByUserIds(userIds);
+        verify(userRepository, times(1)).findAllUsersByUserIdsAndRole_RoleName(
+                userIds, userRole.getRoleName());
     }
 
     @Test
@@ -1645,14 +1656,16 @@ class UserServiceTest {
                         new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"))
         );
 
-        when(userRepository.findAllUsersByUserIds(userIds)).thenReturn(users);
+        when(userRepository.findAllUsersByUserIdsAndRole_RoleName(
+                userIds, userRole.getRoleName())).thenReturn(users);
 
         // When
         List<UserSummaryDTO> actualUsers = userService.findUserByIds(authUserId, userIds);
 
         // Then
         assertThat(actualUsers).isEqualTo(expectedUsers);
-        verify(userRepository, times(1)).findAllUsersByUserIds(userIds);
+        verify(userRepository, times(1)).findAllUsersByUserIdsAndRole_RoleName(
+                userIds, userRole.getRoleName());
     }
 
     @Test
@@ -1665,7 +1678,8 @@ class UserServiceTest {
 
         Page<User> usersPage = new PageImpl<>(new ArrayList<>(), pageRequest.toPageable(), 0);
 
-        when(userRepository.findByQuery(authUserId, searchQuery.toLowerCase(), pageRequest.toPageable())).thenReturn(usersPage);
+        when(userRepository.findByQueryAndRole_RoleName(
+                authUserId, searchQuery.toLowerCase(), userRole.getRoleName(), pageRequest.toPageable())).thenReturn(usersPage);
 
         // When
         PagedResponse<UserSummaryDTO> actualUsersPage = userService.searchUser(authUserId, searchQuery, pageRequest);
@@ -1673,7 +1687,8 @@ class UserServiceTest {
         // Then
         assertThat(actualUsersPage.content().size()).isEqualTo(0);
 
-        verify(userRepository, times(1)).findByQuery(authUserId, searchQuery.toLowerCase(), pageRequest.toPageable());
+        verify(userRepository, times(1)).findByQueryAndRole_RoleName(
+                authUserId, searchQuery.toLowerCase(), userRole.getRoleName(), pageRequest.toPageable());
     }
 
     @Test
@@ -1700,7 +1715,8 @@ class UserServiceTest {
         );
         Page<User> usersPage = new PageImpl<>(users, pageRequest.toPageable(), users.size());
 
-        when(userRepository.findByQuery(authUserId, searchQuery.toLowerCase(), pageRequest.toPageable())).thenReturn(usersPage);
+        when(userRepository.findByQueryAndRole_RoleName(
+                authUserId, searchQuery.toLowerCase(), userRole.getRoleName(), pageRequest.toPageable())).thenReturn(usersPage);
 
         // When
         PagedResponse<UserSummaryDTO> actualUsersPage = userService.searchUser(authUserId, searchQuery, pageRequest);
@@ -1714,7 +1730,8 @@ class UserServiceTest {
         assertThat(actualUsersPage.content().get(1).getUsername()).isEqualTo(expectedUsers.get(1).getUsername());
         assertThat(actualUsersPage.content().get(1).getName()).isEqualTo(expectedUsers.get(1).getName());
 
-        verify(userRepository, times(1)).findByQuery(authUserId, searchQuery.toLowerCase(), pageRequest.toPageable());
+        verify(userRepository, times(1)).findByQueryAndRole_RoleName(
+                authUserId, searchQuery.toLowerCase(), userRole.getRoleName(), pageRequest.toPageable());
     }
 
     @Test
@@ -1723,7 +1740,7 @@ class UserServiceTest {
         // Given
         Long userId = 1L;
 
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.empty());
 
         // When
         // Then
@@ -1731,8 +1748,9 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("User with id [%s] not found".formatted(userId));
 
-        verify(userRepository, times(1)).findById(userId);
-        verify(userRepository, times(0)).findPopularUsers(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
+        verify(userRepository, times(0)).findPopularUsersByRole_RoleName(
+                userId, userRole.getRoleName());
     }
 
     @Test
@@ -1758,8 +1776,9 @@ class UserServiceTest {
                         new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"))
         );
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userRepository.findPopularUsers(userId)).thenReturn(popularUsers);
+        when(userRepository.findByIdAndRole_RoleName(userId, userRole.getRoleName())).thenReturn(Optional.of(user));
+        when(userRepository.findPopularUsersByRole_RoleName(
+                userId, userRole.getRoleName())).thenReturn(popularUsers);
 
         // When
         List<UserSummaryDTO> actualPopularUsers = userService.findPopularUsers(userId);
@@ -1767,8 +1786,9 @@ class UserServiceTest {
         // Then
         assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
 
-        verify(userRepository, times(1)).findById(userId);
-        verify(userRepository, times(1)).findPopularUsers(userId);
+        verify(userRepository, times(1)).findByIdAndRole_RoleName(userId, userRole.getRoleName());
+        verify(userRepository, times(1)).findPopularUsersByRole_RoleName(
+                userId, userRole.getRoleName());
         assertThat(actualPopularUsers.get(0).getUsername()).isEqualTo(expectedPopularUsers.get(0).getUsername());
         assertThat(actualPopularUsers.get(1).getUsername()).isEqualTo(expectedPopularUsers.get(1).getUsername());
     }
@@ -1777,14 +1797,16 @@ class UserServiceTest {
     @DisplayName("Should return an empty list when no users exist")
     void findPopularUsersPublicWhenUsersDoNotExist() {
         // Given
-        when(userRepository.findPopularUsers(null)).thenReturn(new ArrayList<>());
+        when(userRepository.findPopularUsersByRole_RoleName(
+                null, userRole.getRoleName())).thenReturn(new ArrayList<>());
 
         // When
         List<UserSummaryDTO> actualPopularUsers = userService.findPopularUsersPublic();
 
         // Then
         assertThat(actualPopularUsers.isEmpty()).isTrue();
-        verify(userRepository, times(1)).findPopularUsers(null);
+        verify(userRepository, times(1)).findPopularUsersByRole_RoleName(
+                null, userRole.getRoleName());
     }
 
     @Test
@@ -1811,7 +1833,8 @@ class UserServiceTest {
                         new LinkedHashSet<>(), false, new ArrayList<>(), List.of("ROLE_USER"))
         );
 
-        when(userRepository.findPopularUsers(null)).thenReturn(popularUsers);
+        when(userRepository.findPopularUsersByRole_RoleName(
+                null, userRole.getRoleName())).thenReturn(popularUsers);
 
         // When
         List<UserSummaryDTO> actualPopularUsers = userService.findPopularUsersPublic();
@@ -1819,7 +1842,7 @@ class UserServiceTest {
         // Then
         assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
 
-        verify(userRepository, times(1)).findPopularUsers(null);
+        verify(userRepository, times(1)).findPopularUsersByRole_RoleName(null, userRole.getRoleName());
         assertThat(actualPopularUsers.get(0).getUsername()).isEqualTo(expectedPopularUsers.get(0).getUsername());
         assertThat(actualPopularUsers.get(1).getUsername()).isEqualTo(expectedPopularUsers.get(1).getUsername());
         assertThat(actualPopularUsers.get(2).getUsername()).isEqualTo(expectedPopularUsers.get(2).getUsername());

@@ -12,29 +12,52 @@ import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
-    List<Post> findByUserId(Long userId);
+    @Query("SELECT p FROM Post p WHERE p.id = :postId AND p.user.role.roleName = :roleName")
+    Optional<Post> findByIdAndUser_Role(@Param("postId") Long postId,
+                                        @Param("roleName") String roleName);
 
-    @Query("select p from Post p where p.user.id = :userId")
-    Page<Post> findPostsByUserId(@Param("userId") Long userId, Pageable pageable);
+    List<Post> findAllPostsByUserId(Long userId);
 
-    @Query("select p from Post p where p.user.id in :userIds")
-    Page<Post> findAllPostsByUserIds(@Param("userIds") List<Long> userIds,
-                                     Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE p.user.id = :userId AND p.user.role.roleName = :roleName")
+    Page<Post> findAllPostsByUserIdAndUser_Role(
+            @Param("userId") Long userId,
+            @Param("roleName") String roleName,
+            Pageable pageable);
 
-    @Query("select p from Post p")
-    Page<Post> findAllPosts(Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE p.user.id IN :userIds AND p.user.role.roleName = :roleName")
+    Page<Post> findAllPostsByUserIdsAndUser_Role(
+            @Param("userIds") List<Long> userIds,
+            @Param("roleName") String roleName,
+            Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.user.role.roleName = :roleName")
+    Page<Post> findAllPostsByUser_Role(@Param("roleName") String roleName,
+                                       Pageable pageable);
 
     @Query("SELECT DISTINCT p FROM Post p JOIN p.likedByUsers u WHERE u.id = :userId")
     List<Post> findLikedPostsByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT DISTINCT p FROM Post p JOIN p.savedByUsers u WHERE u.id = :userId")
-    Page<Post> findSavedPostsByUserId(@Param("userId") Long userId, Pageable pageable);
+    @Query("SELECT DISTINCT p FROM Post p JOIN p.likedByUsers u WHERE u.id = :userId AND p.user.role.roleName = :roleName")
+    List<Post> findLikedPostsByUserIdAndUser_Role(@Param("userId") Long userId,
+                                                  @Param("roleName") String roleName);
 
-    @Query("SELECT COUNT(p) > 0 FROM Post p JOIN p.likedByUsers u WHERE p.id = :postId AND u.id = :userId")
-    Boolean isPostLikedByUser(@Param("postId") Long postId, @Param("userId") Long userId);
+    @Query("SELECT DISTINCT p FROM Post p JOIN p.savedByUsers u WHERE u.id = :userId AND p.user.role.roleName = :roleName")
+    Page<Post> findSavedPostsByUserIdAndUser_Role(
+            @Param("userId") Long userId,
+            @Param("roleName") String roleName,
+            Pageable pageable);
 
-    @Query("SELECT COUNT(p) > 0 FROM Post p JOIN p.savedByUsers u WHERE p.id = :postId AND u.id = :userId")
-    Boolean isPostSavedByUser(@Param("postId") Long postId, @Param("userId") Long userId);
+    @Query("SELECT COUNT(p) > 0 FROM Post p JOIN p.likedByUsers u WHERE p.id = :postId AND u.id = :userId AND p.user.role.roleName = :roleName")
+    Boolean isPostLikedByUserAndUser_Role(
+            @Param("postId") Long postId,
+            @Param("userId") Long userId,
+            @Param("roleName") String roleName);
+
+    @Query("SELECT COUNT(p) > 0 FROM Post p JOIN p.savedByUsers u WHERE p.id = :postId AND u.id = :userId AND p.user.role.roleName = :roleName")
+    Boolean isPostSavedByUserAndUser_Role(
+            @Param("postId") Long postId,
+            @Param("userId") Long userId,
+            @Param("roleName") String roleName);
 
     void deleteByUserId(Long userId);
 
@@ -113,4 +136,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     @Query("SELECT DISTINCT p FROM Post p WHERE (LOWER(p.caption) LIKE %:query% OR LOWER(p.location) LIKE %:query%) AND p.user.role.roleName <> :roleName")
     Page<Post> searchByCaptionOrLocationAndUser_Role_RoleNameNot(@Param("query") String query, @Param("roleName") String roleName, Pageable pageable);
+
 }

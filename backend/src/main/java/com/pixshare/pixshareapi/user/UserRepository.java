@@ -20,13 +20,24 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
-    Optional<User> findByUserHandleName(String username);
+    Optional<User> findByEmailAndRole_RoleName(String email, String roleName);
 
-    @Query("SELECT u FROM User u WHERE u.id IN :users")
-    List<User> findAllUsersByUserIds(@Param("users") List<Long> userIds);
+    Optional<User> findByUserHandleNameAndRole_RoleName(String username, String roleName);
 
-    @Query("SELECT DISTINCT u FROM User u WHERE (u.userHandleName LIKE %:query% OR LOWER(u.name) LIKE %:query% OR u.email LIKE %:query%) AND u.id <> :userId")
-    Page<User> findByQuery(@Param("userId") Long userId, @Param("query") String query, Pageable pageable);
+    Optional<User> findByIdAndRole_RoleName(Long userId, String roleName);
+
+    Page<User> findAllByRole_RoleName(String roleName, Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE u.id IN :users AND u.role.roleName = :roleName")
+    List<User> findAllUsersByUserIdsAndRole_RoleName(@Param("users") List<Long> userIds,
+                                                     @Param("roleName") String roleName);
+
+    @Query("SELECT DISTINCT u FROM User u WHERE (u.userHandleName LIKE %:query% OR LOWER(u.name) LIKE %:query% OR u.email LIKE %:query%) AND u.id <> :userId AND u.role.roleName = :roleName")
+    Page<User> findByQueryAndRole_RoleName(
+            @Param("userId") Long userId,
+            @Param("query") String query,
+            @Param("roleName") String roleName,
+            Pageable pageable);
 
     @Query("""
             SELECT u FROM User u
@@ -37,13 +48,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
             ON u.id = s.sid
             WHERE f.id IS NULL
             AND ( :userId IS NULL OR u.id <> :userId )
+            AND u.role.roleName = :roleName
             ORDER BY (COALESCE(uf.cnt, 0) + COALESCE(s.cnt, 0)) DESC, u.id DESC
             LIMIT 5
             """)
-    List<User> findPopularUsers(@Param("userId") @Nullable Long userId);
+    List<User> findPopularUsersByRole_RoleName(@Param("userId") @Nullable Long userId,
+                                               @Param("roleName") String roleName);
 
-    @Query("SELECT COUNT(u) > 0 FROM User u JOIN u.follower uf WHERE u.id = :followUserId AND uf.id = :userId")
-    Boolean isFollowedByUser(@Param("followUserId") Long followUserId, @Param("userId") Long userId);
+    @Query("SELECT COUNT(u) > 0 FROM User u JOIN u.follower uf WHERE u.id = :followUserId AND uf.id = :userId AND u.role.roleName = :roleName")
+    Boolean isFollowedByUserAndRole_RoleName(
+            @Param("followUserId") Long followUserId,
+            @Param("userId") Long userId,
+            @Param("roleName") String roleName);
 
     Long countByRole_RoleName(String roleName);
 
