@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,9 +28,11 @@ public class StoryController {
     }
 
     @PostMapping("/create")
-    public void createStory(@RequestBody StoryRequest request, @RequestHeader("Authorization") String authHeader) {
+    public void createStory(@RequestBody StoryRequest request,
+                            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
+
         storyService.createStory(request, identity.getId());
     }
 
@@ -43,9 +46,10 @@ public class StoryController {
     @DeleteMapping("/delete/{storyId}")
     public void deleteStory(
             @PathVariable("storyId") Long storyId,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
+        
         storyService.deleteStory(storyId, identity.getId());
     }
 
