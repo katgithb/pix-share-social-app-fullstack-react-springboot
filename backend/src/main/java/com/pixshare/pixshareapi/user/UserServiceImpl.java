@@ -147,7 +147,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean verifyPassword(Long userId, String password) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         // Check if the password matches
@@ -156,7 +156,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updatePassword(Long userId, String newPassword) throws ResourceNotFoundException, RequestValidationException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
         String password = user.getPassword();
 
@@ -186,7 +186,7 @@ public class UserServiceImpl implements UserService {
         passwordResetAttemptService.savePasswordResetAttempt(email, timestamp.getTime());
 
         // Check if user exists with email
-        Optional<User> userOptional = userRepository.findByEmail(email);
+        Optional<User> userOptional = userRepository.findByEmailAndRole_RoleName(email, RoleName.USER.name());
         if (userOptional.isEmpty()) {
             return;
         }
@@ -228,7 +228,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // Check if user exists with email
-        Optional<User> userOptional = userRepository.findByEmail(email);
+        Optional<User> userOptional = userRepository.findByEmailAndRole_RoleName(email, RoleName.USER.name());
         if (userOptional.isEmpty()) {
             return;
         }
@@ -247,7 +247,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUserImage(Long userId, MultipartFile imageFile) throws ResourceNotFoundException, RequestValidationException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         // Get image bytes from image file
@@ -283,7 +283,7 @@ public class UserServiceImpl implements UserService {
     public void updateUser(Long userId, UserUpdateRequest updateRequest) throws ResourceNotFoundException, DuplicateResourceException, RequestValidationException {
         // can be used to avoid database query
         // User user = userRepository.getReferenceById(userId)
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         if (existsUserWithEmail(updateRequest.email())) {
@@ -316,7 +316,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         removeUserFromLikedComments(user);
@@ -343,11 +343,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserSummaryDTO findUserById(Long authUserId, Long userId) throws ResourceNotFoundException {
-        return userRepository.findById(userId)
+        return userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .map(userSummaryDTOMapper)
                 .map(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
-                            userRepository.isFollowedByUser(userDTO.getId(), authUserId)
+                            userRepository.isFollowedByUserAndRole_RoleName(userDTO.getId(), authUserId, RoleName.USER.name())
                     );
                     userDTO.setStories(
                             storyService.findStoriesByUserId(userDTO.getId())
@@ -359,11 +359,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserSummaryDTO findUserByEmail(Long authUserId, String email) throws ResourceNotFoundException {
-        UserSummaryDTO user = userRepository.findByEmail(email)
+        UserSummaryDTO user = userRepository.findByEmailAndRole_RoleName(email, RoleName.USER.name())
                 .map(userSummaryDTOMapper)
                 .map(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
-                            userRepository.isFollowedByUser(userDTO.getId(), authUserId)
+                            userRepository.isFollowedByUserAndRole_RoleName(userDTO.getId(), authUserId, RoleName.USER.name())
                     );
                     userDTO.setStories(
                             storyService.findStoriesByUserId(userDTO.getId())
@@ -377,11 +377,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserSummaryDTO findUserByUsername(Long authUserId, String username) throws ResourceNotFoundException {
-        UserSummaryDTO user = userRepository.findByUserHandleName(username)
+        UserSummaryDTO user = userRepository.findByUserHandleNameAndRole_RoleName(username, RoleName.USER.name())
                 .map(userSummaryDTOMapper)
                 .map(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
-                            userRepository.isFollowedByUser(userDTO.getId(), authUserId)
+                            userRepository.isFollowedByUserAndRole_RoleName(userDTO.getId(), authUserId, RoleName.USER.name())
                     );
                     userDTO.setStories(
                             storyService.findStoriesByUserId(userDTO.getId())
@@ -395,7 +395,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO findUserProfile(Long authUserId) throws ResourceNotFoundException {
-        UserDTO user = userRepository.findById(authUserId)
+        UserDTO user = userRepository.findByIdAndRole_RoleName(authUserId, RoleName.USER.name())
                 .map(userDTOMapper)
                 .map(userDTO -> {
                     userDTO.setStories(
@@ -410,9 +410,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String followUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException, RequestValidationException {
-        User reqUser = userRepository.findById(reqUserId)
+        User reqUser = userRepository.findByIdAndRole_RoleName(reqUserId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(reqUserId)));
-        User followUser = userRepository.findById(followUserId)
+        User followUser = userRepository.findByIdAndRole_RoleName(followUserId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(followUserId)));
 
         if (reqUserId.equals(followUserId)) {
@@ -429,9 +429,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String unfollowUser(Long reqUserId, Long followUserId) throws ResourceNotFoundException, RequestValidationException {
-        User reqUser = userRepository.findById(reqUserId)
+        User reqUser = userRepository.findByIdAndRole_RoleName(reqUserId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(reqUserId)));
-        User followUser = userRepository.findById(followUserId)
+        User followUser = userRepository.findByIdAndRole_RoleName(followUserId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(followUserId)));
 
         if (reqUserId.equals(followUserId)) {
@@ -449,11 +449,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserSummaryDTO> findUserByIds(Long authUserId, List<Long> userIds) throws ResourceNotFoundException {
-        List<UserSummaryDTO> users = userRepository.findAllUsersByUserIds(userIds).stream()
+        List<UserSummaryDTO> users = userRepository.findAllUsersByUserIdsAndRole_RoleName(userIds, RoleName.USER.name()).stream()
                 .map(userSummaryDTOMapper)
                 .peek(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
-                            userRepository.isFollowedByUser(userDTO.getId(), authUserId)
+                            userRepository.isFollowedByUserAndRole_RoleName(userDTO.getId(), authUserId, RoleName.USER.name())
                     );
                     userDTO.setStories(
                             storyService.findStoriesByUserId(userDTO.getId())
@@ -474,7 +474,7 @@ public class UserServiceImpl implements UserService {
 
         // create Pageable instance
         Pageable pageable = pageRequest.toPageable();
-        Page<User> pagedUsers = userRepository.findByQuery(userId, searchQueryLowerCase, pageable);
+        Page<User> pagedUsers = userRepository.findByQueryAndRole_RoleName(userId, searchQueryLowerCase, RoleName.USER.name(), pageable);
 
         // get users content from Page
         List<UserSummaryDTO> content = pagedUsers.getContent()
@@ -482,7 +482,7 @@ public class UserServiceImpl implements UserService {
                 .map(userSummaryDTOMapper)
                 .peek(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
-                            userRepository.isFollowedByUser(userDTO.getId(), userId)
+                            userRepository.isFollowedByUserAndRole_RoleName(userDTO.getId(), userId, RoleName.USER.name())
                     );
                     userDTO.setStories(
                             storyService.findStoriesByUserId(userDTO.getId())
@@ -501,13 +501,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserSummaryDTO> findPopularUsers(Long userId) throws ResourceNotFoundException {
-        User reqUser = userRepository.findById(userId)
+        User reqUser = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        List<UserSummaryDTO> users = userRepository.findPopularUsers(reqUser.getId()).stream()
+        List<UserSummaryDTO> users = userRepository.findPopularUsersByRole_RoleName(reqUser.getId(), RoleName.USER.name()).stream()
                 .map(userSummaryDTOMapper)
                 .peek(userDTO -> {
                     userDTO.setIsFollowedByAuthUser(
-                            userRepository.isFollowedByUser(userDTO.getId(), reqUser.getId())
+                            userRepository.isFollowedByUserAndRole_RoleName(userDTO.getId(), reqUser.getId(), RoleName.USER.name())
                     );
                     userDTO.setStories(
                             storyService.findStoriesByUserId(userDTO.getId())
@@ -520,7 +520,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserSummaryDTO> findPopularUsersPublic() {
-        List<UserSummaryDTO> users = userRepository.findPopularUsers(null).stream()
+        List<UserSummaryDTO> users = userRepository.findPopularUsersByRole_RoleName(null, RoleName.USER.name()).stream()
                 .map(userSummaryDTOMapper)
                 .toList();
 
@@ -530,7 +530,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void cleanupExpiredUserData(Long userId) {
-        Optional<User> userOptional = userRepository.findById(userId);
+        Optional<User> userOptional = userRepository.findByIdAndRole_RoleName(
+                userId, RoleName.USER.name());
 
         // Check if user exists
         if (userOptional.isEmpty()) {
@@ -675,7 +676,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private void removePostImageResourcesByUser(User user) {
-        List<String> postImageUploadIds = postRepository.findByUserId(user.getId())
+        List<String> postImageUploadIds = postRepository.findAllPostsByUserId(user.getId())
                 .stream()
                 .map(Post::getImageUploadId)
                 .filter(imageUploadId -> imageUploadId != null && !imageUploadId.isBlank())
@@ -723,7 +724,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private void deleteCommentsFromUserPosts(User user) {
-        List<Long> postIds = postRepository.findByUserId(user.getId())
+        List<Long> postIds = postRepository.findAllPostsByUserId(user.getId())
                 .stream()
                 .map(Post::getId)
                 .collect(Collectors.toList());
