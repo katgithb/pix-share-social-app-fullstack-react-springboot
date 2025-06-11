@@ -9,6 +9,7 @@ import com.pixshare.pixshareapi.jwt.JWTUtil;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -71,5 +72,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return userTokenIdentityMapper.apply(user);
     }
 
+    @Override
+    public UserTokenIdentity getAuthenticatedUserIdentity(Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+
+        return userTokenIdentityMapper.apply(user);
+    }
+
+    private User getUserFromAuthentication(Authentication authentication) throws InsufficientAuthenticationException {
+
+        return Optional.ofNullable(authentication)
+                .map(Authentication::getPrincipal)
+                .filter(User.class::isInstance)
+                .map(User.class::cast)
+                .orElseThrow(() -> new InsufficientAuthenticationException("Authentication is required to access this resource"));
+    }
 
 }
