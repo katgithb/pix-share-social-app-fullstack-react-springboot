@@ -7,6 +7,7 @@ import com.pixshare.pixshareapi.story.StoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,9 +39,9 @@ public class UserController {
     @GetMapping("/id/{userId}")
     public ResponseEntity<UserSummaryDTO> findUserById(
             @PathVariable("userId") Long userId,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         UserSummaryDTO user = userService.findUserById(identity.getId(), userId);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
@@ -49,9 +50,9 @@ public class UserController {
     @GetMapping("/username/{username}")
     public ResponseEntity<UserSummaryDTO> findUserByUsername(
             @PathVariable("username") String username,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         UserSummaryDTO user = userService.findUserByUsername(identity.getId(), username);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
@@ -60,9 +61,9 @@ public class UserController {
     @GetMapping("/m/{userIds}")
     public ResponseEntity<List<UserSummaryDTO>> findUserByIds(
             @PathVariable("userIds") List<Long> userIds,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         List<UserSummaryDTO> users = userService.findUserByIds(identity.getId(), userIds);
 
         return new ResponseEntity<>(users, HttpStatus.OK);
@@ -73,9 +74,9 @@ public class UserController {
     public ResponseEntity<PagedResponse<UserSummaryDTO>> searchUser(
             @RequestParam("q") String query,
             @ModelAttribute PageRequestDTO pageRequest,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         PagedResponse<UserSummaryDTO> userResponse = userService.searchUser(identity.getId(), query, pageRequest);
 
         return new ResponseEntity<>(userResponse, HttpStatus.OK);
@@ -83,9 +84,9 @@ public class UserController {
 
     @GetMapping("/popular")
     public ResponseEntity<List<UserSummaryDTO>> findPopularUsers(
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         List<UserSummaryDTO> users = userService.findPopularUsers(identity.getId());
 
         return new ResponseEntity<>(users, HttpStatus.OK);
@@ -101,9 +102,9 @@ public class UserController {
     @PutMapping("/follow/{userId}")
     public ResponseEntity<MessageResponse> followUser(
             @PathVariable("userId") Long userId,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         String message = userService.followUser(identity.getId(), userId);
         MessageResponse response = new MessageResponse(message);
 
@@ -113,9 +114,9 @@ public class UserController {
     @PutMapping("/unfollow/{userId}")
     public ResponseEntity<MessageResponse> unfollowUser(
             @PathVariable("userId") Long userId,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         String message = userService.unfollowUser(identity.getId(), userId);
         MessageResponse response = new MessageResponse(message);
 
@@ -124,9 +125,9 @@ public class UserController {
 
     @GetMapping("/account/profile")
     public ResponseEntity<UserDTO> findUserProfile(
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         UserDTO user = userService.findUserProfile(identity.getId());
 
         return new ResponseEntity<>(user, HttpStatus.OK);
@@ -134,10 +135,10 @@ public class UserController {
 
     @GetMapping("/account/saved")
     public ResponseEntity<PagedResponse<PostDTO>> findSavedPostsByUserId(
-            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication,
             @ModelAttribute PageRequestDTO pageRequest) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         PagedResponse<PostDTO> postResponse = postService.findSavedPostsByUserId(identity.getId(), pageRequest);
 
         return new ResponseEntity<>(postResponse, HttpStatus.OK);
@@ -146,9 +147,9 @@ public class UserController {
     @PostMapping("/account/password/verify")
     public ResponseEntity<Boolean> verifyPassword(
             @RequestBody UserPasswordRequest passwordRequest,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         boolean passwordsMatch = userService.verifyPassword(identity.getId(), passwordRequest.currPassword());
 
         return new ResponseEntity<>(passwordsMatch, HttpStatus.OK);
@@ -157,9 +158,9 @@ public class UserController {
     @PutMapping("/account/password/update")
     public void updatePassword(
             @RequestBody UserPasswordRequest passwordRequest,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
 
         userService.updatePassword(identity.getId(), passwordRequest.newPassword());
     }
@@ -196,36 +197,36 @@ public class UserController {
 
     @PutMapping("/account/profile/image/update")
     public void updateUserImage(
-            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication,
             @RequestParam("image") MultipartFile imageFile
     ) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         userService.updateUserImage(identity.getId(), imageFile);
     }
 
     @DeleteMapping("/account/profile/image/delete")
     public void removeUserImage(
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         userService.removeUserImage(identity.getId());
     }
 
     @PutMapping("/account/edit")
     public void updateUser(
             @RequestBody UserUpdateRequest updateRequest,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         userService.updateUser(identity.getId(), updateRequest);
     }
 
     @DeleteMapping("/account/delete")
     public void deleteUser(
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         userService.deleteUser(identity.getId());
     }
 
