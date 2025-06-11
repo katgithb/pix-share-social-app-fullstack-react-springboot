@@ -5,7 +5,11 @@ import com.pixshare.pixshareapi.dto.UserTokenIdentity;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
@@ -26,9 +30,9 @@ public class UploadController {
     @PostMapping("/signature")
     public ResponseEntity<UploadSignatureResponse> generateSignature(
             @RequestBody UploadSignatureRequest signatureRequest,
-            @RequestHeader("Authorization") String authHeader) {
+            Authentication authentication) {
         UserTokenIdentity identity = authenticationService
-                .getUserIdentityFromToken(authHeader);
+                .getAuthenticatedUserIdentity(authentication);
         Map<String, String> uploadSignatureMap = uploadService.generateCloudinaryUploadSignature(identity.getId(), signatureRequest);
         UploadSignatureResponse response = new UploadSignatureResponse(uploadSignatureMap.get("uploadSignature"), uploadSignatureMap.get("timestamp"), uploadSignatureMap.get("public_id"));
 
