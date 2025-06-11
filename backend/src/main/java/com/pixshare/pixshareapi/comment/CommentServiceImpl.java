@@ -2,14 +2,13 @@ package com.pixshare.pixshareapi.comment;
 
 import com.pixshare.pixshareapi.dto.CommentDTO;
 import com.pixshare.pixshareapi.dto.CommentDTOMapper;
-import com.pixshare.pixshareapi.dto.UserSummaryDTO;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.post.Post;
 import com.pixshare.pixshareapi.post.PostRepository;
+import com.pixshare.pixshareapi.user.RoleName;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
-import com.pixshare.pixshareapi.user.UserService;
 import com.pixshare.pixshareapi.validation.ValidationUtil;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -23,8 +22,6 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
 
-    private final UserService userService;
-
     private final UserRepository userRepository;
 
     private final PostRepository postRepository;
@@ -33,9 +30,8 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentDTOMapper commentDTOMapper;
 
-    public CommentServiceImpl(CommentRepository commentRepository, UserService userService, UserRepository userRepository, PostRepository postRepository, ValidationUtil validationUtil, CommentDTOMapper commentDTOMapper) {
+    public CommentServiceImpl(CommentRepository commentRepository, UserRepository userRepository, PostRepository postRepository, ValidationUtil validationUtil, CommentDTOMapper commentDTOMapper) {
         this.commentRepository = commentRepository;
-        this.userService = userService;
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.validationUtil = validationUtil;
@@ -44,9 +40,9 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public void createComment(CommentRequest commentRequest, Long postId, Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndUser_Role(postId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Post with id [%s] not found".formatted(postId)));
 
         Comment comment = new Comment(
@@ -68,8 +64,10 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void deleteComment(Long commentId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
-        CommentDTO comment = findCommentById(commentId, userId);
-        UserSummaryDTO user = userService.findUserById(userId, userId);
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment with id [%s] not found".formatted(commentId)));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         if (!comment.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedActionException("You can't delete other user's comment");
@@ -80,13 +78,14 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentDTO findCommentById(Long commentId, Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        CommentDTO comment = commentRepository.findById(commentId)
+        CommentDTO comment = commentRepository.findByIdAndUser_Role(commentId, RoleName.USER.name())
                 .map(commentDTOMapper)
                 .map(commentDTO -> {
                     commentDTO.setIsLikedByAuthUser(
-                            commentRepository.isCommentLikedByUser(commentDTO.getId(), user.getId())
+                            commentRepository.isCommentLikedByUserAndUser_Role(
+                                    commentDTO.getId(), user.getId(), RoleName.USER.name())
                     );
                     return commentDTO;
                 })
@@ -98,14 +97,15 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentDTO> findCommentsByPostId(Long postId, Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        List<CommentDTO> comments = commentRepository.findCommentsByPostId(postId,
-                        Sort.by(Sort.Direction.DESC, "createdAt"))
+        List<CommentDTO> comments = commentRepository.findCommentsByPostIdAndUser_Role(
+                        postId, RoleName.USER.name(), Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream()
                 .map(commentDTOMapper)
                 .peek(commentDTO -> commentDTO.setIsLikedByAuthUser(
-                        commentRepository.isCommentLikedByUser(commentDTO.getId(), user.getId())
+                        commentRepository.isCommentLikedByUserAndUser_Role(
+                                commentDTO.getId(), user.getId(), RoleName.USER.name())
                 ))
                 .toList();
 
@@ -114,8 +114,8 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentDTO> findCommentsByPostIdPublic(Long postId) {
-        List<CommentDTO> comments = commentRepository.findCommentsByPostId(postId,
-                        Sort.by(Sort.Direction.DESC, "createdAt"))
+        List<CommentDTO> comments = commentRepository.findCommentsByPostIdAndUser_Role(
+                        postId, RoleName.USER.name(), Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream()
                 .map(commentDTOMapper)
                 .toList();
@@ -125,11 +125,12 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentDTO likeComment(Long commentId, Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        Comment comment = commentRepository.findById(commentId)
+        Comment comment = commentRepository.findByIdAndUser_Role(commentId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Comment with id [%s] not found".formatted(commentId)));
-        Boolean isCommentLiked = commentRepository.isCommentLikedByUser(comment.getId(), user.getId());
+        Boolean isCommentLiked = commentRepository.isCommentLikedByUserAndUser_Role(
+                comment.getId(), user.getId(), RoleName.USER.name());
 
         if (!isCommentLiked) {
             comment.getLikedByUsers().add(user);
@@ -144,11 +145,12 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentDTO unlikeComment(Long commentId, Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
-        Comment comment = commentRepository.findById(commentId)
+        Comment comment = commentRepository.findByIdAndUser_Role(commentId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Comment with id [%s] not found".formatted(commentId)));
-        Boolean isCommentLiked = commentRepository.isCommentLikedByUser(comment.getId(), user.getId());
+        Boolean isCommentLiked = commentRepository.isCommentLikedByUserAndUser_Role(
+                comment.getId(), user.getId(), RoleName.USER.name());
 
         if (isCommentLiked) {
             comment.getLikedByUsers().remove(user);
