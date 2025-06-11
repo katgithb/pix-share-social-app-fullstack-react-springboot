@@ -162,7 +162,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         String username = "nonexistentuser";
 
         // When
-        Optional<User> actualUser = userRepository.findByUserHandleName(username);
+        Optional<User> actualUser = userRepository.findByUserHandleNameAndRole_RoleName(
+                username, userRole.getRoleName());
 
         // Then
         assertThat(actualUser.isEmpty()).isTrue();
@@ -176,7 +177,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         userRepository.save(user);
 
         // When
-        Optional<User> actualUser = userRepository.findByUserHandleName(user.getUserHandleName());
+        Optional<User> actualUser = userRepository.findByUserHandleNameAndRole_RoleName(
+                user.getUserHandleName(), userRole.getRoleName());
 
         // Then
         assertThat(actualUser.isPresent()).isTrue();
@@ -190,7 +192,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         List<Long> userIds = List.of();
 
         // When
-        List<User> actualUsers = userRepository.findAllUsersByUserIds(userIds);
+        List<User> actualUsers = userRepository.findAllUsersByUserIdsAndRole_RoleName(
+                userIds, userRole.getRoleName());
 
         // Then
         assertThat(actualUsers.isEmpty()).isTrue();
@@ -203,7 +206,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         List<Long> userIds = List.of(1L, 2L, 3L);
 
         // When
-        List<User> actualUsers = userRepository.findAllUsersByUserIds(userIds);
+        List<User> actualUsers = userRepository.findAllUsersByUserIdsAndRole_RoleName(
+                userIds, userRole.getRoleName());
 
         // Then
         assertThat(actualUsers.isEmpty()).isTrue();
@@ -222,7 +226,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         List<Long> userIds = List.of(user1.getId(), user2.getId());
 
         // When
-        List<User> actualUsers = userRepository.findAllUsersByUserIds(userIds);
+        List<User> actualUsers = userRepository.findAllUsersByUserIdsAndRole_RoleName(
+                userIds, userRole.getRoleName());
 
         // Then
         assertThat(actualUsers.size()).isEqualTo(2);
@@ -238,7 +243,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         String query = "nonexistent";
 
         // When
-        Page<User> actualUsersPage = userRepository.findByQuery(userId, query, PageRequest.of(0, 10));
+        Page<User> actualUsersPage = userRepository.findByQueryAndRole_RoleName(
+                userId, query, userRole.getRoleName(), PageRequest.of(0, 10));
 
         // Then
         assertThat(actualUsersPage.getContent().size()).isEqualTo(0);
@@ -258,7 +264,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         userRepository.saveAll(users);
 
         // When
-        Page<User> actualUsersPage = userRepository.findByQuery(userId, query, PageRequest.of(0, 10));
+        Page<User> actualUsersPage = userRepository.findByQueryAndRole_RoleName(
+                userId, query, userRole.getRoleName(), PageRequest.of(0, 10));
 
         // Then
         assertThat(actualUsersPage.getContent().size()).isEqualTo(2);
@@ -272,7 +279,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         // Given
 
         // When
-        List<User> actualPopularUsers = userRepository.findPopularUsers(null);
+        List<User> actualPopularUsers = userRepository.findPopularUsersByRole_RoleName(
+                null, userRole.getRoleName());
 
         // Then
         assertThat(actualPopularUsers.isEmpty()).isTrue();
@@ -285,7 +293,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         Long userId = 1L;
 
         // When
-        List<User> actualPopularUsers = userRepository.findPopularUsers(userId);
+        List<User> actualPopularUsers = userRepository.findPopularUsersByRole_RoleName(
+                userId, userRole.getRoleName());
 
         // Then
         assertThat(actualPopularUsers.isEmpty()).isTrue();
@@ -306,7 +315,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         userRepository.saveAll(expectedPopularUsers);
 
         // When
-        List<User> actualPopularUsers = userRepository.findPopularUsers(null);
+        List<User> actualPopularUsers = userRepository.findPopularUsersByRole_RoleName(
+                null, userRole.getRoleName());
 
         // Then
         assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
@@ -328,7 +338,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         userRepository.saveAll(expectedPopularUsers);
 
         // When
-        List<User> actualPopularUsers = userRepository.findPopularUsers(user.getId());
+        List<User> actualPopularUsers = userRepository.findPopularUsersByRole_RoleName(
+                user.getId(), userRole.getRoleName());
 
         // Then
         assertThat(actualPopularUsers.size()).isEqualTo(expectedPopularUsers.size());
@@ -346,7 +357,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         userRepository.save(user);
 
         // When
-        boolean actual = userRepository.isFollowedByUser(followUser.getId(), user.getId());
+        boolean actual = userRepository.isFollowedByUserAndRole_RoleName(
+                followUser.getId(), user.getId(), userRole.getRoleName());
 
         // Then
         assertThat(actual).isFalse();
@@ -363,7 +375,8 @@ class UserRepositoryTest extends AbstractTestcontainers {
         userRepository.save(user);
 
         // When
-        boolean actual = userRepository.isFollowedByUser(followUser.getId(), user.getId());
+        boolean actual = userRepository.isFollowedByUserAndRole_RoleName(
+                followUser.getId(), user.getId(), userRole.getRoleName());
 
         // Then
         assertThat(actual).isTrue();
