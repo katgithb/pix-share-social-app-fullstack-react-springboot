@@ -5,6 +5,7 @@ import com.pixshare.pixshareapi.dto.StoryDTOMapper;
 import com.pixshare.pixshareapi.exception.ResourceNotFoundException;
 import com.pixshare.pixshareapi.exception.UnauthorizedActionException;
 import com.pixshare.pixshareapi.upload.UploadService;
+import com.pixshare.pixshareapi.user.RoleName;
 import com.pixshare.pixshareapi.user.User;
 import com.pixshare.pixshareapi.user.UserRepository;
 import org.springframework.data.domain.Sort;
@@ -34,7 +35,7 @@ public class StoryServiceImpl implements StoryService {
 
     @Override
     public void createStory(StoryRequest storyRequest, Long userId) throws ResourceNotFoundException {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdAndRole_RoleName(userId, RoleName.USER.name())
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
         Story story = new Story(
@@ -52,7 +53,8 @@ public class StoryServiceImpl implements StoryService {
     @Override
     @Transactional
     public void deleteStory(Long storyId, Long userId) throws ResourceNotFoundException, UnauthorizedActionException {
-        StoryDTO story = findStoryById(storyId);
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Story with id [%s] not found".formatted(storyId)));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id [%s] not found".formatted(userId)));
 
@@ -66,7 +68,7 @@ public class StoryServiceImpl implements StoryService {
 
     @Override
     public StoryDTO findStoryById(Long storyId) throws ResourceNotFoundException {
-        StoryDTO story = storyRepository.findById(storyId)
+        StoryDTO story = storyRepository.findByIdAndUser_Role(storyId, RoleName.USER.name())
                 .map(storyDTOMapper)
                 .orElseThrow(() -> new ResourceNotFoundException("Story with id [%s] not found".formatted(storyId)));
 
@@ -76,8 +78,8 @@ public class StoryServiceImpl implements StoryService {
 
     @Override
     public List<StoryDTO> findStoriesByUserId(Long userId) throws ResourceNotFoundException {
-        List<StoryDTO> stories = storyRepository.findStoriesByUserId(userId,
-                        Sort.by(Sort.Direction.DESC, "timestamp"))
+        List<StoryDTO> stories = storyRepository.findAllStoriesByUserIdAndUser_Role(
+                        userId, RoleName.USER.name(), Sort.by(Sort.Direction.DESC, "timestamp"))
                 .stream()
                 .map(storyDTOMapper)
                 .toList();
